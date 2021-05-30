@@ -1,7 +1,7 @@
 import logging
 import os
 import queue
-# from beemgraphenebase.types import Bool
+from beemgraphenebase.types import Bool
 import socketserver
 import zmq
 import threading
@@ -50,7 +50,9 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         if success:
             self.request.sendall("OK".encode("utf-8"))
         else:
-            self.request.sendall("ERR".encode("utf-8"))
+            message = f'ERR - {trx_id}'
+            self.request.sendall(message.encode("utf-8"))
+
 
 def url_in(url):
     """ Send a URL and I'll post it to Hive """
