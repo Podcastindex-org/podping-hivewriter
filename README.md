@@ -13,4 +13,8 @@ TODO: Use Github CI/CD to do this automatically on commit and push to Docker Hub
 
 Run the locally built docker image in a container, passing local port 5000 to port 5000 in the container
 
-`podman run --rm -p 5000:5000 -e HIVE_SERVER_ACCOUNT=<account> -e HIVE_POSTING_KEY=<posting-key> -e SECRET_KEY=<secret-key> podping-hivewriter:develop`
+`docker run --rm -p 5000:5000 -e HIVE_SERVER_ACCOUNT=<account> -e HIVE_POSTING_KEY=<posting-key> -e SECRET_KEY=<secret-key> podping-hivewriter:develop`
+
+Running with command line options, like testnet for example, add them at the end:
+
+`docker run --rm -p 5000:5000 -e HIVE_SERVER_ACCOUNT=<account> -e HIVE_POSTING_KEY=<posting-key> -e SECRET_KEY=<secret-key> podping-hivewriter:develop --test`
