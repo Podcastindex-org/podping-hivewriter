@@ -1,0 +1,27 @@
+FROM python:3.7-buster
+
+
+ARG HIVE_SERVER_ACCOUNT
+ARG HIVE_POSTING_KEY
+ARG SECRET_KEY
+
+ENV HIVE_SERVER_ACCOUNT $HIVE_SERVER_ACCOUNT \
+    HIVE_POSTING_KEY $HIVE_POSTING_KEY \
+    SECRET_KEY $SECRET_KEY \
+    PYTHONFAULTHANDLER=1 \
+    PYTHONHASHSEED=random \
+    PYTHONUNBUFFERED=1 \
+    PIP_DEFAULT_TIMEOUT=100 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
+
+RUN pip install poetry
+
+WORKDIR /app/
+COPY . /app/
+
+RUN poetry install --no-interaction --no-ansi
+
+EXPOSE 5000/tcp
+
+CMD ["poetry", "run", "python3", "hive-writer.py"]
