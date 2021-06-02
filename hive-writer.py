@@ -285,7 +285,7 @@ def url_q_worker():
             url_set_bytes < Config.MAX_URL_LIST_BYTES
         ):
             #  get next URL from Q
-            logging.info(f"Duration: {duration:.3f} - WAITING - Queue: {len(url_set)}")
+            logging.debug(f"Duration: {duration:.3f} - WAITING - Queue: {len(url_set)}")
             try:
                 url = Config.url_q.get(timeout=Config.HIVE_OPERATION_PERIOD)
             except Empty:

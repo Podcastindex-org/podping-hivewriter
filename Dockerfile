@@ -22,6 +22,7 @@ COPY . /app/
 
 RUN poetry install --no-interaction --no-ansi
 
-EXPOSE 5000/tcp
+EXPOSE 9999/tcp
+EXPOSE 9998/tcp
 
-CMD ["poetry", "run", "python3", "hive-writer.py"]
+ENTRYPOINT ["poetry", "run", "python3", "hive-writer.py"]
