@@ -15,7 +15,8 @@ import threading
 # COMMAND LINE
 # ---------------------------------------------------------------
 
-app_description = """ PodPing - Runs as a server and writes a stream of URLs to the Hive Blockchain or sends a single URL to Hive (--url option) """
+app_description = """ PodPing - Runs as a server and writes a stream of URLs to the Hive Blockchain or sends a single URL to Hive (--url option)
+Defaults to running the --zmq 9999 """
 
 
 my_parser = argparse.ArgumentParser(prog='hive-writer',

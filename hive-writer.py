@@ -383,7 +383,9 @@ def main() -> None:
         # Activate the server; this will keep running until you
         # interrupt the program with Ctrl-C
         server.serve_forever()
-    elif Config.zmq:
+    else:
+        if not Config.zmq:
+            Config.zmq == 9999
         context = zmq.Context()
         socket = context.socket(zmq.REP)
         socket.bind(f"tcp://*:{Config.zmq}")
@@ -393,10 +395,10 @@ def main() -> None:
             ans = "OK"
             socket.send(ans.encode("utf-8"))
 
-    else:
-        logging.error(
-            "You've got to specify --socket or --zmq otherwise I can't listen!"
-        )
+    # else:
+    #     logging.error(
+    #         "You've got to specify --socket or --zmq otherwise I can't listen!"
+    #     )
 
 
 if __name__ == "__main__":
