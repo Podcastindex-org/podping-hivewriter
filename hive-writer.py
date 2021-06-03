@@ -384,8 +384,6 @@ def main() -> None:
         # interrupt the program with Ctrl-C
         server.serve_forever()
     else:
-        if not Config.zmq:
-            Config.zmq == 9999
         context = zmq.Context()
         socket = context.socket(zmq.REP)
         socket.bind(f"tcp://*:{Config.zmq}")

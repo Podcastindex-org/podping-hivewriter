@@ -39,7 +39,7 @@ group_action_type.add_argument('-s', '--socket',
 group_action_type.add_argument('-z', '--zmq',
                        action='store', type=int, required=False,
                        metavar='',
-                       default= None,
+                       default= 9999,
                        help='<port> for ZMQ to listen on for each new url, returns either ')
 
 group_action_type.add_argument('-u', '--url',
@@ -114,7 +114,6 @@ class Config():
     test = os.getenv("USE_TEST_NODE", 'False').lower() in ('true', '1', 't')
     if my_args["test"]:
         test = True
-
 
     @classmethod
     def setup(cls):
