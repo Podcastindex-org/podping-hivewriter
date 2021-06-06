@@ -25,7 +25,6 @@ def startup_sequence(ignore_errors=False, resource_test=True) -> bool:
     """Run though a startup sequence connect to Hive and check env variables
     Exit with error unless ignore_errors passed as True
     Defaults to sending two startup resource_test posts and checking resources"""
-    global USE_TEST_NODE
     global hive
     error_messages = []
     # Set up Hive with error checking
@@ -45,7 +44,7 @@ def startup_sequence(ignore_errors=False, resource_test=True) -> bool:
         logging.error(error_messages[-1])
 
     try:
-        if USE_TEST_NODE:
+        if Config.test:
             hive = Hive(keys=Config.wif, node=Config.TEST_NODE)
             logging.info("---------------> Using Test Node " + Config.TEST_NODE[0])
         else:
