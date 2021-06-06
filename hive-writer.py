@@ -384,13 +384,13 @@ def main() -> None:
         server.serve_forever()
     else:
         context = zmq.Context()
-        socket = context.socket(zmq.REP)
-        socket.bind(f"tcp://*:{Config.zmq}")
+        zsocket = context.socket(zmq.REP)
+        zsocket.bind(f"tcp://*:{Config.zmq}")
         while True:
-            url = socket.recv().decode("utf-8")
+            url = zsocket.recv().decode("utf-8")
             Config.url_q.put(url)
             ans = "OK"
-            socket.send(ans.encode("utf-8"))
+            zsocket.send(ans.encode("utf-8"))
 
     # else:
     #     logging.error(
