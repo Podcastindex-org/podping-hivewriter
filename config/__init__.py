@@ -47,7 +47,7 @@ group_action_type.add_argument(
     type=int,
     required=False,
     metavar="",
-    default=None,
+    default=9999,
     help="<port> for ZMQ to listen on for each new url, returns either ",
 )
 
