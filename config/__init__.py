@@ -84,7 +84,7 @@ my_args = vars(args)
 class Config:
     """The Config Class"""
 
-    TEST_NODE = ["http://testnet.openhive.network:8091"]
+    TEST_NODE = ["https://testnet.openhive.network"]
     CURRENT_PODPING_VERSION = 2
     NOTIFICATION_REASONS = {"feed_update": 1, "new_feed": 2, "host_change": 3}
 
