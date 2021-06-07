@@ -1,8 +1,6 @@
 import argparse
-import logging
 import os
-import queue
-import threading
+from queue import Queue
 
 # Testnet instead of main Hive
 # BOL: Switching off TestNet, we should test on Hive for now.
@@ -11,8 +9,10 @@ import threading
 # ---------------------------------------------------------------
 # COMMAND LINE
 # ---------------------------------------------------------------
+from typing import Set
 
-app_description = """ PodPing - Runs as a server and writes a stream of URLs to the Hive Blockchain or sends a single URL to Hive (--url option)
+app_description = """ PodPing - Runs as a server and writes a stream of URLs to the 
+Hive Blockchain or sends a single URL to Hive (--url option)
 Defaults to running the --zmq 9999 """
 
 
@@ -30,16 +30,6 @@ group_noise.add_argument("-v", "--verbose", action="store_true", help="Lots of o
 
 
 group_action_type = my_parser.add_mutually_exclusive_group()
-group_action_type.add_argument(
-    "-s",
-    "--socket",
-    action="store",
-    type=int,
-    required=False,
-    metavar="",
-    default=None,
-    help="<port> Socket to listen on for each new url, returns either ",
-)
 group_action_type.add_argument(
     "-z",
     "--zmq",
@@ -59,7 +49,8 @@ group_action_type.add_argument(
     required=False,
     metavar="",
     default=None,
-    help="<url> Takes in a single URL and sends a single podping to Hive, needs HIVE_SERVER_ACCOUNT and HIVE_POSTING_KEY ENV variables set",
+    help="<url> Takes in a single URL and sends a single podping to Hive, "
+    "needs HIVE_SERVER_ACCOUNT and HIVE_POSTING_KEY ENV variables set",
 )
 
 my_parser.add_argument(
@@ -94,7 +85,6 @@ class Config:
 
     # This is a global signal to shut down until RC's recover
     # Stores the RC cost of each operation to calculate an average
-    HALT_THE_QUEUE = False
     # HALT_TIME = [1,2,3]
     HALT_TIME = [0, 1, 1, 1, 1, 1, 1, 1, 3, 6, 9, 15, 15, 15, 15, 15, 15, 15]
 
@@ -103,14 +93,13 @@ class Config:
     # ---------------------------------------------------------------
     # GLOBAL:
     server_account = os.getenv("HIVE_SERVER_ACCOUNT")
-    wif = [os.getenv("HIVE_POSTING_KEY")]
+    posting_key = [os.getenv("HIVE_POSTING_KEY")]
 
     # Adding a Queue system to the Hive send_notification section
-    hive_q = queue.Queue()
+    hive_q: "Queue[Set[str]]" = Queue()
     # Move the URL Q into a proper Q
-    url_q = queue.Queue()
+    url_q: "Queue[str]" = Queue()
 
-    socket = my_args["socket"]
     url = my_args["url"]
     zmq = my_args["zmq"]
     errors = my_args["errors"]
