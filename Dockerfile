@@ -1,26 +1,21 @@
 FROM python:3.7-buster
 
 
-ARG HIVE_SERVER_ACCOUNT
-ARG HIVE_POSTING_KEY
-
-ENV HIVE_SERVER_ACCOUNT $HIVE_SERVER_ACCOUNT \
-    HIVE_POSTING_KEY $HIVE_POSTING_KEY \
-    PYTHONFAULTHANDLER=1 \
+ENV PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random \
     PYTHONUNBUFFERED=1 \
     PIP_DEFAULT_TIMEOUT=100 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
 
-RUN pip install poetry
-
 WORKDIR /app/
 COPY . /app/
 
-RUN poetry install --no-interaction --no-ansi
+RUN pip install --quiet poetry \
+    && poetry config virtualenvs.create false \
+    && poetry install --no-dev --quiet --no-interaction --no-ansi \
+    && pip uninstall --yes --quiet poetry
 
 EXPOSE 9999/tcp
-EXPOSE 9998/tcp
 
-ENTRYPOINT ["poetry", "run", "python3", "hive-writer.py"]
+ENTRYPOINT ["python3", "podping_hivewriter/hive-writer.py"]
