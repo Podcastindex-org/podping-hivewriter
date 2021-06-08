@@ -14,7 +14,7 @@ from beem.account import Account
 from beem.exceptions import AccountDoesNotExistsException, MissingKeyError
 from beemapi.exceptions import UnhandledRPCError
 
-from config import Config
+from podping_hivewriter.config import Config
 
 logging.basicConfig(
     level=logging.INFO,
@@ -346,11 +346,10 @@ def main() -> None:
     socket = context.socket(zmq.REP)
     socket.bind(f"tcp://*:{Config.zmq}")
     while True:
-        url_bytes: bytes = socket.recv_string()
-        url: str = url_bytes.decode("utf-8")
+        url: str = socket.recv_string()
         Config.url_q.put(url)
         ans = "OK"
-        socket.send(ans.encode("utf-8"))
+        socket.send_string(ans)
 
     # else:
     #     logging.error(

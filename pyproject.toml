@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "podping-hivewriter"
+name = "podping_hivewriter"
 version = "0.1.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
