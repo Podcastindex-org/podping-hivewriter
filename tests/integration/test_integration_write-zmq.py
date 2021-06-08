@@ -1,8 +1,6 @@
-import os
-
 import zmq
 
-from src.podping_hivewriter import hive_writer, config
+from podping_hivewriter import hive_writer, config
 
 
 def test_write_single_url_zmq_req():
