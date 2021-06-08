@@ -18,4 +18,4 @@ RUN pip install --quiet poetry \
 
 EXPOSE 9999/tcp
 
-ENTRYPOINT ["python3", "podping_hivewriter/hive-writer.py"]
+ENTRYPOINT ["python3", "src/podping_hivewriter/hive_writer.py"]
