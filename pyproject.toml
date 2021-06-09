@@ -2,7 +2,7 @@
 name = "podping_hivewriter"
 version = "0.1.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
+authors = ["Brian of London <brian@podping.org>","Alecks Gates <alecks@podping.org>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
