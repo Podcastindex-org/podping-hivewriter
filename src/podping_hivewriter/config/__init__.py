@@ -1,6 +1,6 @@
 import argparse
+from asyncio import Queue
 import os
-from queue import Queue
 
 # Testnet instead of main Hive
 # BOL: Switching off TestNet, we should test on Hive for now.
@@ -92,17 +92,14 @@ class Config:
     # START OF STARTUP SEQUENCE
     # ---------------------------------------------------------------
     # GLOBAL:
-    server_account = os.getenv("HIVE_SERVER_ACCOUNT")
-    posting_key = [os.getenv("HIVE_POSTING_KEY")]
+    server_account: str = os.getenv("HIVE_SERVER_ACCOUNT")
+    posting_key: str = [os.getenv("HIVE_POSTING_KEY")]
 
-    # Adding a Queue system to the Hive send_notification section
-    hive_q: "Queue[Set[str]]" = Queue()
-    # Move the URL Q into a proper Q
-    url_q: "Queue[str]" = Queue()
-
-    url = my_args["url"]
-    zmq = my_args["zmq"]
+    url: str = my_args["url"]
+    zmq: str = my_args["zmq"]
     errors = my_args["errors"]
+
+    ZMQ_READY = False
 
     # FROM ENV or from command line.
     test = os.getenv("USE_TEST_NODE", "False").lower() in ("true", "1", "t")

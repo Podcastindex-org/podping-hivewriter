@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import threading
@@ -6,9 +7,11 @@ from functools import partial
 from queue import Empty
 from random import randint
 from sys import getsizeof
+from timeit import default_timer as timer
 from typing import Set, Tuple
 
 import zmq
+import zmq.asyncio
 import beem
 from beem.account import Account
 from beem.exceptions import AccountDoesNotExistsException, MissingKeyError
@@ -16,13 +19,20 @@ from beemapi.exceptions import UnhandledRPCError
 
 from podping_hivewriter.config import Config
 
-logging.basicConfig(
-    level=logging.INFO,
-    format=f"%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s",
-)
+
+def get_hive():
+    posting_key = Config.posting_key
+    if Config.test:
+        node = Config.TEST_NODE[0]
+        hive = beem.Hive(keys=posting_key, node=node)
+        logging.info("---------------> Using Test Node " + node)
+    else:
+        hive = beem.Hive(keys=posting_key)
+        logging.info("---------------> Using Main Hive Chain ")
+    return hive
 
 
-def startup_sequence(ignore_errors=False, resource_test=True) -> beem.Hive:
+async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
     """Run though a startup sequence connect to Hive and check env variables
     Exit with error unless ignore_errors passed as True
     Defaults to sending two startup resource_test posts and checking resources"""
@@ -45,12 +55,7 @@ def startup_sequence(ignore_errors=False, resource_test=True) -> beem.Hive:
         logging.error(error_messages[-1])
 
     try:
-        if Config.test:
-            hive = beem.Hive(keys=Config.posting_key, node=Config.TEST_NODE)
-            logging.info("---------------> Using Test Node " + Config.TEST_NODE[0])
-        else:
-            hive = beem.Hive(keys=Config.posting_key)
-            logging.info("---------------> Using Main Hive Chain ")
+        hive = get_hive()
 
     except Exception as ex:
         error_messages.append(f"{ex} occurred {ex.__class__}")
@@ -101,7 +106,7 @@ def startup_sequence(ignore_errors=False, resource_test=True) -> beem.Hive:
                 if not success:
                     error_messages.append(error_message)
                 logging.info("Testing Account Resource Credits.... 5s")
-                time.sleep(2)
+                await asyncio.sleep(2)
                 manabar_after = acc.get_rc_manabar()
                 logging.info(
                     f"Testing Account Resource Credits"
@@ -136,17 +141,8 @@ def startup_sequence(ignore_errors=False, resource_test=True) -> beem.Hive:
             raise SystemExit(exit_message)
 
     logging.info("Startup of Podping status: SUCCESS! Hit the BOOST Button.")
+
     return hive
-
-    # ---------------------------------------------------------------
-    # END OF STARTUP SEQUENCE
-    # ---------------------------------------------------------------
-
-
-def url_in(url):
-    """Send a URL and I'll post it to Hive"""
-    Config.url_q.put(url)
-    return "Sent", True
 
 
 def get_allowed_accounts(acc_name="podping") -> Set[str]:
@@ -236,63 +232,79 @@ def send_notification(
         return trx_id, False
 
 
-def send_notification_worker(hive: beem.Hive):
+async def send_notification_worker(
+    hive_queue: "asyncio.Queue[Set[str]]", hive: beem.Hive
+):
     """Opens and watches a queue and sends notifications to Hive one by one"""
     while True:
-        url_set = Config.hive_q.get()
-        start = time.perf_counter()
-        trx_id, failure_count = failure_retry(url_set, hive)
-        # Limit the rate to 1 post every 2 seconds, this will mostly avoid
-        # multiple updates in a single Hive block.
-        duration = time.perf_counter() - start
-        # if duration < 2.0:
-        #     time.sleep(2.0-duration)
-        Config.hive_q.task_done()
-        logging.info(
-            f"Task time: {duration:0.2f} - Queue size: " + str(Config.hive_q.qsize())
-        )
+        url_set = await hive_queue.get()
+        start = timer()
+        trx_id, failure_count = await failure_retry(url_set, hive)
+        duration = timer() - start
+        hive_queue.task_done()
+        logging.info(f"Task time: {duration:0.2f} - Queue size: {hive_queue.qsize()}")
         logging.info(f"Finished a task: {trx_id} - {failure_count}")
 
 
-def url_q_worker():
+async def url_q_worker(
+    url_queue: "asyncio.Queue[str]", hive_queue: "asyncio.Queue[Set[str]]"
+):
+    async def get_from_queue():
+        return await url_queue.get()
+
     while True:
-        url_set = set()
-        start = time.perf_counter()
+        url_set: Set[str] = set()
+        start = timer()
         duration = 0
-        url_set_bytes = 0
+        urls_size_without_commas = 0
+        urls_size_total = 0
+
+        # Wait until we have enough URLs to fit in the payalod
+        # or get into the current Hive block
         while (
             duration < Config.HIVE_OPERATION_PERIOD
-            and url_set_bytes < Config.MAX_URL_LIST_BYTES
+            and urls_size_total < Config.MAX_URL_LIST_BYTES
         ):
             #  get next URL from Q
             logging.debug(f"Duration: {duration:.3f} - WAITING - Queue: {len(url_set)}")
             try:
-                url = Config.url_q.get(timeout=Config.HIVE_OPERATION_PERIOD)
+                url = await asyncio.wait_for(
+                    get_from_queue(), timeout=Config.HIVE_OPERATION_PERIOD
+                )
                 url_set.add(url)
-                duration = time.perf_counter() - start
+                url_queue.task_done()
+
                 logging.info(
                     f"Duration: {duration:.3f} - URL in queue: {url}"
                     f" - URL List: {len(url_set)}"
                 )
-                Config.url_q.task_done()
-                url_set_bytes = len("".join(url_set).encode("UTF-8"))
-            except Empty:
-                break
+
+                # byte size of URL in JSON is URL + 2 quotes
+                urls_size_without_commas += len(url.encode("UTF-8")) + 2
+
+                # Size of payload in bytes is
+                # length of URLs in bytes + the number of commas + 2 square brackets
+                # Assuming it's a JSON list eg ["https://...", "https://"..."]
+                urls_size_total = urls_size_without_commas + len(url_set) - 1 + 2
+            except asyncio.TimeoutError:
+                pass
             except Exception as ex:
                 logging.error(f"{ex} occurred")
+            finally:
+                # Always get the time of the loop
+                duration = timer() - start
 
-        if len(url_set):
-            Config.hive_q.put(url_set)
-            logging.info(f"Size of Urls: {url_set_bytes}")
+        try:
+            if len(url_set):
+                await hive_queue.put(url_set)
+                logging.info(f"Size of Urls: {urls_size_total}")
+        except Exception as ex:
+            logging.error(f"{ex} occurred")
 
 
-# def url_in(url):
-#     """ Send a URL and I'll post it to Hive """
-#     custom_json = {'url': url}
-#     hive_q.put( (send_notification, custom_json ))
-
-
-def failure_retry(url_set, hive: beem.Hive, failure_count=0) -> Tuple[str, int]:
+async def failure_retry(
+    url_set: Set[str], hive: beem.Hive, failure_count=0
+) -> Tuple[str, int]:
     if failure_count >= len(Config.HALT_TIME):
         # Give up.
         error_message = (
@@ -304,7 +316,7 @@ def failure_retry(url_set, hive: beem.Hive, failure_count=0) -> Tuple[str, int]:
 
     if failure_count > 0:
         logging.error(f"Waiting {Config.HALT_TIME[failure_count]}s")
-        time.sleep(Config.HALT_TIME[failure_count])
+        await asyncio.sleep(Config.HALT_TIME[failure_count])
         logging.info(f"RETRYING num_urls: {len(url_set)}")
     else:
         if type(url_set) == set:
@@ -318,45 +330,84 @@ def failure_retry(url_set, hive: beem.Hive, failure_count=0) -> Tuple[str, int]:
     if success:
         return trx_id, failure_count
     else:
-        return failure_retry(url_set, hive, failure_count + 1)
+        return await failure_retry(url_set, hive, failure_count + 1)
 
 
-def main() -> None:
-    """Main man what counts..."""
+async def zmq_response_loop(url_queue: "asyncio.Queue[str]", loop=None):
+    if not loop:
+        loop = asyncio.get_event_loop()
+
+    context = zmq.asyncio.Context()
+    socket = context.socket(zmq.REP, io_loop=loop)
+    socket.bind(f"tcp://127.0.0.1:{Config.zmq}")
+
+    Config.ZMQ_READY = True
+
+    while True:
+        url: str = await socket.recv_string()
+        await url_queue.put(url)
+        ans = "OK"
+        await socket.send_string(ans)
+
+    socket.close()
+
+
+async def url_only_startup(url: str):
+    hive = await hive_startup(resource_test=False)
+
+    await failure_retry(url, hive)
+
+
+def task_startup(hive: beem.Hive, loop=None):
+    if not loop:  # pragma: no cover
+        loop = asyncio.get_event_loop()
+
+    # Adding a Queue system to the Hive send_notification section
+    hive_queue: "asyncio.Queue[Set[str]]" = asyncio.Queue(loop=loop)
+    # Move the URL Q into a proper Q
+    url_queue: "asyncio.Queue[str]" = asyncio.Queue(loop=loop)
+
+    loop.create_task(send_notification_worker(hive_queue, hive))
+    loop.create_task(url_q_worker(url_queue, hive_queue))
+    loop.create_task(zmq_response_loop(url_queue, loop))
+
+
+def loop_running_startup_task(hive_task: asyncio.Task):
+    hive = hive_task.result()
+    task_startup(hive)
+
+
+def run(loop=None):
+    logging.basicConfig(
+        level=logging.INFO,
+        format=f"%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s",
+    )
+
+    if not loop:  # pragma: no cover
+        loop = asyncio.new_event_loop()
+
     Config.setup()
 
     if Config.url:
-        url = Config.url
-        hive = startup_sequence(resource_test=False)
-        if hive:
-            failure_retry(url, hive)
+        if loop.is_running():
+            loop.create_task(url_only_startup(Config.url))
+        else:
+            asyncio.run(url_only_startup(Config.url))
         return
 
-    hive = startup_sequence(resource_test=True)
-
-    # Adding a Queue system to the Hive send_notification section
-    threading.Thread(
-        target=partial(send_notification_worker, hive), daemon=True
-    ).start()
-
-    # Adding a Queue system for holding URLs and sending them out
-    threading.Thread(target=url_q_worker, daemon=True).start()
-
-    context = zmq.Context()
-    socket = context.socket(zmq.REP)
-    socket.bind(f"tcp://*:{Config.zmq}")
-    while True:
-        url: str = socket.recv_string()
-        Config.url_q.put(url)
-        ans = "OK"
-        socket.send_string(ans)
-
-    # else:
-    #     logging.error(
-    #         "You've got to specify --socket or --zmq otherwise I can't listen!"
-    #     )
+    if not loop.is_running():  # pragma: no cover
+        try:
+            hive = asyncio.run(hive_startup(resource_test=True))
+            task_startup(hive, loop)
+            loop.run_forever()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            loop.close()
+    else:
+        hive_task = loop.create_task(hive_startup(resource_test=True))
+        hive_task.add_done_callback(loop_running_startup_task)
 
 
 if __name__ == "__main__":
-    """Hit it!"""
-    main()
+    run()
