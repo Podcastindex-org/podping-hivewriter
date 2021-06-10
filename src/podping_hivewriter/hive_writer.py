@@ -339,7 +339,10 @@ async def zmq_response_loop(url_queue: "asyncio.Queue[str]", loop=None):
 
     context = zmq.asyncio.Context()
     socket = context.socket(zmq.REP, io_loop=loop)
-    socket.bind(f"tcp://127.0.0.1:{Config.zmq}")
+    if Config.bind_all:
+        socket.bind(f"tcp://*:{Config.zmq}")
+    else:
+        socket.bind(f"tcp://127.0.0.1:{Config.zmq}")
 
     Config.ZMQ_READY = True
 

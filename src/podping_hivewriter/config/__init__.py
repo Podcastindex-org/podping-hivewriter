@@ -1,6 +1,7 @@
 import argparse
 from asyncio import Queue
 import os
+from ipaddress import IPv4Address, IPv6Address, AddressValueError
 
 # Testnet instead of main Hive
 # BOL: Switching off TestNet, we should test on Hive for now.
@@ -11,9 +12,9 @@ import os
 # ---------------------------------------------------------------
 from typing import Set
 
-app_description = """ PodPing - Runs as a server and writes a stream of URLs to the 
+app_description = """ PodPing - Runs as a server and writes a stream of URLs to the
 Hive Blockchain or sends a single URL to Hive (--url option)
-Defaults to running the --zmq 9999 """
+Defaults to running the --zmq 9999 and binding only to localhost"""
 
 
 my_parser = argparse.ArgumentParser(
@@ -38,7 +39,14 @@ group_action_type.add_argument(
     required=False,
     metavar="",
     default=9999,
-    help="<port> for ZMQ to listen on for each new url, returns either ",
+    help="<IP:port> for ZMQ to listen on for each new url, returns, "
+    "if IP is given, listens on that IP, otherwise only listens on localhost"
+)
+
+my_parser.add_argument(
+    "-b", "--bindall",
+    action="store_true",
+    help="If given, bind the ZMQ listening port to *, if not given default binds ZMQ to localhost"
 )
 
 group_action_type.add_argument(
@@ -98,6 +106,7 @@ class Config:
     url: str = my_args["url"]
     zmq: str = my_args["zmq"]
     errors = my_args["errors"]
+    bind_all = my_args["bindall"]
 
     ZMQ_READY = False
 
@@ -109,5 +118,3 @@ class Config:
     @classmethod
     def setup(cls):
         """Setup the config"""
-
-        pass
