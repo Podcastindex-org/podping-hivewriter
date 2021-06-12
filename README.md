@@ -19,4 +19,4 @@ Running with command line options, like testnet for example, add them at the end
 
 `docker run --rm -p 9999:9999 -e HIVE_SERVER_ACCOUNT=<account> -e HIVE_POSTING_KEY=<posting-key> podpinghivewriter:develop --test`
 
-gpg test on umbrel pi
+gpg test on umbrel pi 2
