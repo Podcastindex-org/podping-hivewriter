@@ -18,3 +18,5 @@ Run the locally built docker image in a container, passing local port 9999 to po
 Running with command line options, like testnet for example, add them at the end:
 
 `docker run --rm -p 9999:9999 -e HIVE_SERVER_ACCOUNT=<account> -e HIVE_POSTING_KEY=<posting-key> podpinghivewriter:develop --test`
+
+Testing GPG signing
