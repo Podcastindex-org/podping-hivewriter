@@ -1,14 +1,13 @@
 import asyncio
 import json
 import logging
-from random import randint
 from sys import getsizeof
 from timeit import default_timer as timer
 from typing import Set, Tuple
 
+import beem
 import zmq
 import zmq.asyncio
-import beem
 from beem.account import Account
 from beem.exceptions import AccountDoesNotExistsException, MissingKeyError
 from beemapi.exceptions import UnhandledRPCError
@@ -233,7 +232,10 @@ async def send_notification_worker(
 ):
     """Opens and watches a queue and sends notifications to Hive one by one"""
     while True:
-        url_set = await hive_queue.get()
+        try:
+            url_set = await hive_queue.get()
+        except RuntimeError:
+            return
         start = timer()
         trx_id, failure_count = await failure_retry(url_set, hive)
         duration = timer() - start
@@ -246,7 +248,10 @@ async def url_q_worker(
     url_queue: "asyncio.Queue[str]", hive_queue: "asyncio.Queue[Set[str]]"
 ):
     async def get_from_queue():
-        return await url_queue.get()
+        try:
+            return await url_queue.get()
+        except RuntimeError:
+            return
 
     while True:
         url_set: Set[str] = set()
@@ -255,7 +260,7 @@ async def url_q_worker(
         urls_size_without_commas = 0
         urls_size_total = 0
 
-        # Wait until we have enough URLs to fit in the payalod
+        # Wait until we have enough URLs to fit in the payload
         # or get into the current Hive block
         while (
             duration < Config.HIVE_OPERATION_PERIOD
@@ -280,10 +285,12 @@ async def url_q_worker(
 
                 # Size of payload in bytes is
                 # length of URLs in bytes + the number of commas + 2 square brackets
-                # Assuming it's a JSON list eg ["https://...", "https://"..."]
+                # Assuming it's a JSON list eg ["https://...","https://"..."]
                 urls_size_total = urls_size_without_commas + len(url_set) - 1 + 2
             except asyncio.TimeoutError:
                 pass
+            except RuntimeError:
+                return
             except Exception as ex:
                 logging.error(f"{ex} occurred")
             finally:
@@ -294,6 +301,8 @@ async def url_q_worker(
             if len(url_set):
                 await hive_queue.put(url_set)
                 logging.info(f"Size of Urls: {urls_size_total}")
+        except RuntimeError:
+            return
         except Exception as ex:
             logging.error(f"{ex} occurred")
 
