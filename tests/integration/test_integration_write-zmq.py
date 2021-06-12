@@ -50,11 +50,6 @@ async def test_write_single_url_zmq_req(event_loop):
 
     context = zmq.asyncio.Context()
     socket = context.socket(zmq.REQ, io_loop=event_loop)
-    startup_timeout = 30
-    try:
-        await asyncio.wait_for(wait_for_zmq_ready(), timeout=startup_timeout)
-    except asyncio.TimeoutError:
-        raise Exception(f"Server ZMQ socket failed to open within {startup_timeout}s")
     socket.connect(f"tcp://127.0.0.1:{config.Config.zmq}")
 
     start_time = timer()
@@ -65,7 +60,8 @@ async def test_write_single_url_zmq_req(event_loop):
     assert response == "OK"
 
     # Sleep to catch up because beem isn't async and blocks
-    await asyncio.sleep(config.Config.HIVE_OPERATION_PERIOD * 2)
+    # This is just longer than the amount of time url_q_worker waits for
+    await asyncio.sleep(config.Config.HIVE_OPERATION_PERIOD * 1.1)
 
     async for stream_url in get_url_from_blockchain():
         if stream_url == url:

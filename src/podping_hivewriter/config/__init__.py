@@ -109,8 +109,6 @@ class Config:
     errors = my_args["errors"]
     bind_all = my_args["bindall"]
 
-    ZMQ_READY = False
-
     # FROM ENV or from command line.
     test = os.getenv("USE_TEST_NODE", "False").lower() in ("true", "1", "t")
     if my_args["test"]:
