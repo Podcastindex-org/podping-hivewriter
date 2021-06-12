@@ -1,10 +1,6 @@
 import asyncio
 import json
 import logging
-import threading
-import time
-from functools import partial
-from queue import Empty
 from random import randint
 from sys import getsizeof
 from timeit import default_timer as timer
@@ -191,13 +187,13 @@ def send_notification(
 
     try:
         # Artificially create errors <-----------------------------------
-        if operation_id == "podping" and Config.errors:
-            r = randint(1, 100)
-            if r <= Config.errors:
-                raise Exception(
-                    f"Infinite Improbability Error level of {r}% : "
-                    f"Threshold set at {Config.errors}%"
-                )
+        # if operation_id == "podping" and Config.errors:
+        #     r = randint(1, 100)
+        #     if r <= Config.errors:
+        #         raise Exception(
+        #             f"Infinite Improbability Error level of {r}% : "
+        #             f"Threshold set at {Config.errors}%"
+        #         )
 
         # Assert Exception:o.json.length() <= HIVE_CUSTOM_OP_DATA_MAX_LENGTH:
         # Operation JSON must be less than 8192 bytes.
