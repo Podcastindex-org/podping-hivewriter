@@ -35,7 +35,8 @@ async def test_write_single_url_zmq_req(event_loop):
         stream = blockchain.stream(
             opNames=["custom_json"],
             start=current_block,
-            max_batch_size=500,
+#TODO #1 : Alecks: this max batch size will mess everything up if I understand what you're trying to do
+            max_batch_size=1,
             raw_ops=False,
             threading=False,
         )
