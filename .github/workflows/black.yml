@@ -1,4 +1,4 @@
-name: Lint
+name: Code format lint
 
 on: [push, pull_request]
 
@@ -8,4 +8,5 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
-      - uses: psf/black@stable
+      - name: Run black
+        uses: psf/black@stable
