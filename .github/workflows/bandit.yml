@@ -10,3 +10,7 @@ jobs:
       - uses: actions/setup-python@v2
       - name: Run bandit
         uses: tj-actions/bandit@v4.1
+        with:
+          targets: |
+            src
+          options: "-r"
