@@ -40,13 +40,14 @@ group_action_type.add_argument(
     metavar="",
     default=9999,
     help="<IP:port> for ZMQ to listen on for each new url, returns, "
-    "if IP is given, listens on that IP, otherwise only listens on localhost"
+    "if IP is given, listens on that IP, otherwise only listens on localhost",
 )
 
 my_parser.add_argument(
-    "-b", "--bindall",
+    "-b",
+    "--bindall",
     action="store_true",
-    help="If given, bind the ZMQ listening port to *, if not given default binds ZMQ to localhost"
+    help="If given, bind the ZMQ listening port to *, if not given default binds ZMQ to localhost",
 )
 
 group_action_type.add_argument(
