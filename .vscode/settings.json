@@ -1,8 +1,4 @@
 {
-    "python.pythonPath": "venv/bin/python3",
-    "python.venvFolders": [
-        ".cache/pypoetry/virtualenvs"
-    ],
     "workbench.colorCustomizations": {
         "activityBar.background": "#57064E",
         "titleBar.activeBackground": "#79086D",
