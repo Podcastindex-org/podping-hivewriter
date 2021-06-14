@@ -104,8 +104,6 @@ class Config:
     CURRENT_PODPING_VERSION = 2
     podping_settings = PodpingSettings()
 
-    HIVE_OPERATION_PERIOD = 3
-
     NOTIFICATION_REASONS = ["Feed Updated", "New Feed", "Host Change", "Going Live"]
 
     # HIVE_OPERATION_PERIOD = 3  # 1 Hive operation per this period seconds

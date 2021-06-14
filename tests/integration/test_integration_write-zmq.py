@@ -56,7 +56,7 @@ async def test_write_single_url_zmq_req(event_loop):
 
     # Sleep to catch up because beem isn't async and blocks
     # This is just longer than the amount of time url_q_worker waits for
-    await asyncio.sleep(config.Config.HIVE_OPERATION_PERIOD * 1.1)
+    await asyncio.sleep(config.Config.podping_settings.hive_operation_period * 1.1)
 
     async for stream_url in get_url_from_blockchain():
         if stream_url == url:
