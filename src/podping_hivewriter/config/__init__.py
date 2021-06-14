@@ -77,7 +77,7 @@ my_parser.add_argument(
     help="Deliberately force error rate of <int>%%",
 )
 
-args = my_parser.parse_args()
+args, _ = my_parser.parse_known_args()
 my_args = vars(args)
 
 
