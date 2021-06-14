@@ -152,3 +152,5 @@ cython_debug/
 .vscode/extensions.json
 .vscode/settings.json
 .vscode/settings.json
+.env.test
+.vscode/tasks.json

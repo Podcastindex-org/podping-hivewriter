@@ -70,7 +70,6 @@ async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
                 f"Account @{Config.server_account} not authorised to send Podpings"
             )
             logging.error(error_messages[-1])
-
     except AccountDoesNotExistsException:
         error_messages.append(
             f"Hive account @{Config.server_account} does not exist, "
@@ -136,6 +135,7 @@ async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
             raise SystemExit(exit_message)
 
     logging.info("Startup of Podping status: SUCCESS! Hit the BOOST Button.")
+    logging.info(f"---------------> {Config.server_account} <- Hive Account will be used")
 
     return hive
 
