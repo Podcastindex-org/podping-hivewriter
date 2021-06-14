@@ -1,8 +1,4 @@
 {
-    "python.pythonPath": "venv/bin/python3",
-    "python.venvFolders": [
-        ".cache/pypoetry/virtualenvs"
-    ],
     "workbench.colorCustomizations": {
         "activityBar.background": "#57064E",
         "titleBar.activeBackground": "#79086D",
@@ -10,5 +6,6 @@
     },
     "python.formatting.provider": "black",
     "python.linting.banditEnabled": true,
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "python.pythonPath": "/Users/gbishko/Library/Caches/pypoetry/virtualenvs/podping-hivewriter-76JIuyiE-py3.8/bin/python"
 }
