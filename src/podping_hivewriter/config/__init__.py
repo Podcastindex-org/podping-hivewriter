@@ -1,7 +1,12 @@
 import argparse
 from asyncio import Queue
+
+from pydantic import BaseModel
 import os
 from ipaddress import IPv4Address, IPv6Address, AddressValueError
+
+
+from dataclasses import dataclass, field
 
 # Testnet instead of main Hive
 # BOL: Switching off TestNet, we should test on Hive for now.
@@ -10,7 +15,7 @@ from ipaddress import IPv4Address, IPv6Address, AddressValueError
 # ---------------------------------------------------------------
 # COMMAND LINE
 # ---------------------------------------------------------------
-from typing import Set
+from typing import List, Set
 
 app_description = """ PodPing - Runs as a server and writes a stream of URLs to the
 Hive Blockchain or sends a single URL to Hive (--url option)
@@ -81,23 +86,30 @@ args, _ = my_parser.parse_known_args()
 my_args = vars(args)
 
 
+
+class PodpingSettings(BaseModel):
+    """Dataclass for settings we will fetch from Hive"""
+
+    hive_operation_period: int = 3
+    max_url_list_bytes: int = 6000
+    control_account: str = "podping"
+    test_nodes: List[str] = ["https://testnet.openhive.network"]
+
+
+
 class Config:
     """The Config Class"""
 
     CONTROL_ACCOUNT = "podping"
-    CONTROL_ACCOUNT_CHECK_PERIOD = 3600  # seconds
+    CONTROL_ACCOUNT_CHECK_PERIOD = 60  # seconds
     TEST_NODE = ["https://testnet.openhive.network"]
     CURRENT_PODPING_VERSION = 2
-    podping_settings = {
-        "NOTIFICATION_REASONS": {"feed_update": 1, "new_feed": 2, "host_change": 3},
-        "HIVE_OPERATION_PERIOD": 3,
-        "MAX_URL_LIST_BYTES": 7000
-    }
+    podping_settings = PodpingSettings()
 
-    NOTIFICATION_REASONS = {"feed_update": 1, "new_feed": 2, "host_change": 3}
+    NOTIFICATION_REASONS = ["Feed Updated", "New Feed", "Host Change", "Going Live"]
 
-    HIVE_OPERATION_PERIOD = 3  # 1 Hive operation per this period seconds
-    MAX_URL_LIST_BYTES = 7000  # Upper limit on custom_json is 8092 bytes
+    # HIVE_OPERATION_PERIOD = 3  # 1 Hive operation per this period seconds
+    # MAX_URL_LIST_BYTES = 7000  # Upper limit on custom_json is 8092 bytes
 
     # This is a global signal to shut down until RC's recover
     # Stores the RC cost of each operation to calculate an average

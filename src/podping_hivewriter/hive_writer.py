@@ -12,7 +12,7 @@ from beem.account import Account
 from beem.exceptions import AccountDoesNotExistsException, MissingKeyError
 from beemapi.exceptions import UnhandledRPCError
 
-from podping_hivewriter.config import Config
+from podping_hivewriter.config import Config, PodpingSettings
 from podping_hivewriter.get_hive_config import get_podping_settings
 
 
@@ -154,7 +154,7 @@ def get_allowed_accounts(acc_name="podping") -> Set[str]:
 
 
 def send_notification(
-    data, hive: beem.Hive, operation_id="podping"
+    data, hive: beem.Hive, operation_id="podping", reason = 1
 ) -> Tuple[str, bool]:
     """Sends a custom_json to Hive
     Expects two env variables, Hive account name and posting key
@@ -169,7 +169,7 @@ def send_notification(
         custom_json = {
             "v": Config.CURRENT_PODPING_VERSION,
             "num_urls": num_urls,
-            "r": Config.NOTIFICATION_REASONS["feed_update"],
+            "r": reason,
             "urls": list(data),
         }
     elif type(data) == str:
@@ -178,7 +178,7 @@ def send_notification(
         custom_json = {
             "v": Config.CURRENT_PODPING_VERSION,
             "num_urls": 1,
-            "r": Config.NOTIFICATION_REASONS["feed_update"],
+            "r": reason,
             "url": data,
         }
     elif type(data) == dict:
@@ -267,14 +267,14 @@ async def url_q_worker(
         # Wait until we have enough URLs to fit in the payload
         # or get into the current Hive block
         while (
-            duration < Config.HIVE_OPERATION_PERIOD
-            and urls_size_total < Config.MAX_URL_LIST_BYTES
+            duration < Config.podping_settings.hive_operation_period
+            and urls_size_total < Config.podping_settings.max_url_list_bytes
         ):
             #  get next URL from Q
             logging.debug(f"Duration: {duration:.3f} - WAITING - Queue: {len(url_set)}")
             try:
                 url = await asyncio.wait_for(
-                    get_from_queue(), timeout=Config.HIVE_OPERATION_PERIOD
+                    get_from_queue(), timeout=Config.podping_settings.hive_operation_period
                 )
                 url_set.add(url)
                 url_queue.task_done()
@@ -390,12 +390,11 @@ def loop_running_startup_task(hive_task: asyncio.Task):
 
 async def update_podping_settings(acc_name) -> None:
     """Take newly found settings and put them into Config"""
-    podping_settings = await get_podping_settings("podping")
-    if podping_settings:
+    new_p_s = await get_podping_settings(Config.CONTROL_ACCOUNT)
+    new_pod_set = PodpingSettings(**new_p_s)
+    if Config.podping_settings != new_pod_set:
         logging.info("Configuration overide from Podping Hive")
-        Config.NOTIFICATION_REASONS = podping_settings.get("NOTIFICATION_REASONS")
-        Config.HIVE_OPERATION_PERIOD = podping_settings.get("HIVE_OPERATION_PERIOD")
-        Config.MAX_URL_LIST_BYTES = podping_settings.get("MAX_URL_LIST_BYTES")
+        Config.podping_settings = new_pod_set
     return
 
 
