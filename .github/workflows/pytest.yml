@@ -27,4 +27,4 @@ jobs:
           HIVE_SERVER_ACCOUNT: ${{ secrets.HIVE_SERVER_ACCOUNT }}
           HIVE_POSTING_KEY: ${{ secrets.HIVE_POSTING_KEY }}
         run: |
-          pytest
+          pytest --runslow

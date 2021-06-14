@@ -13,6 +13,7 @@ from podping_hivewriter import hive_writer, config
 
 @pytest.mark.asyncio
 @pytest.mark.timeout(60)
+@pytest.mark.slow
 async def test_write_single_url_zmq_req(event_loop):
     # Ensure use of testnet
     config.Config.test = True
@@ -61,5 +62,3 @@ async def test_write_single_url_zmq_req(event_loop):
         if stream_url == url:
             assert True
             break
-        elif timer() - start_time > 60:
-            assert False

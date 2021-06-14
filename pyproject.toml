@@ -29,3 +29,8 @@ target-version = ['py37', 'py38', 'py39']
 [tool.isort]
 profile = "black"
 multi_line_output = 3
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
