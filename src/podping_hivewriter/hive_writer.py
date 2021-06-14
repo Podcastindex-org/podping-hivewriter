@@ -154,7 +154,7 @@ def get_allowed_accounts(acc_name="podping") -> Set[str]:
 
 
 def send_notification(
-    data, hive: beem.Hive, operation_id="podping", reason = 1
+    data, hive: beem.Hive, operation_id="podping", reason=1
 ) -> Tuple[str, bool]:
     """Sends a custom_json to Hive
     Expects two env variables, Hive account name and posting key
@@ -274,7 +274,8 @@ async def url_q_worker(
             logging.debug(f"Duration: {duration:.3f} - WAITING - Queue: {len(url_set)}")
             try:
                 url = await asyncio.wait_for(
-                    get_from_queue(), timeout=Config.podping_settings.hive_operation_period
+                    get_from_queue(),
+                    timeout=Config.podping_settings.hive_operation_period,
                 )
                 url_set.add(url)
                 url_queue.task_done()

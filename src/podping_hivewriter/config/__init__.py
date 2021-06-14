@@ -86,7 +86,6 @@ args, _ = my_parser.parse_known_args()
 my_args = vars(args)
 
 
-
 class PodpingSettings(BaseModel):
     """Dataclass for settings we will fetch from Hive"""
 
@@ -94,7 +93,6 @@ class PodpingSettings(BaseModel):
     max_url_list_bytes: int = 6000
     control_account: str = "podping"
     test_nodes: List[str] = ["https://testnet.openhive.network"]
-
 
 
 class Config:
