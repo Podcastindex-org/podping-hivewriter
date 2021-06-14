@@ -13,6 +13,7 @@ from beem.exceptions import AccountDoesNotExistsException, MissingKeyError
 from beemapi.exceptions import UnhandledRPCError
 
 from podping_hivewriter.config import Config
+from podping_hivewriter.get_hive_config import get_podping_settings
 
 
 def get_hive():
@@ -51,6 +52,12 @@ async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
 
     try:
         hive = get_hive()
+        podping_settings = await get_podping_settings("podping")
+        if podping_settings:
+            logging.info("Configuration overide from Podping Hive")
+            Config.NOTIFICATION_REASONS = podping_settings.get("NOTIFICATION_REASONS")
+            Config.HIVE_OPERATION_PERIOD = podping_settings.get("HIVE_OPERATION_PERIOD")
+            Config.MAX_URL_LIST_BYTES = podping_settings.get("MAX_URL_LIST_BYTES")
 
     except Exception as ex:
         error_messages.append(f"{ex} occurred {ex.__class__}")
@@ -384,12 +391,13 @@ def loop_running_startup_task(hive_task: asyncio.Task):
     hive = hive_task.result()
     task_startup(hive)
 
+
 async def get_podping_settings(acc_name) -> dict:
-    """ Returns podping settings if they exist """
+    """Returns podping settings if they exist"""
     hive = beem.Hive()
-    acc = Account(acc_name,blockchain_instance=hive,lazy=True)
-    posting_meta = json.loads(acc['posting_json_metadata'])
-    podping_settings = posting_meta.get('podping-settings')
+    acc = Account(acc_name, blockchain_instance=hive, lazy=True)
+    posting_meta = json.loads(acc["posting_json_metadata"])
+    podping_settings = posting_meta.get("podping-settings")
     if podping_settings:
         return podping_settings
     else:
