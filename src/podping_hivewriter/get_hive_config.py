@@ -1,20 +1,17 @@
 import beem
 from beem.account import Account
 import json
-
 import asyncio
-
-
 from timeit import default_timer as timer
 
 
 async def get_posting_meta(acc_name) -> dict:
-    """Gets the posting_json_metadata from the Hive account auth
-    Returns Json object"""
+    """ Gets the posting_json_metadata from the Hive account
+        auth Returns Json object"""
     hive = beem.Hive()
     acc = Account(acc_name, blockchain_instance=hive, lazy=True)
-    posting_meta = acc["posting_json_metadata"]
-    return json.loads(posting_meta)
+    posting_meta = json.loads(acc["posting_json_metadata"])
+    return posting_meta
 
 
 async def get_podping_settings(acc_name) -> dict:

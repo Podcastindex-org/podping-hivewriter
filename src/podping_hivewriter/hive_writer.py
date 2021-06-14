@@ -52,12 +52,7 @@ async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
 
     try:
         hive = get_hive()
-        podping_settings = await get_podping_settings("podping")
-        if podping_settings:
-            logging.info("Configuration overide from Podping Hive")
-            Config.NOTIFICATION_REASONS = podping_settings.get("NOTIFICATION_REASONS")
-            Config.HIVE_OPERATION_PERIOD = podping_settings.get("HIVE_OPERATION_PERIOD")
-            Config.MAX_URL_LIST_BYTES = podping_settings.get("MAX_URL_LIST_BYTES")
+        await get_podping_settings(Config.CONTROL_ACCOUNT)
 
     except Exception as ex:
         error_messages.append(f"{ex} occurred {ex.__class__}")
@@ -385,11 +380,30 @@ def task_startup(hive: beem.Hive, loop=None):
     loop.create_task(send_notification_worker(hive_queue, hive))
     loop.create_task(url_q_worker(url_queue, hive_queue))
     loop.create_task(zmq_response_loop(url_queue, loop))
+    loop.create_task(update_podping_settings_worker(Config.CONTROL_ACCOUNT))
 
 
 def loop_running_startup_task(hive_task: asyncio.Task):
     hive = hive_task.result()
     task_startup(hive)
+
+
+async def update_podping_settings(acc_name) -> None:
+    """Take newly found settings and put them into Config"""
+    podping_settings = await get_podping_settings("podping")
+    if podping_settings:
+        logging.info("Configuration overide from Podping Hive")
+        Config.NOTIFICATION_REASONS = podping_settings.get("NOTIFICATION_REASONS")
+        Config.HIVE_OPERATION_PERIOD = podping_settings.get("HIVE_OPERATION_PERIOD")
+        Config.MAX_URL_LIST_BYTES = podping_settings.get("MAX_URL_LIST_BYTES")
+    return
+
+
+async def update_podping_settings_worker(acc_name) -> None:
+    """Worker to check for changed settings every (period)"""
+    while True:
+        await update_podping_settings(acc_name)
+        await asyncio.sleep(Config.CONTROL_ACCOUNT_CHECK_PERIOD)
 
 
 async def get_podping_settings(acc_name) -> dict:

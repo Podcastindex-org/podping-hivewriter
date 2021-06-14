@@ -84,13 +84,20 @@ my_args = vars(args)
 class Config:
     """The Config Class"""
 
+    CONTROL_ACCOUNT = "podping"
+    CONTROL_ACCOUNT_CHECK_PERIOD = 3600  # seconds
     TEST_NODE = ["https://testnet.openhive.network"]
     CURRENT_PODPING_VERSION = 2
+    podping_settings = {
+        "NOTIFICATION_REASONS": {"feed_update": 1, "new_feed": 2, "host_change": 3},
+        "HIVE_OPERATION_PERIOD": 3,
+        "MAX_URL_LIST_BYTES": 7000
+    }
+
     NOTIFICATION_REASONS = {"feed_update": 1, "new_feed": 2, "host_change": 3}
 
-    HIVE_OPERATION_PERIOD = 3  # 1 Hive operation per this period in
-    MAX_URL_PER_CUSTOM_JSON = 90  # total json size must be below 8192 bytes
-    MAX_URL_LIST_BYTES = 7000
+    HIVE_OPERATION_PERIOD = 3  # 1 Hive operation per this period seconds
+    MAX_URL_LIST_BYTES = 7000  # Upper limit on custom_json is 8092 bytes
 
     # This is a global signal to shut down until RC's recover
     # Stores the RC cost of each operation to calculate an average
