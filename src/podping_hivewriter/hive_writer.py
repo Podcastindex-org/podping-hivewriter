@@ -135,7 +135,9 @@ async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
             raise SystemExit(exit_message)
 
     logging.info("Startup of Podping status: SUCCESS! Hit the BOOST Button.")
-    logging.info(f"---------------> {Config.server_account} <- Hive Account will be used")
+    logging.info(
+        f"---------------> {Config.server_account} <- Hive Account will be used"
+    )
 
     return hive
 
