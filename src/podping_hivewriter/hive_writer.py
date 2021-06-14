@@ -384,6 +384,17 @@ def loop_running_startup_task(hive_task: asyncio.Task):
     hive = hive_task.result()
     task_startup(hive)
 
+async def get_podping_settings(acc_name) -> dict:
+    """ Returns podping settings if they exist """
+    hive = beem.Hive()
+    acc = Account(acc_name,blockchain_instance=hive,lazy=True)
+    posting_meta = json.loads(acc['posting_json_metadata'])
+    podping_settings = posting_meta.get('podping-settings')
+    if podping_settings:
+        return podping_settings
+    else:
+        return None
+
 
 def run(loop=None):
     logging.basicConfig(
