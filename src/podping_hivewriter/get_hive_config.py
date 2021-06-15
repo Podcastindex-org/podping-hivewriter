@@ -6,8 +6,8 @@ from timeit import default_timer as timer
 
 
 async def get_posting_meta(acc_name) -> dict:
-    """ Gets the posting_json_metadata from the Hive account
-        auth Returns Json object"""
+    """Gets the posting_json_metadata from the Hive account
+    auth Returns Json object"""
     hive = beem.Hive()
     acc = Account(acc_name, blockchain_instance=hive, lazy=True)
     posting_meta = json.loads(acc["posting_json_metadata"])
