@@ -4,6 +4,7 @@ import logging
 from sys import getsizeof
 from timeit import default_timer as timer
 from typing import Set, Tuple
+from pydantic import ValidationError
 
 import beem
 import zmq
@@ -19,9 +20,9 @@ from podping_hivewriter.get_hive_config import get_podping_settings
 def get_hive():
     posting_key = Config.posting_key
     if Config.test:
-        node = Config.TEST_NODE[0]
-        hive = beem.Hive(keys=posting_key, node=node)
-        logging.info("---------------> Using Test Node " + node)
+        nodes = Config.podping_settings.test_nodes
+        hive = beem.Hive(keys=posting_key, node=nodes)
+        logging.info(f"---------------> Using Test Nodes: {nodes}")
     else:
         hive = beem.Hive(keys=posting_key)
         logging.info("---------------> Using Main Hive Chain ")
@@ -52,7 +53,7 @@ async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
 
     try:
         hive = get_hive()
-        await get_podping_settings(Config.CONTROL_ACCOUNT)
+        await get_podping_settings(Config.podping_settings.control_account)
 
     except Exception as ex:
         error_messages.append(f"{ex} occurred {ex.__class__}")
@@ -378,10 +379,12 @@ def task_startup(hive: beem.Hive, loop=None):
     # Move the URL Q into a proper Q
     url_queue: "asyncio.Queue[str]" = asyncio.Queue(loop=loop)
 
+    loop.create_task(
+        update_podping_settings_worker(Config.podping_settings.control_account)
+    )
     loop.create_task(send_notification_worker(hive_queue, hive))
     loop.create_task(url_q_worker(url_queue, hive_queue))
     loop.create_task(zmq_response_loop(url_queue, loop))
-    loop.create_task(update_podping_settings_worker(Config.CONTROL_ACCOUNT))
 
 
 def loop_running_startup_task(hive_task: asyncio.Task):
@@ -391,11 +394,17 @@ def loop_running_startup_task(hive_task: asyncio.Task):
 
 async def update_podping_settings(acc_name) -> None:
     """Take newly found settings and put them into Config"""
-    new_p_s = await get_podping_settings(Config.CONTROL_ACCOUNT)
-    new_pod_set = PodpingSettings(**new_p_s)
-    if Config.podping_settings != new_pod_set:
-        logging.info("Configuration overide from Podping Hive")
-        Config.podping_settings = new_pod_set
+    new_p_s = await get_podping_settings(acc_name)
+    try:
+        # new_p_s['test_nodes'] = "bad data"
+        new_pod_set = PodpingSettings.parse_obj(new_p_s)
+    except ValidationError as e:
+        logging.warning(f"Problem with podping control settings: {e}")
+
+    else:
+        if Config.podping_settings != new_pod_set:
+            logging.info("Configuration overide from Podping Hive")
+            Config.podping_settings = new_pod_set
     return
 
 
@@ -403,7 +412,7 @@ async def update_podping_settings_worker(acc_name) -> None:
     """Worker to check for changed settings every (period)"""
     while True:
         await update_podping_settings(acc_name)
-        await asyncio.sleep(Config.CONTROL_ACCOUNT_CHECK_PERIOD)
+        await asyncio.sleep(Config.podping_settings.control_account_check_period)
 
 
 async def get_podping_settings(acc_name) -> dict:

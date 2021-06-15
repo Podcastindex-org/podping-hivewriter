@@ -1,10 +1,11 @@
 import argparse
 from asyncio import Queue
+import logging
 
 from pydantic import BaseModel
 import os
 from ipaddress import IPv4Address, IPv6Address, AddressValueError
-
+from enum import Enum
 
 from dataclasses import dataclass, field
 
@@ -86,25 +87,29 @@ args, _ = my_parser.parse_known_args()
 my_args = vars(args)
 
 
+class NotificationReasons(Enum):
+    FEED_UPDATED = (1,)
+    NEW_FEED = (2,)
+    HOST_CHANGE = (3,)
+    GOING_LIVE = 4
+
+
 class PodpingSettings(BaseModel):
     """Dataclass for settings we will fetch from Hive"""
 
     hive_operation_period: int = 3
     max_url_list_bytes: int = 6000
     control_account: str = "podping"
+    control_account_check_period: int = 60
     test_nodes: List[str] = ["https://testnet.openhive.network"]
 
 
 class Config:
     """The Config Class"""
 
-    CONTROL_ACCOUNT = "podping"
-    CONTROL_ACCOUNT_CHECK_PERIOD = 60  # seconds
-    TEST_NODE = ["https://testnet.openhive.network"]
+    # TEST_NODE = ["https://testnet.openhive.network"]
     CURRENT_PODPING_VERSION = 2
     podping_settings = PodpingSettings()
-
-    NOTIFICATION_REASONS = ["Feed Updated", "New Feed", "Host Change", "Going Live"]
 
     # HIVE_OPERATION_PERIOD = 3  # 1 Hive operation per this period seconds
     # MAX_URL_LIST_BYTES = 7000  # Upper limit on custom_json is 8092 bytes
