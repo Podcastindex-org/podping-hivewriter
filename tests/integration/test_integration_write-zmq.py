@@ -10,6 +10,20 @@ from beem.blockchain import Blockchain
 
 from podping_hivewriter import hive_writer, config
 
+@pytest.mark.asyncio
+async def test_update_podping_settings(event_loop):
+    # See if we can fetch data from podping
+    # Must not use Testnet when looking for config data
+    config.Config.podping_settings.control_account_check_period = 333333333
+    old_settings = config.Config.podping_settings
+    await hive_writer.update_podping_settings('podping')
+    if old_settings != config.Config.podping_settings:
+        print (config.Config.podping_settings)
+        assert True
+    else:
+        assert False
+
+
 
 @pytest.mark.asyncio
 @pytest.mark.timeout(60)
