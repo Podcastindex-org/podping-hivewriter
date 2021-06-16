@@ -2,12 +2,11 @@ import argparse
 from asyncio import Queue
 import logging
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 import os
 from ipaddress import IPv4Address, IPv6Address, AddressValueError
 from enum import Enum
 
-from dataclasses import dataclass, field
 
 # Testnet instead of main Hive
 # BOL: Switching off TestNet, we should test on Hive for now.
@@ -103,6 +102,11 @@ class PodpingSettings(BaseModel):
     control_account_check_period: int = 60
     test_nodes: List[str] = ["https://testnet.openhive.network"]
 
+    @validator('hive_operation_period')
+    def hive_op_period_must_be_int_above_one(cls, v):
+        if v < 1:
+            v = 1
+        return v
 
 class Config:
     """The Config Class"""
