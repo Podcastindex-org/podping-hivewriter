@@ -102,11 +102,12 @@ class PodpingSettings(BaseModel):
     control_account_check_period: int = 60
     test_nodes: List[str] = ["https://testnet.openhive.network"]
 
-    @validator('hive_operation_period')
+    @validator("hive_operation_period")
     def hive_op_period_must_be_int_above_one(cls, v):
         if v < 1:
             v = 1
         return v
+
 
 class Config:
     """The Config Class"""
