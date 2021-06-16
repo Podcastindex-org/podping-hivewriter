@@ -104,6 +104,8 @@ class PodpingSettings(BaseModel):
 
     @validator("hive_operation_period")
     def hive_op_period_must_be_int_above_one(cls, v):
+        """If anyone ever tries to set op period < 1 this will catch
+        it. Other float values coerced into int seconds"""
         if v < 1:
             v = 1
         return v
