@@ -145,7 +145,7 @@ async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
     return hive
 
 
-def get_allowed_accounts(acc_name="podping") -> Set[str]:
+def get_allowed_accounts(acc_name="podpig") -> Set[str]:
     """get a list of all accounts allowed to post by acc_name (podping)
     and only react to these accounts"""
     # Ignores test node.
