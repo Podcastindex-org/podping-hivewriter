@@ -16,6 +16,7 @@ from podping_hivewriter import hive_writer, config
 
 @pytest.mark.asyncio
 @pytest.mark.slow
+@pytest.mark.timeout(10)
 async def test_hive_startup():
     # Run the entire startup procedure and check returned hive object
     # Check on the main chain
