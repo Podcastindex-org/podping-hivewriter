@@ -1,25 +1,41 @@
 import asyncio
 import json
+from typing import Set
 import uuid
 from timeit import default_timer as timer
+from py import test
 
 import pytest
 import zmq
 import zmq.asyncio
 from beem.blockchain import Blockchain
+from beem.account import Account
 
 from podping_hivewriter import hive_writer, config
 
 
 @pytest.mark.asyncio
-async def test_update_podping_settings(event_loop):
-    # See if we can fetch data from podping
-    # Must not use Testnet when looking for config data
-    config.Config.podping_settings.control_account_check_period = 333333333
-    old_settings = config.Config.podping_settings
-    await hive_writer.update_podping_settings("podping")
-    if old_settings != config.Config.podping_settings:
-        print(config.Config.podping_settings)
+@pytest.mark.slow
+async def test_hive_startup():
+    # Run the entire startup procedure and check returned hive object
+    # Check on the main chain
+    config.Config.test = False
+    test_hive = await hive_writer.hive_startup()
+
+    try:
+        account = Account("podping", blockchain_instance=test_hive)
+        print(account)
+        assert True
+    except Exception as ex:
+        print(ex)
+        assert False
+
+
+@pytest.mark.asyncio
+async def test_get_allowed_accounts():
+    # Checks the allowed accounts checkup
+    allowed_accounts = hive_writer.get_allowed_accounts()
+    if type(allowed_accounts) == set and len(allowed_accounts) > 0:
         assert True
     else:
         assert False
@@ -76,3 +92,17 @@ async def test_write_single_url_zmq_req(event_loop):
         if stream_url == url:
             assert True
             break
+
+
+@pytest.mark.asyncio
+async def test_update_podping_settings(event_loop):
+    # See if we can fetch data from podping
+    # Must not use Testnet when looking for config data
+    config.Config.podping_settings.control_account_check_period = 333333333
+    old_settings = config.Config.podping_settings
+    await hive_writer.update_podping_settings("podping")
+    if old_settings != config.Config.podping_settings:
+        print(config.Config.podping_settings)
+        assert True
+    else:
+        assert False
