@@ -4,7 +4,6 @@ import logging
 from sys import getsizeof
 from timeit import default_timer as timer
 from typing import Set, Tuple
-from pydantic import ValidationError
 
 import beem
 import zmq
@@ -12,9 +11,10 @@ import zmq.asyncio
 from beem.account import Account
 from beem.exceptions import AccountDoesNotExistsException, MissingKeyError
 from beemapi.exceptions import UnhandledRPCError
+from pydantic import ValidationError
 
-from podping_hivewriter.config import Config, PodpingSettings
-from podping_hivewriter.get_hive_config import get_podping_settings
+from podping_hivewriter.config import Config
+from podping_hivewriter.podping_config import get_podping_settings
 
 
 def get_hive():
@@ -53,7 +53,7 @@ async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
 
     try:
         hive = get_hive()
-        await get_podping_settings(Config.podping_settings.control_account)
+        await update_podping_settings(Config.podping_settings.control_account)
 
     except Exception as ex:
         error_messages.append(f"{ex} occurred {ex.__class__}")
@@ -239,6 +239,8 @@ async def send_notification_worker(
     while True:
         try:
             url_set = await hive_queue.get()
+        except asyncio.CancelledError:
+            raise
         except RuntimeError:
             return
         start = timer()
@@ -295,6 +297,8 @@ async def url_q_worker(
                 urls_size_total = urls_size_without_commas + len(url_set) - 1 + 2
             except asyncio.TimeoutError:
                 pass
+            except asyncio.CancelledError:
+                raise
             except RuntimeError:
                 return
             except Exception as ex:
@@ -307,6 +311,8 @@ async def url_q_worker(
             if len(url_set):
                 await hive_queue.put(url_set)
                 logging.info(f"Size of Urls: {urls_size_total}")
+        except asyncio.CancelledError:
+            raise
         except RuntimeError:
             return
         except Exception as ex:
@@ -356,18 +362,20 @@ async def zmq_response_loop(url_queue: "asyncio.Queue[str]", loop=None):
         socket.bind(f"tcp://127.0.0.1:{Config.zmq}")
 
     while True:
-        url: str = await socket.recv_string()
-        await url_queue.put(url)
-        ans = "OK"
-        await socket.send_string(ans)
-
-    socket.close()
+        try:
+            url: str = await socket.recv_string()
+            await url_queue.put(url)
+            ans = "OK"
+            await socket.send_string(ans)
+        except asyncio.CancelledError:
+            socket.close()
+            raise
 
 
 async def url_only_startup(url: str):
     hive = await hive_startup(resource_test=False)
 
-    await failure_retry(url, hive)
+    await failure_retry(set(url), hive)
 
 
 def task_startup(hive: beem.Hive, loop=None):
@@ -392,39 +400,23 @@ def loop_running_startup_task(hive_task: asyncio.Task):
     task_startup(hive)
 
 
-async def update_podping_settings(acc_name) -> None:
+async def update_podping_settings(acc_name: str) -> None:
     """Take newly found settings and put them into Config"""
-    new_p_s = await get_podping_settings(acc_name)
     try:
-        # new_p_s['test_nodes'] = "bad data"
-        new_pod_set = PodpingSettings.parse_obj(new_p_s)
+        podping_settings = await get_podping_settings(acc_name)
     except ValidationError as e:
         logging.warning(f"Problem with podping control settings: {e}")
-
     else:
-        if Config.podping_settings != new_pod_set:
-            logging.info("Configuration overide from Podping Hive")
-            Config.podping_settings = new_pod_set
-    return
+        if Config.podping_settings != podping_settings:
+            logging.info("Configuration override from Podping Hive")
+            Config.podping_settings = podping_settings
 
 
-async def update_podping_settings_worker(acc_name) -> None:
+async def update_podping_settings_worker(acc_name: str) -> None:
     """Worker to check for changed settings every (period)"""
     while True:
         await update_podping_settings(acc_name)
         await asyncio.sleep(Config.podping_settings.control_account_check_period)
-
-
-async def get_podping_settings(acc_name) -> dict:
-    """Returns podping settings if they exist"""
-    hive = beem.Hive()
-    acc = Account(acc_name, blockchain_instance=hive, lazy=True)
-    posting_meta = json.loads(acc["posting_json_metadata"])
-    podping_settings = posting_meta.get("podping-settings")
-    if podping_settings:
-        return podping_settings
-    else:
-        return None
 
 
 def run(loop=None):

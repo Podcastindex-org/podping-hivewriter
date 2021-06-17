@@ -1,21 +1,21 @@
 import argparse
-from asyncio import Queue
 import logging
+import os
+from asyncio import Queue
+from enum import Enum
+from ipaddress import AddressValueError, IPv4Address, IPv6Address
+
+# ---------------------------------------------------------------
+# COMMAND LINE
+# ---------------------------------------------------------------
+from typing import List, Set, Tuple
 
 from pydantic import BaseModel, validator
-import os
-from ipaddress import IPv4Address, IPv6Address, AddressValueError
-from enum import Enum
-
 
 # Testnet instead of main Hive
 # BOL: Switching off TestNet, we should test on Hive for now.
 
 
-# ---------------------------------------------------------------
-# COMMAND LINE
-# ---------------------------------------------------------------
-from typing import List, Set
 
 app_description = """ PodPing - Runs as a server and writes a stream of URLs to the
 Hive Blockchain or sends a single URL to Hive (--url option)
@@ -100,7 +100,7 @@ class PodpingSettings(BaseModel):
     max_url_list_bytes: int = 6000
     control_account: str = "podping"
     control_account_check_period: int = 60
-    test_nodes: List[str] = ["https://testnet.openhive.network"]
+    test_nodes: Tuple[str] = ("https://testnet.openhive.network",)
 
     @validator("hive_operation_period")
     def hive_op_period_must_be_int_above_one(cls, v):

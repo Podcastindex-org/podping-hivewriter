@@ -8,26 +8,7 @@ import zmq
 import zmq.asyncio
 from beem.blockchain import Blockchain
 
-from podping_hivewriter import hive_writer, config
-
-
-@pytest.mark.asyncio
-async def test_update_podping_settings():
-    # See if we can fetch data from podping
-    # Must not use Testnet when looking for config data
-    test_account_check_period = 333333333
-    config.Config.podping_settings.control_account_check_period = (
-        test_account_check_period
-    )
-    await hive_writer.update_podping_settings("podping")
-
-    # Have to compare the properties and not the object
-    # Because object comparison by default is just the memory location, which will
-    # always change with new objects
-    assert (
-        test_account_check_period
-        != config.Config.podping_settings.control_account_check_period
-    )
+from podping_hivewriter import config, hive_writer
 
 
 @pytest.mark.asyncio
@@ -65,8 +46,6 @@ async def test_write_single_url_zmq_req(event_loop):
     context = zmq.asyncio.Context()
     socket = context.socket(zmq.REQ, io_loop=event_loop)
     socket.connect(f"tcp://127.0.0.1:{config.Config.zmq}")
-
-    start_time = timer()
 
     await socket.send_string(url)
     response = await socket.recv_string()
