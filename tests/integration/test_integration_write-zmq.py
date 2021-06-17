@@ -12,6 +12,20 @@ from podping_hivewriter import hive_writer, config
 
 
 @pytest.mark.asyncio
+async def test_update_podping_settings(event_loop):
+    # See if we can fetch data from podping
+    # Must not use Testnet when looking for config data
+    config.Config.podping_settings.control_account_check_period = 333333333
+    old_settings = config.Config.podping_settings
+    await hive_writer.update_podping_settings("podping")
+    if old_settings != config.Config.podping_settings:
+        print(config.Config.podping_settings)
+        assert True
+    else:
+        assert False
+
+
+@pytest.mark.asyncio
 @pytest.mark.timeout(60)
 @pytest.mark.slow
 async def test_write_single_url_zmq_req(event_loop):
@@ -56,7 +70,7 @@ async def test_write_single_url_zmq_req(event_loop):
 
     # Sleep to catch up because beem isn't async and blocks
     # This is just longer than the amount of time url_q_worker waits for
-    await asyncio.sleep(config.Config.HIVE_OPERATION_PERIOD * 1.1)
+    await asyncio.sleep(config.Config.podping_settings.hive_operation_period * 1.1)
 
     async for stream_url in get_url_from_blockchain():
         if stream_url == url:

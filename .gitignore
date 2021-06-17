@@ -5,10 +5,8 @@ __pycache__/
 
 # VSCode
 .vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+
+
 *.code-workspace
 
 # Local History for Visual Studio Code
@@ -150,7 +148,6 @@ cython_debug/
 .DS_Store
 .vscode/launch.json
 .vscode/extensions.json
-.vscode/settings.json
-.vscode/settings.json
 .env.test
 .vscode/tasks.json
+.vscode/settings.json

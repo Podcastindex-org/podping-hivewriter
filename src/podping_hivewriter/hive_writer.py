@@ -4,6 +4,7 @@ import logging
 from sys import getsizeof
 from timeit import default_timer as timer
 from typing import Set, Tuple
+from pydantic import ValidationError
 
 import beem
 import zmq
@@ -12,15 +13,16 @@ from beem.account import Account
 from beem.exceptions import AccountDoesNotExistsException, MissingKeyError
 from beemapi.exceptions import UnhandledRPCError
 
-from podping_hivewriter.config import Config
+from podping_hivewriter.config import Config, PodpingSettings
+from podping_hivewriter.get_hive_config import get_podping_settings
 
 
 def get_hive():
     posting_key = Config.posting_key
     if Config.test:
-        node = Config.TEST_NODE[0]
-        hive = beem.Hive(keys=posting_key, node=node)
-        logging.info("---------------> Using Test Node " + node)
+        nodes = Config.podping_settings.test_nodes
+        hive = beem.Hive(keys=posting_key, node=nodes)
+        logging.info(f"---------------> Using Test Nodes: {nodes}")
     else:
         hive = beem.Hive(keys=posting_key)
         logging.info("---------------> Using Main Hive Chain ")
@@ -51,6 +53,7 @@ async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
 
     try:
         hive = get_hive()
+        await get_podping_settings(Config.podping_settings.control_account)
 
     except Exception as ex:
         error_messages.append(f"{ex} occurred {ex.__class__}")
@@ -152,7 +155,7 @@ def get_allowed_accounts(acc_name="podping") -> Set[str]:
 
 
 def send_notification(
-    data, hive: beem.Hive, operation_id="podping"
+    data, hive: beem.Hive, operation_id="podping", reason=1
 ) -> Tuple[str, bool]:
     """Sends a custom_json to Hive
     Expects two env variables, Hive account name and posting key
@@ -167,7 +170,7 @@ def send_notification(
         custom_json = {
             "v": Config.CURRENT_PODPING_VERSION,
             "num_urls": num_urls,
-            "r": Config.NOTIFICATION_REASONS["feed_update"],
+            "r": reason,
             "urls": list(data),
         }
     elif type(data) == str:
@@ -176,7 +179,7 @@ def send_notification(
         custom_json = {
             "v": Config.CURRENT_PODPING_VERSION,
             "num_urls": 1,
-            "r": Config.NOTIFICATION_REASONS["feed_update"],
+            "r": reason,
             "url": data,
         }
     elif type(data) == dict:
@@ -265,14 +268,15 @@ async def url_q_worker(
         # Wait until we have enough URLs to fit in the payload
         # or get into the current Hive block
         while (
-            duration < Config.HIVE_OPERATION_PERIOD
-            and urls_size_total < Config.MAX_URL_LIST_BYTES
+            duration < Config.podping_settings.hive_operation_period
+            and urls_size_total < Config.podping_settings.max_url_list_bytes
         ):
             #  get next URL from Q
             logging.debug(f"Duration: {duration:.3f} - WAITING - Queue: {len(url_set)}")
             try:
                 url = await asyncio.wait_for(
-                    get_from_queue(), timeout=Config.HIVE_OPERATION_PERIOD
+                    get_from_queue(),
+                    timeout=Config.podping_settings.hive_operation_period,
                 )
                 url_set.add(url)
                 url_queue.task_done()
@@ -375,6 +379,9 @@ def task_startup(hive: beem.Hive, loop=None):
     # Move the URL Q into a proper Q
     url_queue: "asyncio.Queue[str]" = asyncio.Queue(loop=loop)
 
+    loop.create_task(
+        update_podping_settings_worker(Config.podping_settings.control_account)
+    )
     loop.create_task(send_notification_worker(hive_queue, hive))
     loop.create_task(url_q_worker(url_queue, hive_queue))
     loop.create_task(zmq_response_loop(url_queue, loop))
@@ -383,6 +390,41 @@ def task_startup(hive: beem.Hive, loop=None):
 def loop_running_startup_task(hive_task: asyncio.Task):
     hive = hive_task.result()
     task_startup(hive)
+
+
+async def update_podping_settings(acc_name) -> None:
+    """Take newly found settings and put them into Config"""
+    new_p_s = await get_podping_settings(acc_name)
+    try:
+        # new_p_s['test_nodes'] = "bad data"
+        new_pod_set = PodpingSettings.parse_obj(new_p_s)
+    except ValidationError as e:
+        logging.warning(f"Problem with podping control settings: {e}")
+
+    else:
+        if Config.podping_settings != new_pod_set:
+            logging.info("Configuration overide from Podping Hive")
+            Config.podping_settings = new_pod_set
+    return
+
+
+async def update_podping_settings_worker(acc_name) -> None:
+    """Worker to check for changed settings every (period)"""
+    while True:
+        await update_podping_settings(acc_name)
+        await asyncio.sleep(Config.podping_settings.control_account_check_period)
+
+
+async def get_podping_settings(acc_name) -> dict:
+    """Returns podping settings if they exist"""
+    hive = beem.Hive()
+    acc = Account(acc_name, blockchain_instance=hive, lazy=True)
+    posting_meta = json.loads(acc["posting_json_metadata"])
+    podping_settings = posting_meta.get("podping-settings")
+    if podping_settings:
+        return podping_settings
+    else:
+        return None
 
 
 def run(loop=None):

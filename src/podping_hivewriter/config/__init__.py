@@ -1,7 +1,12 @@
 import argparse
 from asyncio import Queue
+import logging
+
+from pydantic import BaseModel, validator
 import os
 from ipaddress import IPv4Address, IPv6Address, AddressValueError
+from enum import Enum
+
 
 # Testnet instead of main Hive
 # BOL: Switching off TestNet, we should test on Hive for now.
@@ -10,7 +15,7 @@ from ipaddress import IPv4Address, IPv6Address, AddressValueError
 # ---------------------------------------------------------------
 # COMMAND LINE
 # ---------------------------------------------------------------
-from typing import Set
+from typing import List, Set
 
 app_description = """ PodPing - Runs as a server and writes a stream of URLs to the
 Hive Blockchain or sends a single URL to Hive (--url option)
@@ -81,16 +86,40 @@ args, _ = my_parser.parse_known_args()
 my_args = vars(args)
 
 
+class NotificationReasons(Enum):
+    FEED_UPDATED = (1,)
+    NEW_FEED = (2,)
+    HOST_CHANGE = (3,)
+    GOING_LIVE = 4
+
+
+class PodpingSettings(BaseModel):
+    """Dataclass for settings we will fetch from Hive"""
+
+    hive_operation_period: int = 3
+    max_url_list_bytes: int = 6000
+    control_account: str = "podping"
+    control_account_check_period: int = 60
+    test_nodes: List[str] = ["https://testnet.openhive.network"]
+
+    @validator("hive_operation_period")
+    def hive_op_period_must_be_int_above_one(cls, v):
+        """If anyone ever tries to set op period < 1 this will catch
+        it. Other float values coerced into int seconds"""
+        if v < 1:
+            v = 1
+        return v
+
+
 class Config:
     """The Config Class"""
 
-    TEST_NODE = ["https://testnet.openhive.network"]
+    # TEST_NODE = ["https://testnet.openhive.network"]
     CURRENT_PODPING_VERSION = 2
-    NOTIFICATION_REASONS = {"feed_update": 1, "new_feed": 2, "host_change": 3}
+    podping_settings = PodpingSettings()
 
-    HIVE_OPERATION_PERIOD = 3  # 1 Hive operation per this period in
-    MAX_URL_PER_CUSTOM_JSON = 90  # total json size must be below 8192 bytes
-    MAX_URL_LIST_BYTES = 7000
+    # HIVE_OPERATION_PERIOD = 3  # 1 Hive operation per this period seconds
+    # MAX_URL_LIST_BYTES = 7000  # Upper limit on custom_json is 8092 bytes
 
     # This is a global signal to shut down until RC's recover
     # Stores the RC cost of each operation to calculate an average
