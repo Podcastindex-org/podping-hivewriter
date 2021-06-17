@@ -1,20 +1,14 @@
 import argparse
-import logging
 import os
-from asyncio import Queue
 from enum import Enum
 from ipaddress import AddressValueError, IPv4Address, IPv6Address
 
 # ---------------------------------------------------------------
 # COMMAND LINE
 # ---------------------------------------------------------------
-from typing import List, Set, Tuple
+from typing import Tuple
 
 from pydantic import BaseModel, validator
-
-# Testnet instead of main Hive
-# BOL: Switching off TestNet, we should test on Hive for now.
-
 
 
 app_description = """ PodPing - Runs as a server and writes a stream of URLs to the
