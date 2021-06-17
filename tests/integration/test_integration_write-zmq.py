@@ -12,17 +12,22 @@ from podping_hivewriter import hive_writer, config
 
 
 @pytest.mark.asyncio
-async def test_update_podping_settings(event_loop):
+async def test_update_podping_settings():
     # See if we can fetch data from podping
     # Must not use Testnet when looking for config data
-    config.Config.podping_settings.control_account_check_period = 333333333
-    old_settings = config.Config.podping_settings
+    test_account_check_period = 333333333
+    config.Config.podping_settings.control_account_check_period = (
+        test_account_check_period
+    )
     await hive_writer.update_podping_settings("podping")
-    if old_settings != config.Config.podping_settings:
-        print(config.Config.podping_settings)
-        assert True
-    else:
-        assert False
+
+    # Have to compare the properties and not the object
+    # Because object comparison by default is just the memory location, which will
+    # always change with new objects
+    assert (
+        test_account_check_period
+        != config.Config.podping_settings.control_account_check_period
+    )
 
 
 @pytest.mark.asyncio
