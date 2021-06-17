@@ -4,6 +4,7 @@ import logging
 from sys import getsizeof
 from timeit import default_timer as timer
 from typing import Set, Tuple
+import uuid
 
 import beem
 import zmq
@@ -95,6 +96,7 @@ async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
                     "server_account": Config.server_account,
                     "USE_TEST_NODE": Config.test,
                     "message": "Podping startup initiated",
+                    "uuid" : uuid.uuid4()
                 }
                 error_message, success = send_notification(
                     custom_json, hive, "podping-startup"
