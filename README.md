@@ -1,7 +1,10 @@
 # podping-hivewriter
 The hive writer component of podping.
 
-## Building docker image
+These docs are in flux: a full docerhub image and a pypi version is being worked on. Right now, this libarary (from dev branches) can be experimented with by qualified individuals.
+
+## Docker
+### Building docker image
 
 Locally build the podping-hivewriter container with a "develop" tag
 
@@ -9,18 +12,34 @@ Locally build the podping-hivewriter container with a "develop" tag
 
 TODO: Use Github CI/CD to do this automatically on commit and push to Docker Hub
 
-## Running docker image
+### Running from docker image
 
 Run the locally built docker image in a container, passing local port 9999 to port 9999 in the container.
-ENV variables can be passed to Docker with `--env-file` option after modifying the .env.EXAMPLE file and renaming it to .env
+ENV variables can be passed to Docker with `--env-file` option after modifying the `.env.EXAMPLE` file and renaming it to `.env`
 
-`docker run --rm -p 9999:9999 --env-file .env --name podping_hivewriter podpinghivewriter:develop`
+`docker run --rm -p 9999:9999 --env-file .env --name podping_hivewriter podpinghivewriter:develop --bindall --zmq 9999`
 
-Running with command line options, like testnet for example, add them at the end:
+Running with command line options, like testnet for example, add them at the end and enviornment settings can also be passed with the `-e` option for Docker:
 
-`docker run --rm -p 9999:9999 -e HIVE_SERVER_ACCOUNT=<account> -e HIVE_POSTING_KEY=<posting-key> podpinghivewriter:develop --test`
+`docker run --rm -p 9999:9999 -e HIVE_SERVER_ACCOUNT=<account> -e HIVE_POSTING_KEY=<posting-key> podpinghivewriter:develop --test --bindall`
 
-By default `hive-writer` will run with the equivalent of `--zmq 9999` binding to `127.0.0.1` only. If you need to grant access from other IP addresses, pass the `--bindall` option.
+By default `hive-writer` will run with the equivalent of `--zmq 9999` binding to `127.0.0.1` only. If you need to grant access from other IP addresses, pass the `--bindall` option. Within Docker you will need the `--bindall` option
+
+## Python
+### Poetry Install
+
+If you want to run the Python scripts direct, after cloning the repository run:
+
+`poetry install`
+
+Then to switch to the virtual environment, use:
+
+`poetry shell`
+
+After that you should be able to run hive-writer with any of the command line options:
+
+`python src/podping_hivewriter/hive_writer.py --help`
+
 
 ```
 usage: hive-writer [options]
