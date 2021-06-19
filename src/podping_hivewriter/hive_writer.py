@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 import json
 import logging
 from sys import getsizeof
@@ -12,10 +13,19 @@ import zmq.asyncio
 from beem.account import Account
 from beem.exceptions import AccountDoesNotExistsException, MissingKeyError
 from beemapi.exceptions import UnhandledRPCError
+from beem.nodelist import NodeList
+
 from pydantic import ValidationError
 
 from podping_hivewriter.config import Config
 from podping_hivewriter.podping_config import get_podping_settings
+
+from random import randint
+
+
+class Pings:
+    total_urls_recv = 0
+    total_urls_sent = 0
 
 
 def get_hive():
@@ -25,7 +35,10 @@ def get_hive():
         hive = beem.Hive(keys=posting_key, node=nodes)
         logging.info(f"---------------> Using Test Nodes: {nodes}")
     else:
-        hive = beem.Hive(keys=posting_key)
+        nodelist = NodeList()
+        nodelist.update_nodes()
+        nodes = nodelist.get_hive_nodes()
+        hive = beem.Hive(node=nodes, keys=posting_key)
         logging.info("---------------> Using Main Hive Chain ")
     return hive
 
@@ -97,6 +110,7 @@ async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
                     "USE_TEST_NODE": Config.test,
                     "message": "Podping startup initiated",
                     "uuid": str(uuid.uuid4()),
+                    "hive": repr(hive),
                 }
                 error_message, success = send_notification(
                     custom_json, hive, "podping-startup"
@@ -120,6 +134,7 @@ async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
                 custom_json["v"] = Config.CURRENT_PODPING_VERSION
                 custom_json["capacity"] = f"{capacity:.1f}"
                 custom_json["message"] = "Podping startup complete"
+                custom_json["hive"] = repr(hive)
                 error_message, success = send_notification(
                     custom_json, hive, "podping-startup"
                 )
@@ -214,21 +229,25 @@ def send_notification(
             f"Transaction sent: {trx_id} - Num urls: {num_urls}"
             f" - Size of Urls: {size_of_urls} - Json size: {size_of_json}"
         )
+        Pings.total_urls_sent += num_urls
         logging.info(f"Overhead: {size_of_json - size_of_urls}")
         return trx_id, True
 
     except MissingKeyError:
         error_message = f"The provided key for @{Config.server_account} is not valid "
+        logging.warning(repr(hive))
         logging.error(error_message)
         return error_message, False
     except UnhandledRPCError as ex:
         error_message = f"{ex} occurred: {ex.__class__}"
+        logging.warning(repr(hive))
         logging.error(error_message)
         trx_id = error_message
         return trx_id, False
 
     except Exception as ex:
         error_message = f"{ex} occurred {ex.__class__}"
+        logging.warning(repr(hive))
         logging.error(error_message)
         trx_id = error_message
         return trx_id, False
@@ -330,10 +349,16 @@ async def failure_retry(
             f"I'm sorry Dave, I'm afraid I can't do that. "
             f"Too many tries {failure_count}"
         )
+
+        # Need code here to dump all URL's we've
+        # received but not sent out to a file or the stdout
+
+        logging.warning(repr(hive))
         logging.error(error_message)
         raise SystemExit(error_message)
 
     if failure_count > 0:
+        logging.warning(repr(hive))
         logging.error(f"Waiting {Config.HALT_TIME[failure_count]}s")
         await asyncio.sleep(Config.HALT_TIME[failure_count])
         logging.info(f"RETRYING num_urls: {len(url_set)}")
@@ -367,6 +392,7 @@ async def zmq_response_loop(url_queue: "asyncio.Queue[str]", loop=None):
         try:
             url: str = await socket.recv_string()
             await url_queue.put(url)
+            Pings.total_urls_recv += 1
             ans = "OK"
             await socket.send_string(ans)
         except asyncio.CancelledError:
@@ -395,6 +421,7 @@ def task_startup(hive: beem.Hive, loop=None):
     loop.create_task(send_notification_worker(hive_queue, hive))
     loop.create_task(url_q_worker(url_queue, hive_queue))
     loop.create_task(zmq_response_loop(url_queue, loop))
+    loop.create_task(output_hive_status_worker(hive, url_queue, hive_queue))
 
 
 def loop_running_startup_task(hive_task: asyncio.Task):
@@ -419,6 +446,28 @@ async def update_podping_settings_worker(acc_name: str) -> None:
     while True:
         await update_podping_settings(acc_name)
         await asyncio.sleep(Config.podping_settings.control_account_check_period)
+
+
+async def output_hive_status_worker(
+    hive: beem.Hive,
+    url_queue: "asyncio.Queue[str]",
+    hive_queue: "asyncio.Queue[Set[str]]",
+) -> None:
+    """Worker to output the name of the current hive node
+    on a regular basis"""
+    while True:
+        up_time = datetime.utcnow() - Config.startup_datetime
+        logging.info("--------------------------------------------------------")
+        logging.info(f"Using Hive Node: {hive}")
+        logging.info(f"Up Time: {up_time}")
+        logging.info(
+            f"Urls Recived: {Pings.total_urls_recv} - Urls Sent: {Pings.total_urls_sent}"
+        )
+        logging.info(
+            f"URL Queue: {url_queue.qsize()} - Hive Queue: {hive_queue.qsize()}"
+        )
+        logging.info("--------------------------------------------------------")
+        await asyncio.sleep(60)
 
 
 def run(loop=None):

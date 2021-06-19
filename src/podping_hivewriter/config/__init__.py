@@ -1,4 +1,5 @@
 import argparse
+from datetime import datetime
 import os
 from enum import Enum
 from ipaddress import AddressValueError, IPv4Address, IPv6Address
@@ -136,6 +137,8 @@ class Config:
     test = os.getenv("USE_TEST_NODE", "False").lower() in ("true", "1", "t")
     if my_args["test"]:
         test = True
+
+    startup_datetime = datetime.utcnow()
 
     @classmethod
     def setup(cls):
