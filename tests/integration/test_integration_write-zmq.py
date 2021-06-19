@@ -64,5 +64,6 @@ async def test_write_single_url_zmq_req(event_loop):
         if stream_url == url:
             assert True
             break
-    # @alecks don't we need
-#todo: #4 Don't we need to shut down the event loops in hive_writer gracefully at this point?
+
+
+# todo: #4 Don't we need to shut down the event loops in hive_writer gracefully at this point?
