@@ -26,6 +26,7 @@ from random import randint
 class Pings:
     total_urls_recv = 0
     total_urls_sent = 0
+    total_urls_recv_deduped = 0
 
 
 def get_hive():
@@ -35,9 +36,10 @@ def get_hive():
         hive = beem.Hive(keys=posting_key, node=nodes)
         logging.info(f"---------------> Using Test Nodes: {nodes}")
     else:
-        nodelist = NodeList()
-        nodelist.update_nodes()
-        nodes = nodelist.get_hive_nodes()
+        # nodelist = NodeList()
+        # nodelist.update_nodes()
+        # nodes = nodelist.get_hive_nodes()
+        nodes = ['https://api.ha.deathwing.me']
         hive = beem.Hive(node=nodes, keys=posting_key)
         logging.info("---------------> Using Main Hive Chain ")
     return hive
@@ -331,6 +333,7 @@ async def url_q_worker(
         try:
             if len(url_set):
                 await hive_queue.put(url_set)
+                Pings.total_urls_recv_deduped += len(url_set)
                 logging.info(f"Size of Urls: {urls_size_total}")
         except asyncio.CancelledError:
             raise
@@ -461,7 +464,9 @@ async def output_hive_status_worker(
         logging.info(f"Using Hive Node: {hive}")
         logging.info(f"Up Time: {up_time}")
         logging.info(
-            f"Urls Recived: {Pings.total_urls_recv} - Urls Sent: {Pings.total_urls_sent}"
+            f"Urls Recived: {Pings.total_urls_recv} - "
+            f"Urls Deduped: {Pings.total_urls_recv_deduped} - "
+            f"Urls Sent: {Pings.total_urls_sent}"
         )
         logging.info(
             f"URL Queue: {url_queue.qsize()} - Hive Queue: {hive_queue.qsize()}"
