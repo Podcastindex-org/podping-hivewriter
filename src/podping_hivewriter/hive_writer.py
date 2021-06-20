@@ -36,10 +36,7 @@ def get_hive():
         hive = beem.Hive(keys=posting_key, node=nodes)
         logging.info(f"---------------> Using Test Nodes: {nodes}")
     else:
-        # nodelist = NodeList()
-        # nodelist.update_nodes()
-        # nodes = nodelist.get_hive_nodes()
-        nodes = ['https://api.ha.deathwing.me']
+        nodes = Config.podping_settings.main_nodes
         hive = beem.Hive(node=nodes, keys=posting_key)
         logging.info("---------------> Using Main Hive Chain ")
     return hive
@@ -153,6 +150,8 @@ async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
             "Startup of Podping status: I'm sorry, Dave, I'm afraid I can't do that."
         )
         exit_message = " - ".join(error_messages)
+        for err in error_message:
+            logging.error(err)
         if not Config.test or ignore_errors:
             raise SystemExit(exit_message)
 
@@ -435,7 +434,9 @@ def loop_running_startup_task(hive_task: asyncio.Task):
 async def update_podping_settings(acc_name: str) -> None:
     """Take newly found settings and put them into Config"""
     try:
-        podping_settings = await get_podping_settings(acc_name)
+        podping_settings = await get_podping_settings(
+            acc_name, Config.podping_settings.main_nodes
+        )
     except ValidationError as e:
         logging.warning(f"Problem with podping control settings: {e}")
     else:
@@ -451,6 +452,26 @@ async def update_podping_settings_worker(acc_name: str) -> None:
         await asyncio.sleep(Config.podping_settings.control_account_check_period)
 
 
+def output_hive_status(
+    hive: beem.Hive,
+    url_queue: "asyncio.Queue[str]",
+    hive_queue: "asyncio.Queue[Set[str]]",
+) -> None:
+    """Output the name of the current hive node
+    on a regular basis"""
+    up_time = datetime.utcnow() - Config.startup_datetime
+    logging.info("--------------------------------------------------------")
+    logging.info(f"Using Hive Node: {hive}")
+    logging.info(f"Up Time: {up_time}")
+    logging.info(
+        f"Urls Recived: {Pings.total_urls_recv} - "
+        f"Urls Deduped: {Pings.total_urls_recv_deduped} - "
+        f"Urls Sent: {Pings.total_urls_sent}"
+    )
+    logging.info(f"URL Queue: {url_queue.qsize()} - Hive Queue: {hive_queue.qsize()}")
+    logging.info("--------------------------------------------------------")
+
+
 async def output_hive_status_worker(
     hive: beem.Hive,
     url_queue: "asyncio.Queue[str]",
@@ -458,21 +479,10 @@ async def output_hive_status_worker(
 ) -> None:
     """Worker to output the name of the current hive node
     on a regular basis"""
+
     while True:
-        up_time = datetime.utcnow() - Config.startup_datetime
-        logging.info("--------------------------------------------------------")
-        logging.info(f"Using Hive Node: {hive}")
-        logging.info(f"Up Time: {up_time}")
-        logging.info(
-            f"Urls Recived: {Pings.total_urls_recv} - "
-            f"Urls Deduped: {Pings.total_urls_recv_deduped} - "
-            f"Urls Sent: {Pings.total_urls_sent}"
-        )
-        logging.info(
-            f"URL Queue: {url_queue.qsize()} - Hive Queue: {hive_queue.qsize()}"
-        )
-        logging.info("--------------------------------------------------------")
-        await asyncio.sleep(60)
+        output_hive_status(hive, url_queue, hive_queue)
+        await asyncio.sleep(Config.podping_settings.diagnostic_report_period)
 
 
 def run(loop=None):
