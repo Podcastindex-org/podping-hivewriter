@@ -163,13 +163,39 @@ async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
     return hive
 
 
-def get_allowed_accounts(acc_name="podping") -> Set[str]:
+def get_allowed_accounts(acc_name: str = "podping") -> Set[str]:
     """get a list of all accounts allowed to post by acc_name (podping)
     and only react to these accounts"""
     # Ignores test node.
-    h = beem.Hive(node="https://api.hive.blog")
-    master_account = Account(acc_name, blockchain_instance=h, lazy=True)
-    return set(master_account.get_following())
+    allowed = None
+    while not allowed:
+        for node in Config.podping_settings.main_nodes:
+            try:
+                hive = beem.Hive(node=Config.podping_settings.main_nodes)
+                master_account = Account(acc_name, blockchain_instance=hive, lazy=True)
+                allowed = set(master_account.get_following())
+            except Exception as e:
+                logging.error(
+                    f"Allowed Account: {master_account} - Failure on Node: {node}"
+                )
+
+    return allowed
+
+    nodelist = NodeList()
+    nodelist.update_nodes()
+    nodes = nodelist.get_hive_nodes()
+    nodes.append("https://api.ha.deathwig.me")
+    # nodes = Config.podping_settings.main_nodes
+
+    for node in nodes:
+        start = timer()
+        h = beem.Hive(node=node)
+        print(h)
+        master_account = Account(acc_name, blockchain_instance=h, lazy=True)
+        allowed = set(master_account.get_following())
+        print(allowed)
+        print(timer() - start)
+    return allowed
 
 
 def send_notification(
