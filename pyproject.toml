@@ -11,6 +11,7 @@ beem = "^0.24.21"
 pyzmq = "^22.1.0"
 cffi = "^1.14.5"
 pydantic = "^1.8.2"
+aiohttp = "^3.7.4"
 
 [tool.poetry.dev-dependencies]
 black = "^21.5b2"
