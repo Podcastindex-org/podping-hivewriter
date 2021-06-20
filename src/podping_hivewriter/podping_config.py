@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 from timeit import default_timer as timer
-from typing import Optional
+from typing import Optional, Tuple
 
 import beem
 from beem.account import Account
@@ -12,16 +12,16 @@ from podping_hivewriter.config import PodpingSettings
 PODPING_SETTINGS_KEY = "podping-settings"
 
 
-async def get_settings_from_hive(acc_name: str) -> Optional[dict]:
+async def get_settings_from_hive(acc_name: str, nodes: Tuple[str]) -> Optional[dict]:
     """Returns podping settings if they exist"""
-    hive = beem.Hive()
+    hive = beem.Hive(node=nodes)
     acc = Account(acc_name, blockchain_instance=hive, lazy=True)
     posting_meta = json.loads(acc["posting_json_metadata"])
     return posting_meta.get(PODPING_SETTINGS_KEY)
 
 
-async def get_podping_settings(acc_name: str) -> PodpingSettings:
-    settings_dict = await get_settings_from_hive(acc_name)
+async def get_podping_settings(acc_name: str, nodes: Tuple[str]) -> PodpingSettings:
+    settings_dict = await get_settings_from_hive(acc_name, nodes)
 
     return PodpingSettings.parse_obj(settings_dict)
 
