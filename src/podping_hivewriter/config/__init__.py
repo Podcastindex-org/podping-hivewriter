@@ -92,10 +92,18 @@ class PodpingSettings(BaseModel):
     """Dataclass for settings we will fetch from Hive"""
 
     hive_operation_period: int = 3
-    max_url_list_bytes: int = 6000
+    max_url_list_bytes: int = 7500
+    diagnostic_report_period: int = 3600
     control_account: str = "podping"
-    control_account_check_period: int = 60
-    test_nodes: Tuple[str] = ("https://testnet.openhive.network",)
+    control_account_check_period: int = 3600
+    test_nodes: Tuple[str, ...] = ("https://testnet.openhive.network",)
+    main_nodes: Tuple[str, ...] = (
+        'https://api.ha.deathwing.me',
+        'https://api.hive.blog',
+        'https://api.deathwing.me',
+        'https://hive-api.arcange.eu',
+    )
+
 
     @validator("hive_operation_period")
     def hive_op_period_must_be_int_above_one(cls, v):
