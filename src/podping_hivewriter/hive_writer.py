@@ -18,7 +18,10 @@ from beem.nodelist import NodeList
 from pydantic import ValidationError
 
 from podping_hivewriter.config import Config
-from podping_hivewriter.podping_config import get_podping_settings
+from podping_hivewriter.podping_config import (
+    get_podping_settings,
+    get_time_sorted_node_list,
+)
 
 from random import randint
 
@@ -29,7 +32,8 @@ class Pings:
     total_urls_recv_deduped = 0
 
 
-def get_hive():
+def get_hive() -> beem.Hive:
+    """Get the main Hive conneciton object"""
     posting_key = Config.posting_key
     if Config.test:
         nodes = Config.podping_settings.test_nodes
@@ -168,17 +172,16 @@ def get_allowed_accounts(acc_name: str = "podping") -> Set[str]:
     and only react to these accounts"""
     # Ignores test node.
     allowed = None
-    while not allowed:
-        for node in Config.podping_settings.main_nodes:
-            try:
-                hive = beem.Hive(node=Config.podping_settings.main_nodes)
-                master_account = Account(acc_name, blockchain_instance=hive, lazy=True)
-                allowed = set(master_account.get_following())
-            except Exception as e:
-                logging.error(
-                    f"Allowed Account: {master_account} - Failure on Node: {node}"
-                )
-
+    for node in Config.podping_settings.main_nodes:
+        try:
+            hive = beem.Hive(node=Config.podping_settings.main_nodes)
+            master_account = Account(acc_name, blockchain_instance=hive, lazy=True)
+            allowed = set(master_account.get_following())
+            break
+        except Exception as e:
+            logging.error(
+                f"Allowed Account: {master_account} - Failure on Node: {node}"
+            )
     return allowed
 
     nodelist = NodeList()
@@ -449,6 +452,9 @@ def task_startup(hive: beem.Hive, loop=None):
     loop.create_task(send_notification_worker(hive_queue, hive))
     loop.create_task(url_q_worker(url_queue, hive_queue))
     loop.create_task(zmq_response_loop(url_queue, loop))
+    # hive = loop.create_future(
+    #     output_hive_status_worker(hive, url_queue, hive_queue)
+    # )
     loop.create_task(output_hive_status_worker(hive, url_queue, hive_queue))
 
 
@@ -502,12 +508,17 @@ async def output_hive_status_worker(
     hive: beem.Hive,
     url_queue: "asyncio.Queue[str]",
     hive_queue: "asyncio.Queue[Set[str]]",
-) -> None:
+):
     """Worker to output the name of the current hive node
     on a regular basis"""
 
     while True:
+        node_list = await get_time_sorted_node_list(
+            Config.podping_settings.control_account
+        )
+        print(node_list)
         output_hive_status(hive, url_queue, hive_queue)
+        # hive = beem.Hive(node=node_list, keys=Config.posting_key)
         await asyncio.sleep(Config.podping_settings.diagnostic_report_period)
 
 

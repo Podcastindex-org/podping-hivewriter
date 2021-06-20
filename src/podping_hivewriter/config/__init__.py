@@ -93,14 +93,17 @@ class PodpingSettings(BaseModel):
 
     hive_operation_period: int = 3
     max_url_list_bytes: int = 7500
-    diagnostic_report_period: int = 3600
+    diagnostic_report_period: int = 60
     control_account: str = "podping"
     control_account_check_period: int = 3600
     test_nodes: Tuple[str, ...] = ("https://testnet.openhive.network",)
     main_nodes: Tuple[str, ...] = (
-        "https://api.ha.deathwing.me",
-        "https://api.hive.blog",
         "https://api.deathwing.me",
+        "https://rpc.ausbit.dev",
+        "https://api.pharesim.me",
+        "https://hive-api.arcange.eu",
+        "https://rpc.ecency.com",
+        "https://api.hive.blog",
     )
 
     @validator("hive_operation_period")
