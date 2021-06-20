@@ -455,6 +455,9 @@ def task_startup(hive: beem.Hive, loop=None):
     # hive = loop.create_future(
     #     output_hive_status_worker(hive, url_queue, hive_queue)
     # )
+    # I want this coroutine running in the loop every hour (or however often)
+    # to be able to "return" a new 'hive' object on which I've changed the
+    # order of the API nodes based on timing.
     loop.create_task(output_hive_status_worker(hive, url_queue, hive_queue))
 
 
@@ -518,6 +521,8 @@ async def output_hive_status_worker(
         )
         print(node_list)
         output_hive_status(hive, url_queue, hive_queue)
+        # Right here I would change the hive object but I am stuck learning
+        # Futures which I think is the way to do this!
         # hive = beem.Hive(node=node_list, keys=Config.posting_key)
         await asyncio.sleep(Config.podping_settings.diagnostic_report_period)
 
