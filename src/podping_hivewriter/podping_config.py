@@ -7,7 +7,7 @@ from typing import Optional, Tuple
 import beem
 from beem.account import Account
 
-from podping_hivewriter.config import PodpingSettings
+from podping_hivewriter.config import Config, PodpingSettings
 
 PODPING_SETTINGS_KEY = "podping-settings"
 
@@ -33,7 +33,9 @@ def run():
     )
 
     start = timer()
-    podping_settings = asyncio.run(get_settings_from_hive("podping"))
+    podping_settings = asyncio.run(
+        get_settings_from_hive("podping", nodes=Config.podping_settings.main_nodes)
+    )
 
     logging.info(f"Took {timer() - start:0.2}s to fetch settings")
     if podping_settings:
