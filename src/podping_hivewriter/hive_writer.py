@@ -283,9 +283,12 @@ def send_notification(
 
 
 async def send_notification_worker(
-    hive_queue: "asyncio.Queue[Set[str]]", hive: beem.Hive
+    hive_queue: "asyncio.Queue[Set[str]]", hive: beem.Hive, loop=None
 ):
     """Opens and watches a queue and sends notifications to Hive one by one"""
+
+    if not loop:
+        loop = asyncio.get_event_loop()
 
     async def rotate_node_list() -> Tuple[str, ...]:
         """Returns a rotated node list shifting primary node to end of list"""
@@ -303,14 +306,12 @@ async def send_notification_worker(
         logging.info(f"New Hive Nodes in use: {hive}")
         return hive
 
-
     ### Alecks I have no idea how to make this run inside this function
     async def periodic_new_hive_object() -> beem.Hive:
         """Task to run in a loop that changes the order of nodes every x seconds"""
         asyncio.sleep(300)
         hive = await new_hive_object()
         return hive
-
 
     while True:
         try:
@@ -421,7 +422,9 @@ async def failure_retry(
         logging.warning(repr(hive))
         logging.error(f"Waiting {Config.HALT_TIME[failure_count]}s")
         await asyncio.sleep(Config.HALT_TIME[failure_count])
-        logging.info(f"RETRYING num_urls: {len(url_set)}")
+        logging.info(
+            f"FAILURE COUNT: {failure_count} - RETRYING num_urls: {len(url_set)}"
+        )
     else:
         if type(url_set) == set:
             logging.info(f"Received num_urls: {len(url_set)}")
@@ -432,6 +435,10 @@ async def failure_retry(
 
     trx_id, success = send_notification(url_set, hive)
     if success:
+        if failure_count > 0:
+            logging.warning(
+                f"----> FAILURE CLEARED after {failure_count} retries - {hive} <-----"
+            )
         return trx_id, failure_count
     else:
         return await failure_retry(url_set, hive, failure_count + 1)
