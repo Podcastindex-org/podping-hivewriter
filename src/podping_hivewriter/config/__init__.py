@@ -63,7 +63,7 @@ group_action_type.add_argument(
 )
 
 my_parser.add_argument(
-    "-t", "--test", action="store_true", required=False, help="Use a test net API"
+    "-t", "--test", action="store_true", required=False, help="Use a Hive test net API"
 )
 
 my_parser.add_argument(
@@ -75,6 +75,14 @@ my_parser.add_argument(
     metavar="",
     default=None,
     help="Deliberately force error rate of <int>%%",
+)
+
+my_parser.add_argument(
+    "-n",
+    "--nobroadcast",
+    action="store_true",
+    required=False,
+    help="FOR TESTING USE - Do not broadcast transactions to Hive (or even testnet)"
 )
 
 args, _ = my_parser.parse_known_args()
@@ -141,11 +149,17 @@ class Config:
     zmq: str = my_args["zmq"]
     errors = my_args["errors"]
     bind_all = my_args["bindall"]
+    nobroadcast = my_args["nobroadcast"]
 
     # FROM ENV or from command line.
     test = os.getenv("USE_TEST_NODE", "False").lower() in ("true", "1", "t")
     if my_args["test"]:
         test = True
+
+    if test:
+        nodes_in_use = podping_settings.test_nodes
+    else:
+        nodes_in_use = podping_settings.main_nodes
 
     startup_datetime = datetime.utcnow()
 

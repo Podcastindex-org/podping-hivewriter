@@ -112,13 +112,12 @@ async def test_send_custom_json(acc_name: str, node: str) -> Tuple[str, float]:
 #     return node, elapsed
 
 
-async def get_time_sorted_node_list(acc_name: str) -> Tuple[str, ...]:
+async def get_time_sorted_node_list(acc_name: str = None) -> Tuple[str, ...]:
     """Retuns a list of configured nodes sorted by response time for
     the get_following API call"""
-    if Config.test:
-        nodes = Config.podping_settings.test_nodes
-    else:
-        nodes = Config.podping_settings.main_nodes
+    if not acc_name:
+        acc_name = Config.podping_settings.control_account
+    nodes = Config.nodes_in_use
     tasks = []
     for node in nodes:
         task = asyncio.create_task(check_hive_node(acc_name, node))
@@ -130,7 +129,7 @@ async def get_time_sorted_node_list(acc_name: str) -> Tuple[str, ...]:
     for node, time in answer:
         node_list.append(node)
 
-    return node_list
+    return tuple(node_list)
 
 
 async def check_all_hive_nodes(acc_name: str = "podping") -> bool:
@@ -164,6 +163,7 @@ def run():
     )
 
     start = timer()
+    # Settings must always come from Main Hive nodes, not Test.
     podping_settings = asyncio.run(
         get_settings_from_hive("podping", nodes=Config.podping_settings.main_nodes)
     )

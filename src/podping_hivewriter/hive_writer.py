@@ -35,13 +35,12 @@ class Pings:
 def get_hive() -> beem.Hive:
     """Get the main Hive conneciton object"""
     posting_key = Config.posting_key
+    nodes = Config.nodes_in_use
     if Config.test:
-        nodes = Config.podping_settings.test_nodes
         hive = beem.Hive(keys=posting_key, node=nodes)
         logging.info(f"---------------> Using Test Nodes: {nodes}")
     else:
-        nodes = Config.podping_settings.main_nodes
-        hive = beem.Hive(node=nodes, keys=posting_key)
+        hive = beem.Hive(node=nodes, keys=posting_key, nobroadcast=Config.nobroadcast)
         logging.info("---------------> Using Main Hive Chain ")
     return hive
 
@@ -184,21 +183,21 @@ def get_allowed_accounts(acc_name: str = "podping") -> Set[str]:
             )
     return allowed
 
-    nodelist = NodeList()
-    nodelist.update_nodes()
-    nodes = nodelist.get_hive_nodes()
-    nodes.append("https://api.ha.deathwig.me")
-    # nodes = Config.podping_settings.main_nodes
+    # nodelist = NodeList()
+    # nodelist.update_nodes()
+    # nodes = nodelist.get_hive_nodes()
+    # nodes.append("https://api.ha.deathwig.me")
+    # # nodes = Config.podping_settings.main_nodes
 
-    for node in nodes:
-        start = timer()
-        h = beem.Hive(node=node)
-        print(h)
-        master_account = Account(acc_name, blockchain_instance=h, lazy=True)
-        allowed = set(master_account.get_following())
-        print(allowed)
-        print(timer() - start)
-    return allowed
+    # for node in nodes:
+    #     start = timer()
+    #     h = beem.Hive(node=node)
+    #     print(h)
+    #     master_account = Account(acc_name, blockchain_instance=h, lazy=True)
+    #     allowed = set(master_account.get_following())
+    #     print(allowed)
+    #     print(timer() - start)
+    # return allowed
 
 
 def send_notification(
@@ -238,13 +237,13 @@ def send_notification(
 
     try:
         # Artificially create errors <-----------------------------------
-        # if operation_id == "podping" and Config.errors:
-        #     r = randint(1, 100)
-        #     if r <= Config.errors:
-        #         raise Exception(
-        #             f"Infinite Improbability Error level of {r}% : "
-        #             f"Threshold set at {Config.errors}%"
-        #         )
+        if operation_id == "podping" and Config.errors:
+            r = randint(1, 100)
+            if r <= Config.errors:
+                raise Exception(
+                    f"Infinite Improbability Error level of {r}% : "
+                    f"Threshold set at {Config.errors}%"
+                )
 
         # Assert Exception:o.json.length() <= HIVE_CUSTOM_OP_DATA_MAX_LENGTH:
         # Operation JSON must be less than 8192 bytes.
@@ -287,6 +286,32 @@ async def send_notification_worker(
     hive_queue: "asyncio.Queue[Set[str]]", hive: beem.Hive
 ):
     """Opens and watches a queue and sends notifications to Hive one by one"""
+
+    async def rotate_node_list() -> Tuple[str, ...]:
+        """Returns a rotated node list shifting primary node to end of list"""
+        return tuple(list(Config.nodes_in_use)[1:] + list(Config.nodes_in_use)[:1])
+
+    async def new_hive_object() -> beem.Hive:
+        """Changes the hive object to use the nodes currently in Config"""
+        new_node_list = await rotate_node_list()
+        Config.nodes_in_use = new_node_list
+        hive = beem.Hive(
+            node=Config.nodes_in_use,
+            keys=Config.posting_key,
+            nobroadcast=Config.nobroadcast,
+        )
+        logging.info(f"New Hive Nodes in use: {hive}")
+        return hive
+
+
+    ### Alecks I have no idea how to make this run inside this function
+    async def periodic_new_hive_object() -> beem.Hive:
+        """Task to run in a loop that changes the order of nodes every x seconds"""
+        asyncio.sleep(300)
+        hive = await new_hive_object()
+        return hive
+
+
     while True:
         try:
             url_set = await hive_queue.get()
@@ -296,6 +321,10 @@ async def send_notification_worker(
             return
         start = timer()
         trx_id, failure_count = await failure_retry(url_set, hive)
+        if failure_count > 0:
+            # Rotate the node list and
+            hive = await new_hive_object()
+
         duration = timer() - start
         hive_queue.task_done()
         logging.info(f"Task time: {duration:0.2f} - Queue size: {hive_queue.qsize()}")
@@ -503,7 +532,7 @@ def output_hive_status(
         f"Urls Deduped: {Pings.total_urls_recv_deduped} - "
         f"Urls Sent: {Pings.total_urls_sent}"
     )
-    logging.info(f"URL Queue: {url_queue.qsize()} - Hive Queue: {hive_queue.qsize()}")
+    # logging.info(f"URL Queue: {url_queue.qsize()} - Hive Queue: {hive_queue.qsize()}")
     logging.info("--------------------------------------------------------")
 
 
@@ -516,10 +545,6 @@ async def output_hive_status_worker(
     on a regular basis"""
 
     while True:
-        node_list = await get_time_sorted_node_list(
-            Config.podping_settings.control_account
-        )
-        print(node_list)
         output_hive_status(hive, url_queue, hive_queue)
         # Right here I would change the hive object but I am stuck learning
         # Futures which I think is the way to do this!
