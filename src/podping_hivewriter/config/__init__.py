@@ -82,7 +82,7 @@ my_parser.add_argument(
     "--nobroadcast",
     action="store_true",
     required=False,
-    help="FOR TESTING USE - Do not broadcast transactions to Hive (or even testnet)"
+    help="FOR TESTING USE - Do not broadcast transactions to Hive (or even testnet)",
 )
 
 args, _ = my_parser.parse_known_args()
