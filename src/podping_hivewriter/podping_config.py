@@ -106,6 +106,11 @@ async def check_all_hive_nodes(acc_name: str = "podping") -> bool:
     nodelist = NodeList()
     nodelist.update_nodes()
     nodes = nodelist.get_hive_nodes()
+
+    print("Nodes:")
+    print(nodes)
+    print("--------------------")
+
     nodes.append("https://api.ha.deathwing.me")
     tasks_allowed = []
     for node in nodes:
@@ -113,14 +118,34 @@ async def check_all_hive_nodes(acc_name: str = "podping") -> bool:
         tasks_allowed.append(task)
 
     answer = await asyncio.gather(*tasks_allowed)
+    answer.sort(key=lambda a: a[1])
     print(answer)
+
+    new_nodes = []
+    for node, t in answer:
+        new_nodes.append(node)
+
+    print("Sorted Nodes:")
+    print(json.dumps(new_nodes))
+    print("--------------------")
 
     tasks_custom = []
     for node in nodes:
         task = asyncio.create_task(test_send_custom_json(acc_name, node))
         tasks_custom.append(task)
     answer2 = await asyncio.gather(*tasks_custom)
+    answer2.sort(key=lambda a: a[1])
     print(answer2)
+
+
+    new_nodes = []
+    for node, t in answer2:
+        new_nodes.append(node)
+
+    print("Sorted Nodes:")
+    print(json.dumps(new_nodes))
+    print("--------------------")
+
 
     return True
 
