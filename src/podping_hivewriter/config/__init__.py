@@ -150,6 +150,7 @@ class Config:
     errors = my_args["errors"]
     bind_all = my_args["bindall"]
     nobroadcast = my_args["nobroadcast"]
+    node_change = False  # Flag to signal time for a node rotation
 
     # FROM ENV or from command line.
     test = os.getenv("USE_TEST_NODE", "False").lower() in ("true", "1", "t")
@@ -166,3 +167,7 @@ class Config:
     @classmethod
     def setup(cls):
         """Setup the config"""
+        if cls.test:
+            cls.nodes_in_use = cls.podping_settings.test_nodes
+        else:
+            cls.nodes_in_use = cls.podping_settings.main_nodes

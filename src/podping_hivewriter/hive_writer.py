@@ -35,11 +35,12 @@ class Pings:
 def get_hive() -> beem.Hive:
     """Get the main Hive conneciton object"""
     posting_key = Config.posting_key
-    nodes = Config.nodes_in_use
     if Config.test:
+        nodes = Config.podping_settings.test_nodes
         hive = beem.Hive(keys=posting_key, node=nodes)
         logging.info(f"---------------> Using Test Nodes: {nodes}")
     else:
+        nodes = Config.podping_settings.main_nodes
         hive = beem.Hive(node=nodes, keys=posting_key, nobroadcast=Config.nobroadcast)
         logging.info("---------------> Using Main Hive Chain ")
     return hive
@@ -283,35 +284,14 @@ def send_notification(
 
 
 async def send_notification_worker(
-    hive_queue: "asyncio.Queue[Set[str]]", hive: beem.Hive, loop=None
+    hive_queue: "asyncio.Queue[Set[str]]",
+    hive: beem.Hive,
+    loop=None,
 ):
     """Opens and watches a queue and sends notifications to Hive one by one"""
 
     if not loop:
         loop = asyncio.get_event_loop()
-
-    async def rotate_node_list() -> Tuple[str, ...]:
-        """Returns a rotated node list shifting primary node to end of list"""
-        return tuple(list(Config.nodes_in_use)[1:] + list(Config.nodes_in_use)[:1])
-
-    async def new_hive_object() -> beem.Hive:
-        """Changes the hive object to use the nodes currently in Config"""
-        new_node_list = await rotate_node_list()
-        Config.nodes_in_use = new_node_list
-        hive = beem.Hive(
-            node=Config.nodes_in_use,
-            keys=Config.posting_key,
-            nobroadcast=Config.nobroadcast,
-        )
-        logging.info(f"New Hive Nodes in use: {hive}")
-        return hive
-
-    ### Alecks I have no idea how to make this run inside this function
-    async def periodic_new_hive_object() -> beem.Hive:
-        """Task to run in a loop that changes the order of nodes every x seconds"""
-        asyncio.sleep(300)
-        hive = await new_hive_object()
-        return hive
 
     while True:
         try:
@@ -321,10 +301,10 @@ async def send_notification_worker(
         except RuntimeError:
             return
         start = timer()
-        trx_id, failure_count = await failure_retry(url_set, hive)
-        if failure_count > 0:
-            # Rotate the node list and
+        if Config.node_change:
             hive = await new_hive_object()
+            Config.node_change = False
+        trx_id, failure_count = await failure_retry(url_set, hive)
 
         duration = timer() - start
         hive_queue.task_done()
@@ -401,9 +381,28 @@ async def url_q_worker(
             logging.error(f"{ex} occurred")
 
 
+async def rotate_node_list() -> Tuple[str, ...]:
+    """Returns a rotated node list shifting primary node to end of list"""
+    return tuple(list(Config.nodes_in_use)[1:] + list(Config.nodes_in_use)[:1])
+
+
+async def new_hive_object() -> beem.Hive:
+    """Changes the hive object to use the nodes currently in Config"""
+    new_node_list = await rotate_node_list()
+    Config.nodes_in_use = new_node_list
+    hive = beem.Hive(
+        node=Config.nodes_in_use,
+        keys=Config.posting_key,
+        nobroadcast=Config.nobroadcast,
+    )
+    logging.info(f"New Hive Nodes in use: {hive}")
+    return hive
+
+
 async def failure_retry(
     url_set: Set[str], hive: beem.Hive, failure_count=0
 ) -> Tuple[str, int]:
+    """Main function trying to send notifications to Hive"""
     if failure_count >= len(Config.HALT_TIME):
         # Give up.
         error_message = (
@@ -441,6 +440,7 @@ async def failure_retry(
             )
         return trx_id, failure_count
     else:
+        hive = await new_hive_object()
         return await failure_retry(url_set, hive, failure_count + 1)
 
 
@@ -481,20 +481,16 @@ def task_startup(hive: beem.Hive, loop=None):
     hive_queue: "asyncio.Queue[Set[str]]" = asyncio.Queue(loop=loop)
     # Move the URL Q into a proper Q
     url_queue: "asyncio.Queue[str]" = asyncio.Queue(loop=loop)
+    # signal periodic change of Hive Node (spreading load)
+    node_queue: "asyncio.Queue[bool]" = asyncio.Queue(loop=loop)
 
     loop.create_task(
         update_podping_settings_worker(Config.podping_settings.control_account)
     )
-    loop.create_task(send_notification_worker(hive_queue, hive))
+    loop.create_task(send_notification_worker(hive_queue, node_queue, hive))
     loop.create_task(url_q_worker(url_queue, hive_queue))
     loop.create_task(zmq_response_loop(url_queue, loop))
-    # hive = loop.create_future(
-    #     output_hive_status_worker(hive, url_queue, hive_queue)
-    # )
-    # I want this coroutine running in the loop every hour (or however often)
-    # to be able to "return" a new 'hive' object on which I've changed the
-    # order of the API nodes based on timing.
-    loop.create_task(output_hive_status_worker(hive, url_queue, hive_queue))
+    loop.create_task(output_hive_status_worker())
 
 
 def loop_running_startup_task(hive_task: asyncio.Task):
@@ -523,16 +519,12 @@ async def update_podping_settings_worker(acc_name: str) -> None:
         await asyncio.sleep(Config.podping_settings.control_account_check_period)
 
 
-def output_hive_status(
-    hive: beem.Hive,
-    url_queue: "asyncio.Queue[str]",
-    hive_queue: "asyncio.Queue[Set[str]]",
-) -> None:
+async def output_hive_status() -> None:
     """Output the name of the current hive node
     on a regular basis"""
     up_time = datetime.utcnow() - Config.startup_datetime
     logging.info("--------------------------------------------------------")
-    logging.info(f"Using Hive Node: {hive}")
+    logging.info(f"Using Hive Nodes: {Config.nodes_in_use[0]}")
     logging.info(f"Up Time: {up_time}")
     logging.info(
         f"Urls Recived: {Pings.total_urls_recv} - "
@@ -543,20 +535,14 @@ def output_hive_status(
     logging.info("--------------------------------------------------------")
 
 
-async def output_hive_status_worker(
-    hive: beem.Hive,
-    url_queue: "asyncio.Queue[str]",
-    hive_queue: "asyncio.Queue[Set[str]]",
-):
+async def output_hive_status_worker():
     """Worker to output the name of the current hive node
     on a regular basis"""
 
     while True:
-        output_hive_status(hive, url_queue, hive_queue)
-        # Right here I would change the hive object but I am stuck learning
-        # Futures which I think is the way to do this!
-        # hive = beem.Hive(node=node_list, keys=Config.posting_key)
+        await output_hive_status()
         await asyncio.sleep(Config.podping_settings.diagnostic_report_period)
+        Config.node_change = True
 
 
 def run(loop=None):
