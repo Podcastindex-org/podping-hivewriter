@@ -67,6 +67,15 @@ my_parser.add_argument(
 )
 
 my_parser.add_argument(
+    "-l",
+    "--livetest",
+    action="store_true",
+    required=False,
+    help="Use live Hive chain but write with id=podping-livetest",
+)
+
+
+my_parser.add_argument(
     "-e",
     "--errors",
     action="store",
@@ -150,6 +159,7 @@ class Config:
     errors = my_args["errors"]
     bind_all = my_args["bindall"]
     nobroadcast = my_args["nobroadcast"]
+    livetest = my_args["livetest"]
     node_change = False  # Flag to signal time for a node rotation
 
     # FROM ENV or from command line.
