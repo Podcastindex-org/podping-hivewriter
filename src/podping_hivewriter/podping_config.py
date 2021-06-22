@@ -81,36 +81,6 @@ async def test_send_custom_json(acc_name: str, node: str) -> Tuple[str, float]:
     return node, elapsed
 
 
-# Not working
-# async def build_test_send_custom_json(acc_name: str, node: str) -> Tuple[str, float]:
-#     """Builds but doesn't send a custom_json not async."""
-#     start = timer()
-#     data = {"something": "here"}
-#     hive = beem.Hive(node=node, nobroadcast=True, wif=Config.posting_key)
-#     tx = TransactionBuilder(blockchain_instance=hive)
-#     trans ={
-#         "id":"podping-testing",
-#         "json_data":data,
-#         "required_auths":[],
-#         "required_posting_auths":[Config.server_account],
-#     }
-#     op = operations.Custom_json(**trans)
-#     tx.appendOps(op)
-#     tx.sign()
-#     try:
-#         hive = beem.Hive(node=node, nobroadcast=True, wif=Config.posting_key)
-#         tx = hive.custom_json(
-#             id="podping-testing",
-#             json_data=data,
-#             required_posting_auths=[Config.server_account],
-#         )
-#     except Exception as ex:
-#         logging.warning(f"Node: {node} - Error: {ex}")
-#         return node, False
-#     elapsed = timer() - start
-#     logging.info(f"Node: {node} - Elapsed: {elapsed}")
-#     return node, elapsed
-
 
 async def get_time_sorted_node_list(acc_name: str = None) -> Tuple[str, ...]:
     """Retuns a list of configured nodes sorted by response time for
