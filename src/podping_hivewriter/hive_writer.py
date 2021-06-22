@@ -37,7 +37,7 @@ def get_hive() -> beem.Hive:
     posting_key = Config.posting_key
     if Config.test:
         nodes = Config.podping_settings.test_nodes
-        hive = beem.Hive(keys=posting_key, node=nodes)
+        hive = beem.Hive(node=nodes, keys=posting_key, nobroadcast=Config.nobroadcast)
         logging.info(f"---------------> Using Test Nodes: {nodes}")
     else:
         nodes = Config.podping_settings.main_nodes
@@ -265,19 +265,19 @@ def send_notification(
 
     except MissingKeyError:
         error_message = f"The provided key for @{Config.server_account} is not valid "
-        logging.warning(repr(hive))
+        logging.warning(f"Node in use: {hive}")
         logging.error(error_message)
         return error_message, False
     except UnhandledRPCError as ex:
         error_message = f"{ex} occurred: {ex.__class__}"
-        logging.warning(repr(hive))
+        logging.warning(f"Node in use: {hive}")
         logging.error(error_message)
         trx_id = error_message
         return trx_id, False
 
     except Exception as ex:
         error_message = f"{ex} occurred {ex.__class__}"
-        logging.warning(repr(hive))
+        logging.warning(f"Node in use: {hive}")
         logging.error(error_message)
         trx_id = error_message
         return trx_id, False
@@ -422,7 +422,7 @@ async def failure_retry(
         logging.error(f"Waiting {Config.HALT_TIME[failure_count]}s")
         await asyncio.sleep(Config.HALT_TIME[failure_count])
         logging.info(
-            f"FAILURE COUNT: {failure_count} - RETRYING num_urls: {len(url_set)}"
+            f"FAILURE COUNT: {failure_count} - RETRYING num_urls: {len(url_set)} - {hive}"
         )
     else:
         if type(url_set) == set:
