@@ -137,7 +137,6 @@ async def check_all_hive_nodes(acc_name: str = "podping") -> bool:
     answer2.sort(key=lambda a: a[1])
     print(answer2)
 
-
     new_nodes = []
     for node, t in answer2:
         new_nodes.append(node)
@@ -145,7 +144,6 @@ async def check_all_hive_nodes(acc_name: str = "podping") -> bool:
     print("Sorted Nodes:")
     print(json.dumps(new_nodes))
     print("--------------------")
-
 
     return True
 
