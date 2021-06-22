@@ -432,7 +432,14 @@ async def failure_retry(
         else:
             logging.info(f"{url_set}")
 
-    trx_id, success = send_notification(url_set, hive)
+    operation_id = "podping"
+    if Config.livetest:
+        operation_id = "podping-livetest"
+
+    trx_id, success = send_notification(
+        data=url_set, hive=hive, operation_id=operation_id
+    )
+
     if success:
         if failure_count > 0:
             logging.warning(
