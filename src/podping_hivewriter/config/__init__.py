@@ -115,18 +115,18 @@ class PodpingSettings(BaseModel):
     control_account_check_period: int = 3600
     test_nodes: Tuple[str, ...] = ("https://testnet.openhive.network",)
     main_nodes: Tuple[str, ...] = (
-            "https://api.deathwing.me",
-            "https://api.pharesim.me",
-            "https://hived.emre.sh",
-            "https://hive.roelandp.nl",
-            "https://rpc.ausbit.dev",
-            "https://hived.privex.io",
-            "https://hive-api.arcange.eu",
-            "https://rpc.ecency.com",
-            "https://api.hive.blog",
-            "https://api.openhive.network",
-            "https://api.ha.deathwing.me",
-            "https://anyx.io"
+        "https://api.deathwing.me",
+        "https://api.pharesim.me",
+        "https://hived.emre.sh",
+        "https://hive.roelandp.nl",
+        "https://rpc.ausbit.dev",
+        "https://hived.privex.io",
+        "https://hive-api.arcange.eu",
+        "https://rpc.ecency.com",
+        "https://api.hive.blog",
+        "https://api.openhive.network",
+        "https://api.ha.deathwing.me",
+        "https://anyx.io",
     )
 
     @validator("hive_operation_period")
