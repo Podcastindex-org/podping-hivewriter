@@ -1,19 +1,24 @@
 [tool.poetry]
-name = "podping-hivewriter"
+name = "podping_hivewriter"
 version = "0.1.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
+authors = ["Brian of London <brian@podping.org>","Alecks Gates <alecks@podping.org>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.7"
 beem = "^0.24.21"
 pyzmq = "^22.1.0"
+cffi = "^1.14.5"
+pydantic = "^1.8.2"
 
 [tool.poetry.dev-dependencies]
 black = "^21.5b2"
 isort = "^5.8.0"
 pytest = "^6.2.4"
+pytest-cov = "^2.12.1"
+pytest-asyncio = "^0.15.1"
+bandit = "^1.7.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -25,3 +30,8 @@ target-version = ['py37', 'py38', 'py39']
 [tool.isort]
 profile = "black"
 multi_line_output = 3
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]

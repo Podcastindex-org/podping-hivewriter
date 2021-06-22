@@ -4,7 +4,13 @@ __pycache__/
 *$py.class
 
 # VSCode
-.vscode
+.vscode/*
+
+
+*.code-workspace
+
+# Local History for Visual Studio Code
+.history/
 
 # C extensions
 *.so
@@ -109,6 +115,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env.*
 .venv
 env/
 venv/
@@ -139,3 +146,9 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+.DS_Store
+.vscode/launch.json
+.vscode/extensions.json
+.env.test
+.vscode/tasks.json
+.vscode/settings.json

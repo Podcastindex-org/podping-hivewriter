@@ -1,0 +1,16 @@
+name: Security vulnerability scan
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - name: Run bandit
+        uses: tj-actions/bandit@v4.1
+        with:
+          targets: |
+            src
+          options: "-r"
