@@ -171,3 +171,4 @@ class Config:
             cls.nodes_in_use = cls.podping_settings.test_nodes
         else:
             cls.nodes_in_use = cls.podping_settings.main_nodes
+            

@@ -238,13 +238,13 @@ def send_notification(
 
     try:
         # Artificially create errors <-----------------------------------
-        if operation_id == "podping" and Config.errors:
-            r = randint(1, 100)
-            if r <= Config.errors:
-                raise Exception(
-                    f"Infinite Improbability Error level of {r}% : "
-                    f"Threshold set at {Config.errors}%"
-                )
+        # if operation_id == "podping" and Config.errors:
+        #     r = randint(1, 100)
+        #     if r <= Config.errors:
+        #         raise Exception(
+        #             f"Infinite Improbability Error level of {r}% : "
+        #             f"Threshold set at {Config.errors}%"
+        #         )
 
         # Assert Exception:o.json.length() <= HIVE_CUSTOM_OP_DATA_MAX_LENGTH:
         # Operation JSON must be less than 8192 bytes.
@@ -481,13 +481,11 @@ def task_startup(hive: beem.Hive, loop=None):
     hive_queue: "asyncio.Queue[Set[str]]" = asyncio.Queue(loop=loop)
     # Move the URL Q into a proper Q
     url_queue: "asyncio.Queue[str]" = asyncio.Queue(loop=loop)
-    # signal periodic change of Hive Node (spreading load)
-    node_queue: "asyncio.Queue[bool]" = asyncio.Queue(loop=loop)
 
     loop.create_task(
         update_podping_settings_worker(Config.podping_settings.control_account)
     )
-    loop.create_task(send_notification_worker(hive_queue, node_queue, hive))
+    loop.create_task(send_notification_worker(hive_queue, hive))
     loop.create_task(url_q_worker(url_queue, hive_queue))
     loop.create_task(zmq_response_loop(url_queue, loop))
     loop.create_task(output_hive_status_worker())
