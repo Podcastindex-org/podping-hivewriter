@@ -524,7 +524,7 @@ async def update_podping_settings_worker(acc_name: str) -> None:
         await asyncio.sleep(Config.podping_settings.control_account_check_period)
 
 
-async def output_hive_status() -> None:
+def output_hive_status() -> None:
     """Output the name of the current hive node
     on a regular basis"""
     up_time = datetime.utcnow() - Config.startup_datetime
@@ -545,7 +545,7 @@ async def output_hive_status_worker():
     on a regular basis"""
 
     while True:
-        await output_hive_status()
+        output_hive_status()
         await asyncio.sleep(Config.podping_settings.diagnostic_report_period)
         Config.node_change = True
 
