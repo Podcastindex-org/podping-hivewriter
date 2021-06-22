@@ -154,7 +154,7 @@ async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
             "Startup of Podping status: I'm sorry, Dave, I'm afraid I can't do that."
         )
         exit_message = " - ".join(error_messages)
-        for err in error_message:
+        for err in error_messages:
             logging.error(err)
         if not Config.test or ignore_errors:
             raise SystemExit(exit_message)
