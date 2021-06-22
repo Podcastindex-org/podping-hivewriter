@@ -81,7 +81,6 @@ async def test_send_custom_json(acc_name: str, node: str) -> Tuple[str, float]:
     return node, elapsed
 
 
-
 async def get_time_sorted_node_list(acc_name: str = None) -> Tuple[str, ...]:
     """Retuns a list of configured nodes sorted by response time for
     the get_following API call"""
