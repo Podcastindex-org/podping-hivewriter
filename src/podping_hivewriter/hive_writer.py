@@ -308,8 +308,9 @@ async def send_notification_worker(
 
         duration = timer() - start
         hive_queue.task_done()
-        logging.info(f"Task time: {duration:0.2f} - Queue size: {hive_queue.qsize()}")
-        logging.info(f"Finished a task: {trx_id} - {failure_count}")
+        logging.info(
+            f"Task time: {duration:0.2f} - trx_id: {trx_id} - Failures: {failure_count}"
+        )
 
 
 async def url_q_worker(
