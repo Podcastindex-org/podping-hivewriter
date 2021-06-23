@@ -172,17 +172,14 @@ def get_allowed_accounts(acc_name: str = "podping") -> Set[str]:
     and only react to these accounts"""
     # Ignores test node.
     allowed = None
-    node="https://api.hive.blog"
+    node = "https://api.hive.blog"
     try:
         hive = beem.Hive(node=node)
         master_account = Account(acc_name, blockchain_instance=hive, lazy=True)
         allowed = set(master_account.get_following())
         return allowed
     except Exception as e:
-        logging.error(
-            f"Allowed Account: {master_account} - Failure on Node: {node}"
-        )
-
+        logging.error(f"Allowed Account: {master_account} - Failure on Node: {node}")
 
     # nodelist = NodeList()
     # nodelist.update_nodes()
@@ -443,7 +440,7 @@ async def failure_retry(
 
     if success:
         if failure_count > 0:
-            logging.warning(
+            logging.info(
                 f"----> FAILURE CLEARED after {failure_count} retries - {hive} <-----"
             )
         return trx_id, failure_count
@@ -507,7 +504,8 @@ def loop_running_startup_task(hive_task: asyncio.Task):
 
 async def update_podping_settings(acc_name: str) -> None:
     """Take newly found settings and put them into Config"""
-    if Config.ignore_updates: return
+    if Config.ignore_updates:
+        return
     try:
         podping_settings = await get_podping_settings(
             acc_name, Config.podping_settings.main_nodes
