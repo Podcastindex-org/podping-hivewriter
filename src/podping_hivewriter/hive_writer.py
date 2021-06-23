@@ -17,7 +17,7 @@ from beem.nodelist import NodeList
 
 from pydantic import ValidationError
 
-from podping_hivewriter.config import Config
+from podping_hivewriter.config import Config, PodpingSettings
 from podping_hivewriter.podping_config import (
     get_podping_settings,
     get_time_sorted_node_list,
@@ -172,17 +172,17 @@ def get_allowed_accounts(acc_name: str = "podping") -> Set[str]:
     and only react to these accounts"""
     # Ignores test node.
     allowed = None
-    for node in Config.podping_settings.main_nodes:
-        try:
-            hive = beem.Hive(node=Config.podping_settings.main_nodes)
-            master_account = Account(acc_name, blockchain_instance=hive, lazy=True)
-            allowed = set(master_account.get_following())
-            break
-        except Exception as e:
-            logging.error(
-                f"Allowed Account: {master_account} - Failure on Node: {node}"
-            )
-    return allowed
+    node="https://api.hive.blog"
+    try:
+        hive = beem.Hive(node=node)
+        master_account = Account(acc_name, blockchain_instance=hive, lazy=True)
+        allowed = set(master_account.get_following())
+        return allowed
+    except Exception as e:
+        logging.error(
+            f"Allowed Account: {master_account} - Failure on Node: {node}"
+        )
+
 
     # nodelist = NodeList()
     # nodelist.update_nodes()
@@ -490,9 +490,10 @@ def task_startup(hive: beem.Hive, loop=None):
     # Move the URL Q into a proper Q
     url_queue: "asyncio.Queue[str]" = asyncio.Queue(loop=loop)
 
-    loop.create_task(
-        update_podping_settings_worker(Config.podping_settings.control_account)
-    )
+    if not Config.ignore_updates:
+        loop.create_task(
+            update_podping_settings_worker(Config.podping_settings.control_account)
+        )
     loop.create_task(send_notification_worker(hive_queue, hive))
     loop.create_task(url_q_worker(url_queue, hive_queue))
     loop.create_task(zmq_response_loop(url_queue, loop))
@@ -506,6 +507,7 @@ def loop_running_startup_task(hive_task: asyncio.Task):
 
 async def update_podping_settings(acc_name: str) -> None:
     """Take newly found settings and put them into Config"""
+    if Config.ignore_updates: return
     try:
         podping_settings = await get_podping_settings(
             acc_name, Config.podping_settings.main_nodes

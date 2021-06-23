@@ -87,6 +87,14 @@ my_parser.add_argument(
 )
 
 my_parser.add_argument(
+    "-i",
+    "--ignore",
+    action="store_true",
+    required=False,
+    help="Ignore updates from the command and control account",
+)
+
+my_parser.add_argument(
     "-n",
     "--nobroadcast",
     action="store_true",
@@ -112,17 +120,9 @@ class PodpingSettings(BaseModel):
     max_url_list_bytes: int = 7500
     diagnostic_report_period: int = 60
     control_account: str = "podping"
-    control_account_check_period: int = 3600
+    control_account_check_period: int = 120
     test_nodes: Tuple[str, ...] = ("https://testnet.openhive.network",)
-    main_nodes: Tuple[str, ...] = (
-        "https://hived.emre.sh",
-        "https://hive.roelandp.nl",
-        "https://api.pharesim.me",
-        "https://api.hive.blog",
-        "https://api.openhive.network",
-        "https://api.deathwing.me",
-        "https://anyx.io",
-    )
+    main_nodes: Tuple[str, ...] = "https://hive-ah.arcange.eu"
 
     @validator("hive_operation_period")
     def hive_op_period_must_be_int_above_one(cls, v):
@@ -161,6 +161,7 @@ class Config:
     bind_all = my_args["bindall"]
     nobroadcast = my_args["nobroadcast"]
     livetest = my_args["livetest"]
+    ignore_updates = my_args["ignore"]
     node_change = False  # Flag to signal time for a node rotation
 
     # FROM ENV or from command line.
