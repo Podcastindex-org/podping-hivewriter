@@ -258,9 +258,9 @@ def send_notification(
         logging.info(
             f"Transaction sent: {trx_id} - Num urls: {num_urls}"
             f" - Size of Urls: {size_of_urls} - Json size: {size_of_json}"
+            f" - Overhead: {size_of_json - size_of_urls}"
         )
         Pings.total_urls_sent += num_urls
-        logging.info(f"Overhead: {size_of_json - size_of_urls}")
         return trx_id, True
 
     except MissingKeyError:
