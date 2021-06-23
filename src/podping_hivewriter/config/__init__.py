@@ -122,7 +122,15 @@ class PodpingSettings(BaseModel):
     control_account: str = "podping"
     control_account_check_period: int = 120
     test_nodes: Tuple[str, ...] = ("https://testnet.openhive.network",)
-    main_nodes: Tuple[str, ...] = "https://hive-ah.arcange.eu"
+    main_nodes: Tuple[str, ...] = (
+        "https://hived.emre.sh",
+        "https://hive.roelandp.nl",
+        "https://api.pharesim.me",
+        "https://api.hive.blog",
+        "https://api.openhive.network",
+        "https://api.deathwing.me",
+        "https://anyx.io",
+    )
 
     @validator("hive_operation_period")
     def hive_op_period_must_be_int_above_one(cls, v):
