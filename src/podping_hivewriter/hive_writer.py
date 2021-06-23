@@ -71,7 +71,7 @@ async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
     try:
         hive = get_hive()
         await update_podping_settings(Config.podping_settings.control_account)
-
+#
     except Exception as ex:
         error_messages.append(f"{ex} occurred {ex.__class__}")
         error_messages.append(f"Can not connect to Hive, probably bad key")
@@ -530,7 +530,7 @@ def output_hive_status() -> None:
     on a regular basis"""
     up_time = datetime.utcnow() - Config.startup_datetime
     logging.info("--------------------------------------------------------")
-    logging.info(f"Using Hive Nodes: {Config.nodes_in_use[0]}")
+    logging.info(f"Using Hive Node: {Config.nodes_in_use[0]}")
     logging.info(f"Up Time: {up_time}")
     logging.info(
         f"Urls Recived: {Pings.total_urls_recv} - "
