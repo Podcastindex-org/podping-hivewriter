@@ -123,12 +123,17 @@ class PodpingSettings(BaseModel):
     control_account_check_period: int = 120
     test_nodes: Tuple[str, ...] = ("https://testnet.openhive.network",)
     main_nodes: Tuple[str, ...] = (
+        "https://api.deathwing.me",
+        "https://api.pharesim.me",
         "https://hived.emre.sh",
         "https://hive.roelandp.nl",
-        "https://api.pharesim.me",
+        "https://rpc.ausbit.dev",
+        "https://hived.privex.io",
+        "https://hive-api.arcange.eu",
+        "https://rpc.ecency.com",
         "https://api.hive.blog",
         "https://api.openhive.network",
-        "https://api.deathwing.me",
+        "https://api.ha.deathwing.me",
         "https://anyx.io",
     )
 
