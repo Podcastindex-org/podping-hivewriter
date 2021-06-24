@@ -23,6 +23,8 @@ async def test_write_single_url_zmq_req(event_loop):
     config.Config.test = False
     # Use the livechain
     config.Config.livetest = True
+    # Don't try to update parameters
+    config.Config.ignore_updates = True
 
     hive = hive_writer.get_hive()
 

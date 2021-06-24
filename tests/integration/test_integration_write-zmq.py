@@ -21,7 +21,7 @@ from podping_hivewriter import config, hive_writer
 async def test_write_single_url_zmq_req(event_loop):
     # Ensure use of testnet
     config.Config.test = True
-
+    config.Config.ignore_updates = True
     hive = hive_writer.get_hive()
 
     blockchain = Blockchain(mode="head", blockchain_instance=hive)
