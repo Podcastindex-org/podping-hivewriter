@@ -21,6 +21,7 @@ from podping_hivewriter.config import Config, PodpingSettings
 from podping_hivewriter.podping_config import (
     get_podping_settings,
     get_time_sorted_node_list,
+    get_hive,
 )
 
 from random import randint
@@ -30,21 +31,6 @@ class Pings:
     total_urls_recv = 0
     total_urls_sent = 0
     total_urls_recv_deduped = 0
-
-
-def get_hive() -> beem.Hive:
-    """Get the main Hive conneciton object"""
-    posting_key = Config.posting_key
-    if Config.test:
-        nodes = Config.podping_settings.test_nodes
-        hive = beem.Hive(node=nodes, keys=posting_key, nobroadcast=Config.nobroadcast)
-        logging.info(f"---------------> Using Test Nodes: {nodes}")
-    else:
-        nodes = Config.podping_settings.main_nodes
-        hive = beem.Hive(node=nodes, keys=posting_key, nobroadcast=Config.nobroadcast)
-        hive.chain_params['chain_id'] = 'beeab0de00000000000000000000000000000000000000000000000000000000'
-        logging.info("---------------> Using Main Hive Chain ")
-    return hive
 
 
 async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
@@ -71,8 +57,9 @@ async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
 
     try:
         hive = get_hive()
-        await update_podping_settings(Config.podping_settings.control_account)
-#
+        # Don't want to update settings during startup. 
+        # await update_podping_settings(Config.podping_settings.control_account)
+    #
     except Exception as ex:
         error_messages.append(f"{ex} occurred {ex.__class__}")
         error_messages.append(f"Can not connect to Hive, probably bad key")
@@ -389,11 +376,7 @@ async def new_hive_object() -> beem.Hive:
     """Changes the hive object to use the nodes currently in Config"""
     new_node_list = await rotate_node_list()
     Config.nodes_in_use = new_node_list
-    hive = beem.Hive(
-        node=Config.nodes_in_use,
-        keys=Config.posting_key,
-        nobroadcast=Config.nobroadcast,
-    )
+    hive = get_hive()
     logging.info(f"New Hive Nodes in use: {hive}")
     return hive
 

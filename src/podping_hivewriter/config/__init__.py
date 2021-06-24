@@ -120,7 +120,7 @@ class PodpingSettings(BaseModel):
     max_url_list_bytes: int = 7500
     diagnostic_report_period: int = 60
     control_account: str = "podping"
-    control_account_check_period: int = 120
+    control_account_check_period: int = 60
     test_nodes: Tuple[str, ...] = ("https://testnet.openhive.network",)
     main_nodes: Tuple[str, ...] = (
         "https://api.deathwing.me",
@@ -193,6 +193,6 @@ class Config:
     def setup(cls):
         """Setup the config"""
         if cls.test:
-            cls.nodes_in_use = cls.podping_settings.test_nodes
+            cls.nodes_in_use = Config.podping_settings.test_nodes
         else:
-            cls.nodes_in_use = cls.podping_settings.main_nodes
+            cls.nodes_in_use = Config.podping_settings.main_nodes
