@@ -17,9 +17,28 @@ from podping_hivewriter.config import Config, PodpingSettings
 PODPING_SETTINGS_KEY = "podping-settings"
 
 
+def get_hive(nodes: Tuple[str, ...] = None) -> beem.Hive:
+    """Get the main Hive conneciton object"""
+    posting_key = Config.posting_key
+    if not nodes:
+        nodes = Config.nodes_in_use
+    if Config.test:
+        nodes = Config.podping_settings.test_nodes
+        hive = beem.Hive(node=nodes, keys=posting_key, nobroadcast=Config.nobroadcast)
+        logging.info(f"---------------> Using Test Nodes: {nodes}")
+    else:
+        hive = beem.Hive(node=nodes, keys=posting_key, nobroadcast=Config.nobroadcast)
+        hive.chain_params[
+            "chain_id"
+        ] = "beeab0de00000000000000000000000000000000000000000000000000000000"
+        logging.info("---------------> Using Main Hive Chain ")
+    return hive
+
+
 async def get_settings_from_hive(acc_name: str, nodes: Tuple[str]) -> Optional[dict]:
     """Returns podping settings if they exist"""
-    hive = beem.Hive(node=nodes)
+    # Must use main chain for settings
+    hive = get_hive(Config.podping_settings.main_nodes)
     acc = Account(acc_name, blockchain_instance=hive, lazy=True)
     posting_meta = json.loads(acc["posting_json_metadata"])
     return posting_meta.get(PODPING_SETTINGS_KEY)
