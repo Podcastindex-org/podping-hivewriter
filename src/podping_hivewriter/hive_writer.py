@@ -57,7 +57,7 @@ async def hive_startup(ignore_errors=False, resource_test=True) -> beem.Hive:
 
     try:
         hive = get_hive()
-        # Don't want to update settings during startup. 
+        # Don't want to update settings during startup.
         # await update_podping_settings(Config.podping_settings.control_account)
     #
     except Exception as ex:
