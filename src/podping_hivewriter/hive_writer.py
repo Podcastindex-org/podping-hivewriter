@@ -42,6 +42,7 @@ def get_hive() -> beem.Hive:
     else:
         nodes = Config.podping_settings.main_nodes
         hive = beem.Hive(node=nodes, keys=posting_key, nobroadcast=Config.nobroadcast)
+        hive.chain_params['chain_id'] = 'beeab0de00000000000000000000000000000000000000000000000000000000'
         logging.info("---------------> Using Main Hive Chain ")
     return hive
 
