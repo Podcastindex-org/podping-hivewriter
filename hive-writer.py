@@ -107,7 +107,7 @@ def startup_sequence(ignore_errors= False) -> bool:
         if USE_TEST_NODE:
             hive = Hive(keys=wif,node=TEST_NODE)
         else:
-            hive = Hive(keys=wif,node="https://hive.roelandp.nl")
+            hive = Hive(keys=wif)
 
     except Exception as ex:
         error_messages.append(f'{ex} occurred {ex.__class__}')
