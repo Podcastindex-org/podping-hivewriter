@@ -23,7 +23,7 @@ from beemgraphenebase.types import Bool
 # BOL: Switching off TestNet, we should test on Hive for now.
 USE_TEST_NODE = os.getenv("USE_TEST_NODE", 'False').lower() in ('true', '1', 't')
 TEST_NODE = ['http://testnet.openhive.network:8091']
-CURRENT_PODPING_VERSION = "0.2"
+CURRENT_PODPING_VERSION = "0.3"
 NOTIFICATION_REASONS = ['feed_update','new_feed','host_change']
 HIVE_OPERPATION_PERIOD = 3  # 1 Hive operation per this period in
 MAX_URL_PER_CUSTOM_JSON = 130 # total json size must be below 8192 bytes
