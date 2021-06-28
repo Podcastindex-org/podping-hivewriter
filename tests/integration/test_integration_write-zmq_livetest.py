@@ -1,18 +1,17 @@
 import asyncio
 import json
-from typing import Set
 import uuid
-from timeit import default_timer as timer
-from py import test
+
+from podping_hivewriter.config import Config
+from podping_hivewriter.hive_wrapper import get_hive
 
 import pytest
 import zmq
 import zmq.asyncio
 from beem.blockchain import Blockchain
-from beem.account import Account
 
 
-from podping_hivewriter import config, hive_writer
+from podping_hivewriter import config, run
 
 
 @pytest.mark.asyncio
@@ -26,7 +25,7 @@ async def test_write_single_url_zmq_req(event_loop):
     # Don't try to update parameters
     config.Config.ignore_updates = True
 
-    hive = hive_writer.get_hive()
+    hive = get_hive(Config.podping_settings.main_nodes, Config.posting_key)
 
     blockchain = Blockchain(mode="head", blockchain_instance=hive)
     current_block = blockchain.get_current_block_num()
@@ -38,9 +37,9 @@ async def test_write_single_url_zmq_req(event_loop):
         stream = blockchain.stream(
             opNames=["custom_json"],
             start=current_block,
-            max_batch_size=1,
+            max_batch_size=50,
             raw_ops=False,
-            threading=False,
+            threading=True,
         )
 
         for post in stream:
@@ -49,7 +48,7 @@ async def test_write_single_url_zmq_req(event_loop):
                 if len(data["urls"]) == 1:
                     yield data["urls"][0]
 
-    hive_writer.run(loop=event_loop)
+    podping_hivewriter, _ = run.run()
 
     context = zmq.asyncio.Context()
     socket = context.socket(zmq.REQ, io_loop=event_loop)
@@ -69,5 +68,4 @@ async def test_write_single_url_zmq_req(event_loop):
             assert True
             break
 
-
-# todo: #4 Don't we need to shut down the event loops in hive_writer gracefully at this point?
+    podping_hivewriter.close()

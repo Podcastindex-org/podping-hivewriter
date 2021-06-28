@@ -1,3 +1,4 @@
-"""The hive writer component of podping."""
+from pathlib import Path
+from single_source import get_version
 
-__version__ = "0.1.0"
+__version__ = get_version(__name__, Path(__file__).parent.parent)

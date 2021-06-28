@@ -1,28 +1,27 @@
 import asyncio
 import json
-from typing import Set
 import uuid
-from timeit import default_timer as timer
-from py import test
 
 import pytest
 import zmq
 import zmq.asyncio
 from beem.blockchain import Blockchain
-from beem.account import Account
 
 
-from podping_hivewriter import config, hive_writer
+from podping_hivewriter import config, run
+from podping_hivewriter.config import Config
+from podping_hivewriter.hive_wrapper import get_hive
 
 
 @pytest.mark.asyncio
 @pytest.mark.timeout(60)
 @pytest.mark.slow
+@pytest.mark.skip
 async def test_write_single_url_zmq_req(event_loop):
     # Ensure use of testnet
     config.Config.test = True
     config.Config.ignore_updates = True
-    hive = hive_writer.get_hive()
+    hive = get_hive(Config.podping_settings.test_nodes, Config.posting_key)
 
     blockchain = Blockchain(mode="head", blockchain_instance=hive)
     current_block = blockchain.get_current_block_num()
@@ -36,7 +35,7 @@ async def test_write_single_url_zmq_req(event_loop):
             start=current_block,
             max_batch_size=1,
             raw_ops=False,
-            threading=False,
+            threading=True,
         )
 
         for post in stream:
@@ -45,7 +44,7 @@ async def test_write_single_url_zmq_req(event_loop):
                 if len(data["urls"]) == 1:
                     yield data["urls"][0]
 
-    hive_writer.run(loop=event_loop)
+    podping_hivewriter, _ = run.run()
 
     context = zmq.asyncio.Context()
     socket = context.socket(zmq.REQ, io_loop=event_loop)
@@ -58,12 +57,11 @@ async def test_write_single_url_zmq_req(event_loop):
 
     # Sleep to catch up because beem isn't async and blocks
     # This is just longer than the amount of time url_q_worker waits for
-    await asyncio.sleep(config.Config.podping_settings.hive_operation_period * 1.1)
+    await asyncio.sleep(config.Config.podping_settings.hive_operation_period * 2)
 
     async for stream_url in get_url_from_blockchain():
         if stream_url == url:
             assert True
             break
 
-
-# todo: #4 Don't we need to shut down the event loops in hive_writer gracefully at this point?
+    podping_hivewriter.close()
