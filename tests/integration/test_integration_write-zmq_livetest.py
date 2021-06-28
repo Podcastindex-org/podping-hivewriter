@@ -18,6 +18,7 @@ from podping_hivewriter import config, run
 @pytest.mark.timeout(60)
 @pytest.mark.slow
 async def test_write_single_url_zmq_req(event_loop):
+    config.Config.zmq = "9989"
     # Ensure use of Live Hive chain not the Test Net
     config.Config.test = False
     # Use the livechain
