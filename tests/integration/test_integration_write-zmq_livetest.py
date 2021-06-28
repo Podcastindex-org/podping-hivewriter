@@ -39,14 +39,16 @@ async def test_write_single_url_zmq_req(event_loop):
 
     url = f"https://example.com?u={uuid.uuid4()}"
 
-    async def get_url_from_blockchain():
+    async def get_url_from_blockchain(stop_block: int):
         # noinspection PyTypeChecker
         stream = blockchain.stream(
             opNames=["custom_json"],
             start=current_block,
-            max_batch_size=1,
+            stop=stop_block,
+            max_batch_size=None,
             raw_ops=False,
-            threading=True,
+            only_ops=True,
+            threading=False,
         )
 
         for post in stream:
@@ -70,7 +72,9 @@ async def test_write_single_url_zmq_req(event_loop):
     # This is just longer than the amount of time url_q_worker waits for
     await asyncio.sleep(config.Config.podping_settings.hive_operation_period * 1.1)
 
-    async for stream_url in get_url_from_blockchain():
+    stop_block = blockchain.get_current_block_num()
+
+    async for stream_url in get_url_from_blockchain(stop_block):
         if stream_url == url:
             assert True
             break

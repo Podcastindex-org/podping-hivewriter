@@ -41,7 +41,7 @@ async def test_write_single_url_zmq_req(event_loop):
         stream = blockchain.stream(
             opNames=["custom_json"],
             start=current_block,
-            max_batch_size=1,
+            max_batch_size=None,
             raw_ops=False,
             threading=True,
         )
