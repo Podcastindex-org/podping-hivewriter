@@ -73,7 +73,7 @@ def run():
             "HIVE_POSTING_KEY environment var must be set."
         )
 
-    if not Config.test or Config.livetest:
+    if Config.test:
         nodes = Config.podping_settings.test_nodes
     else:
         nodes = Config.podping_settings.main_nodes
