@@ -22,9 +22,9 @@ from podping_hivewriter import config, run
 @pytest.mark.slow
 async def test_write_multiple_url_zmq_req(event_loop):
     # Ensure use of Live Hive chain not the Test Net
-    config.Config.test = False
+    config.Config.test = True
     # Use the livechain
-    config.Config.livetest = True
+    config.Config.livetest = False
     # Don't try to update parameters
     config.Config.ignore_updates = True
     # Use different ports
@@ -45,14 +45,16 @@ async def test_write_multiple_url_zmq_req(event_loop):
         url = f"https://example.com?n={n}&u={uuid.uuid4()}"
         test_urls.append(url)
 
-    async def get_url_from_blockchain():
+    async def get_url_from_blockchain(stop_block: int):
         # noinspection PyTypeChecker
         stream = blockchain.stream(
             opNames=["custom_json"],
             start=current_block,
-            max_batch_size=1,
+            stop=stop_block,
+            max_batch_size=None,
             raw_ops=False,
-            threading=True,
+            only_ops=True,
+            threading=False,
         )
 
         for post in stream:
@@ -71,17 +73,16 @@ async def test_write_multiple_url_zmq_req(event_loop):
         await socket.send_string(test_urls[n])
         response = await socket.recv_string()
         assert response == "OK"
-        await asyncio.sleep(0.3+ (2 * random()))
+        await asyncio.sleep(0.3 + (2 * random()))
 
     # Sleep to catch up because beem isn't async and blocks
     # This is just longer than the amount of time url_q_worker waits for
     await asyncio.sleep(config.Config.podping_settings.hive_operation_period * 2)
 
-    # Sleep to catch up because beem isn't async and blocks
-    # This is just longer than the amount of time url_q_worker waits for
-    # await asyncio.sleep(config.Config.podping_settings.hive_operation_period * 1.1)
+    stop_block = blockchain.get_current_block_num()
+
     answer_urls = []
-    async for stream_url in get_url_from_blockchain():
+    async for stream_url in get_url_from_blockchain(stop_block):
         if stream_url in test_urls:
             answer_urls.append(stream_url)
             print(len(answer_urls))
