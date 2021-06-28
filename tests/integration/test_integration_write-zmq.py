@@ -16,12 +16,15 @@ from podping_hivewriter.hive_wrapper import get_hive
 @pytest.mark.asyncio
 @pytest.mark.timeout(60)
 @pytest.mark.slow
-@pytest.mark.skip
 async def test_write_single_url_zmq_req(event_loop):
     # Ensure use of testnet
     config.Config.test = True
     config.Config.ignore_updates = True
-    hive = get_hive(Config.podping_settings.test_nodes, Config.posting_key)
+    hive = get_hive(
+        Config.podping_settings.test_nodes,
+        Config.posting_key,
+        use_testnet=config.Config.test,
+    )
 
     blockchain = Blockchain(mode="head", blockchain_instance=hive)
     current_block = blockchain.get_current_block_num()
