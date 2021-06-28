@@ -18,6 +18,7 @@ from podping_hivewriter.hive_wrapper import get_hive
 @pytest.mark.slow
 async def test_write_single_url_zmq_req(event_loop):
     # Ensure use of testnet
+    config.Config.zmq = "9988"
     config.Config.test = True
     config.Config.ignore_updates = True
     hive = get_hive(
