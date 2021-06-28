@@ -11,9 +11,9 @@ async def test_update_podping_settings():
     # See if we can fetch data from podping
     # Must not use Testnet when looking for config data
 
-    #Other tests are changing this setting:
+    # Other tests are changing this setting:
     config.Config.ignore_updates = False
-    
+
     test_account_check_period = sys.maxsize
     config.Config.podping_settings.control_account_check_period = (
         test_account_check_period
