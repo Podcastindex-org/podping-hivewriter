@@ -2,7 +2,8 @@ import sys
 
 import pytest
 
-from podping_hivewriter import config, hive_writer
+from podping_hivewriter import config
+from podping_hivewriter.run import update_podping_settings
 
 
 @pytest.mark.asyncio
@@ -13,7 +14,7 @@ async def test_update_podping_settings():
     config.Config.podping_settings.control_account_check_period = (
         test_account_check_period
     )
-    await hive_writer.update_podping_settings("podping")
+    await update_podping_settings("podping")
 
     # Compare properties specifically because we aren't overriding all default values
     assert (

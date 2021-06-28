@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import random
 from timeit import default_timer as timer
 from typing import Optional, Set, Tuple
 
@@ -12,80 +13,63 @@ from beem.nodelist import NodeList
 from beem.transactionbuilder import TransactionBuilder
 from beembase import operations
 
-from podping_hivewriter.config import Config, PodpingSettings
+from podping_hivewriter.config import Config
+from podping_hivewriter.hive_wrapper import get_hive
+from podping_hivewriter.models.podping_settings import PodpingSettings
 
 PODPING_SETTINGS_KEY = "podping-settings"
 
 
-def get_hive(nodes: Tuple[str, ...] = None) -> beem.Hive:
-    """Get the main Hive conneciton object"""
-    posting_key = Config.posting_key
-    if not nodes:
-        nodes = Config.nodes_in_use
-    if Config.test:
-        nodes = Config.podping_settings.test_nodes
-        hive = beem.Hive(node=nodes, keys=posting_key, nobroadcast=Config.nobroadcast)
-        logging.info(f"---------------> Using Test Nodes: {nodes}")
-    else:
-        hive = beem.Hive(node=nodes, keys=posting_key, nobroadcast=Config.nobroadcast)
-        hive.chain_params[
-            "chain_id"
-        ] = "beeab0de00000000000000000000000000000000000000000000000000000000"
-        logging.info("---------------> Using Main Hive Chain ")
-    return hive
+# class PodingSettingsManager:
+#    def __init__(self):
 
 
-async def get_settings_from_hive(acc_name: str, nodes: Tuple[str]) -> Optional[dict]:
+async def get_settings_from_hive(account_name: str, posting_key: str) -> Optional[dict]:
     """Returns podping settings if they exist"""
     # Must use main chain for settings
-    hive = get_hive(Config.podping_settings.main_nodes)
-    acc = Account(acc_name, blockchain_instance=hive, lazy=True)
-    posting_meta = json.loads(acc["posting_json_metadata"])
-    return posting_meta.get(PODPING_SETTINGS_KEY)
+    hive = get_hive(Config.podping_settings.main_nodes, posting_key)
+    acc = Account(account_name, blockchain_instance=hive, lazy=True)
+    metadata = acc["posting_json_metadata"]
+    if metadata:
+        posting_meta = json.loads(metadata)
+        return posting_meta.get(PODPING_SETTINGS_KEY)
+    else:
+        logging.error(f"posting_json_metadata for account {account_name} is empty")
 
 
-async def get_podping_settings(acc_name: str, nodes: Tuple[str]) -> PodpingSettings:
+async def get_podping_settings(account_name: str, posting_key: str) -> PodpingSettings:
     """Return PodpingSettings object"""
-    settings_dict = await get_settings_from_hive(acc_name, nodes)
+    settings_dict = await get_settings_from_hive(account_name, posting_key)
     return PodpingSettings.parse_obj(settings_dict)
 
 
-async def check_hive_node(acc_name: str, node: str) -> Tuple[str, float]:
+async def get_node_latency(acc_name: str, node: str) -> Tuple[str, float]:
     """Checks a specific Hive node for allowed accounts"""
-    start = timer()
-    session = aiohttp.ClientSession()
-    allowed = set()
-    try:
-        data = {
-            "jsonrpc": "2.0",
-            "method": "condenser_api.get_following",
-            "params": [acc_name, None, "blog", 10],
-            "id": 1,
-        }
-        async with session.post(node, data=json.dumps(data)) as response:
-            answer = await response.json()
-        await session.close()
-        # response = requests.post(node, data=json.dumps(data))
-        # answer = response.json()
-        for ans in answer.get("result"):
-            allowed.add(ans.get("following"))
-
-        elapsed = timer() - start
-        logging.info(f"Hive Node: {node} - Time: {elapsed}")
-        return node, elapsed
-    except Exception as ex:
-        logging.warning(f"Node: {node} - Error: {ex}")
-        return node, False
-    finally:
-        await session.close()
+    async with aiohttp.ClientSession() as session:
+        try:
+            data = {
+                "jsonrpc": "2.0",
+                "method": "condenser_api.get_following",
+                "params": [acc_name, None, "blog", 10],
+                "id": 1,
+            }
+            start = timer()
+            async with session.post(node, json=data) as _:
+                pass
+            elapsed = timer() - start
+            logging.info(f"Hive Node: {node} - Time: {elapsed}")
+            return node, elapsed
+        except Exception as ex:
+            logging.warning(f"Node: {node} - Error: {ex}")
+            return node, False
 
 
-async def test_send_custom_json(acc_name: str, node: str) -> Tuple[str, float]:
+async def test_send_custom_json(node: str) -> Tuple[str, float]:
     """Builds but doesn't send a custom_json not async."""
-    start = timer()
     try:
         hive = beem.Hive(node=node, nobroadcast=True, wif=Config.posting_key)
         data = {"something": "here"}
+        start = timer()
         tx = hive.custom_json(
             id="podping-testing",
             json_data=data,
@@ -108,7 +92,7 @@ async def get_time_sorted_node_list(acc_name: str = None) -> Tuple[str, ...]:
     nodes = Config.nodes_in_use
     tasks = []
     for node in nodes:
-        task = asyncio.create_task(check_hive_node(acc_name, node))
+        task = asyncio.create_task(get_node_latency(acc_name, node))
         tasks.append(task)
 
     answer = await asyncio.gather(*tasks)
@@ -131,34 +115,24 @@ async def check_all_hive_nodes(acc_name: str = "podping") -> bool:
     print("--------------------")
 
     nodes.append("https://api.ha.deathwing.me")
-    tasks_allowed = []
-    for node in nodes:
-        task = asyncio.create_task(check_hive_node(acc_name, node))
-        tasks_allowed.append(task)
+    tasks_allowed = [get_node_latency(acc_name, node) for node in nodes]
 
     answer = await asyncio.gather(*tasks_allowed)
     answer.sort(key=lambda a: a[1])
     print(answer)
 
-    new_nodes = []
-    for node, t in answer:
-        new_nodes.append(node)
+    new_nodes = [node for node, _ in answer]
 
     print("Sorted Nodes:")
     print(json.dumps(new_nodes))
     print("--------------------")
 
-    tasks_custom = []
-    for node in nodes:
-        task = asyncio.create_task(test_send_custom_json(acc_name, node))
-        tasks_custom.append(task)
+    tasks_custom = [test_send_custom_json(acc_name, node) for node in nodes]
     answer2 = await asyncio.gather(*tasks_custom)
     answer2.sort(key=lambda a: a[1])
     print(answer2)
 
-    new_nodes = []
-    for node, t in answer2:
-        new_nodes.append(node)
+    new_nodes = [node for node, _ in answer2]
 
     print("Sorted Nodes:")
     print(json.dumps(new_nodes))
@@ -176,7 +150,7 @@ def run():
     start = timer()
     # Settings must always come from Main Hive nodes, not Test.
     podping_settings = asyncio.run(
-        get_settings_from_hive("podping", nodes=Config.podping_settings.main_nodes)
+        get_settings_from_hive("podping", Config.posting_key)
     )
 
     logging.info(f"Took {timer() - start:0.2}s to fetch settings")
