@@ -27,9 +27,6 @@ def get_hive(nodes: Iterable[str], posting_key: str, use_testnet=False) -> beem.
     if use_testnet:
         logging.info(f"---------------> Using Test Nodes: {nodes}")
     else:
-        hive.chain_params[
-            "chain_id"
-        ] = "beeab0de00000000000000000000000000000000000000000000000000000000"
         logging.info("---------------> Using Main Hive Chain ")
 
     return hive
