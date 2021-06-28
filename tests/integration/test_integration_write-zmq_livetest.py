@@ -25,6 +25,8 @@ async def test_write_single_url_zmq_req(event_loop):
     config.Config.livetest = True
     # Don't try to update parameters
     config.Config.ignore_updates = True
+    # Use different port
+    config.Config.zmq = 9959
 
     hive = get_hive(
         Config.podping_settings.main_nodes,
@@ -42,7 +44,7 @@ async def test_write_single_url_zmq_req(event_loop):
         stream = blockchain.stream(
             opNames=["custom_json"],
             start=current_block,
-            max_batch_size=50,
+            max_batch_size=1,
             raw_ops=False,
             threading=True,
         )
