@@ -3,16 +3,14 @@ import json
 import uuid
 from random import random
 
-from podping_hivewriter.config import Config
-from podping_hivewriter.hive_wrapper import get_hive
-
 import pytest
 import zmq
 import zmq.asyncio
 from beem.blockchain import Blockchain
 
-
 from podping_hivewriter import config, run
+from podping_hivewriter.config import Config
+from podping_hivewriter.hive_wrapper import get_hive
 
 # Simulated multi podping writes with random gaps.
 
