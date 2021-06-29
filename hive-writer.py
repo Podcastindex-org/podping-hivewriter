@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 import json
 import logging
 import os
@@ -23,7 +23,7 @@ from beemgraphenebase.types import Bool
 # BOL: Switching off TestNet, we should test on Hive for now.
 USE_TEST_NODE = os.getenv("USE_TEST_NODE", 'False').lower() in ('true', '1', 't')
 TEST_NODE = ['http://testnet.openhive.network:8091']
-CURRENT_PODPING_VERSION = "0.2"
+CURRENT_PODPING_VERSION = "0.3"
 NOTIFICATION_REASONS = ['feed_update','new_feed','host_change']
 HIVE_OPERPATION_PERIOD = 3  # 1 Hive operation per this period in
 MAX_URL_PER_CUSTOM_JSON = 130 # total json size must be below 8192 bytes
@@ -32,7 +32,7 @@ MAX_URL_PER_CUSTOM_JSON = 130 # total json size must be below 8192 bytes
 # Stores the RC cost of each operation to calculate an average
 HALT_THE_QUEUE = False
 # HALT_TIME = [1,2,3]
-HALT_TIME = [0,3,9,12,30,60,120]
+HALT_TIME = [0,0.5,0.5,0.5,0.5,0.5,0.5,0.5,1,1,1,1,1]
 
 
 logging.basicConfig(level=logging.INFO,
@@ -151,7 +151,10 @@ def startup_sequence(ignore_errors= False) -> bool:
             manabar_after = acc.get_rc_manabar()
             logging.info(f'Testing Account Resource Credits - after {manabar_after.get("current_pct"):.2f}%')
             cost = manabar.get('current_mana') - manabar_after.get('current_mana')
-            capacity = manabar_after.get('current_mana') / cost
+            if cost == 0:
+                capacity = 99999999
+            else:
+                capacity = manabar_after.get('current_mana') / cost
             logging.info(f'Capacity for further podpings : {capacity:.1f}')
             custom_json['version'] = CURRENT_PODPING_VERSION
             custom_json['capacity'] = f'{capacity:.1f}'
@@ -345,10 +348,14 @@ def failure_retry(url_list, failure_count = 0):
         peak_fail_count += 1
         answer['message'] = 'failure - server will retry'
         if failure_count >= len(HALT_TIME):
-            # Give up.
+            # Give up. - DON'T GIVE UP!!!
             error_message = f"I'm sorry Dave, I'm affraid I can't do that. Too many tries {failure_count}"
             logging.error(error_message)
-            raise SystemExit(error_message)
+            print(f"Failures at UTC: {datetime.utcnow()}")
+            for url in url_list:
+                print(url)
+            return error_message, failure_count
+            # raise SystemExit(error_message)
         answer, failure_count = failure_retry(url_list, failure_count)
         # Walk back up the recursion tree:
         return answer, failure_count
