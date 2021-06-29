@@ -50,7 +50,7 @@ async def update_podping_settings_worker(acc_name: str) -> None:
         await asyncio.sleep(Config.podping_settings.control_account_check_period)
 
 
-def run():
+def run() -> Tuple[PodpingHivewriter, asyncio.Task]:
     logging.basicConfig(
         level=logging.INFO,
         format=f"%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s",
