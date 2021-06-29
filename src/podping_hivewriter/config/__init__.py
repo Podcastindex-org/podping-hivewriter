@@ -122,7 +122,7 @@ class Config:
     # This is a global signal to shut down until RC's recover
     # Stores the RC cost of each operation to calculate an average
     # HALT_TIME = [1,2,3]
-    HALT_TIME = [0, 1, 1, 1, 1, 1, 1, 1, 3, 6, 9, 15, 15, 15, 15, 15, 15, 15]
+    HALT_TIME = [0, 1, 1, 1, 1, 1, 1, 1, 3, 6, 9]
 
     # ---------------------------------------------------------------
     # START OF STARTUP SEQUENCE

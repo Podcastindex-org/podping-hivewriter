@@ -3,7 +3,7 @@ import sys
 from datetime import datetime, timezone
 import json
 import logging
-from sys import getsizeof
+from sys import exc_info, getsizeof
 from timeit import default_timer as timer
 from typing import List, Set, Tuple, Iterable, Optional
 import uuid
@@ -360,6 +360,11 @@ class PodpingHivewriter:
             logging.error(f"The provided key for @{self.server_account} is not valid")
             raise
 
+        except Exception as ex:
+            logging.error(repr(ex))
+            logging.debug(ex, exc_info=True)
+            raise ex
+
     async def send_notification_iri(self, iri: str, reason=1) -> str:
         payload = {
             "v": Config.CURRENT_PODPING_VERSION,
@@ -389,6 +394,14 @@ class PodpingHivewriter:
         self, iri_set: Set[str], failure_count=0
     ) -> Tuple[str, int]:
         await self.wait_startup()
+        #TODO: #7 this should write to a file called failures that can be processed later.
+        if failure_count >= len(Config.HALT_TIME):
+            print(f"Failure at: {datetime.utcnow()}")
+            logging.error(f"Failed to send: {len(iri_set)} iri - Printing to STDOUT")
+            for iri in iri_set:
+                print(iri)
+            return "FAILED", failure_count
+
         if failure_count > 0:
             logging.warning(f"Waiting {Config.HALT_TIME[failure_count]}s before retry")
             await asyncio.sleep(Config.HALT_TIME[failure_count])
