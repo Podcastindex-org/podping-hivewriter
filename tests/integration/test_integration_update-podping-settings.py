@@ -1,9 +1,8 @@
-import sys
 import asyncio
-import pytest
+import sys
 
-from podping_hivewriter import config
-from podping_hivewriter.run import update_podping_settings
+import pytest
+from podping_hivewriter import podping_settings
 
 
 @pytest.mark.asyncio
@@ -11,15 +10,42 @@ async def test_update_podping_settings():
     # See if we can fetch data from podping
     # Must not use Testnet when looking for config data
 
-    # Other tests are changing this setting:
-    config.Config.ignore_updates = False
+    check_period = sys.maxsize
 
-    test_account_check_period = sys.maxsize
-    config.Config.podping_settings.control_account_check_period = (
-        test_account_check_period
-    )
-    await update_podping_settings("podping")
-    await asyncio.sleep(2)
-    answer = config.Config.podping_settings.control_account_check_period
+    # Override the default value of the dataclass
+    podping_settings.PodpingSettings.__fields__[
+        "control_account_check_period"
+    ].default = check_period
+
+    with podping_settings.PodpingSettingsManager(
+        ignore_updates=True
+    ) as settings_manager:
+        await settings_manager.update_podping_settings()
+        answer = settings_manager._settings.control_account_check_period
+
+        assert settings_manager.last_update_time != float("-inf")
+
     # Compare properties specifically because we aren't overriding all default values
-    assert test_account_check_period != answer
+    assert check_period != answer
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+async def test_update_podping_settings_loop():
+    # See if we can fetch data from podping
+    # Must not use Testnet when looking for config data
+
+    check_period = 1
+
+    # Override the default value of the dataclass
+    podping_settings.PodpingSettings.__fields__[
+        "control_account_check_period"
+    ].default = check_period
+
+    with podping_settings.PodpingSettingsManager(
+        ignore_updates=False
+    ) as settings_manager:
+        await asyncio.sleep(3)
+
+        # Check last update time
+        assert settings_manager.last_update_time != float("-inf")
