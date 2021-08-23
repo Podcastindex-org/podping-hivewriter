@@ -1,15 +1,13 @@
 import argparse
 import os
+from datetime import datetime
 from enum import Enum
-from ipaddress import AddressValueError, IPv4Address, IPv6Address
+from timeit import default_timer as timer
 
 # ---------------------------------------------------------------
 # COMMAND LINE
 # ---------------------------------------------------------------
-from typing import Tuple
-
-from pydantic import BaseModel, validator
-
+from typing import List
 
 app_description = """ PodPing - Runs as a server and writes a stream of URLs to the
 Hive Blockchain or sends a single URL to Hive (--url option)
@@ -62,8 +60,13 @@ group_action_type.add_argument(
 )
 
 my_parser.add_argument(
-    "-t", "--test", action="store_true", required=False, help="Use a test net API"
+    "-l",
+    "--livetest",
+    action="store_true",
+    required=False,
+    help="Use live Hive chain but write with id=podping-livetest.  Used for testing",
 )
+
 
 my_parser.add_argument(
     "-e",
@@ -74,6 +77,22 @@ my_parser.add_argument(
     metavar="",
     default=None,
     help="Deliberately force error rate of <int>%%",
+)
+
+my_parser.add_argument(
+    "-i",
+    "--ignore",
+    action="store_true",
+    required=False,
+    help="Ignore updates from the command and control account",
+)
+
+my_parser.add_argument(
+    "-n",
+    "--nobroadcast",
+    action="store_true",
+    required=False,
+    help="FOR TESTING USE - Do not broadcast transactions to Hive (or even testnet)",
 )
 
 args, _ = my_parser.parse_known_args()
@@ -87,32 +106,10 @@ class NotificationReasons(Enum):
     GOING_LIVE = 4
 
 
-class PodpingSettings(BaseModel):
-    """Dataclass for settings we will fetch from Hive"""
-
-    hive_operation_period: int = 3
-    max_url_list_bytes: int = 6000
-    control_account: str = "podping"
-    control_account_check_period: int = 60
-    test_nodes: Tuple[str] = ("https://testnet.openhive.network",)
-
-    @validator("hive_operation_period")
-    def hive_op_period_must_be_int_above_one(cls, v):
-        """If anyone ever tries to set op period < 1 this will catch
-        it. Other float values coerced into int seconds"""
-        if v < 1:
-            v = 1
-        return v
-
-
 class Config:
     """The Config Class"""
 
-    # TEST_NODE = ["https://testnet.openhive.network"]
     CURRENT_PODPING_VERSION = 2
-    podping_settings = PodpingSettings()
-
-    # HIVE_OPERATION_PERIOD = 3  # 1 Hive operation per this period seconds
     # MAX_URL_LIST_BYTES = 7000  # Upper limit on custom_json is 8092 bytes
 
     # This is a global signal to shut down until RC's recover
@@ -125,18 +122,22 @@ class Config:
     # ---------------------------------------------------------------
     # GLOBAL:
     server_account: str = os.getenv("HIVE_SERVER_ACCOUNT")
-    posting_key: str = [os.getenv("HIVE_POSTING_KEY")]
+    posting_keys: List[str] = [os.getenv("HIVE_POSTING_KEY")]
 
     url: str = my_args["url"]
     zmq: str = my_args["zmq"]
     errors = my_args["errors"]
     bind_all = my_args["bindall"]
+    nobroadcast = my_args["nobroadcast"]
+    livetest = os.getenv("PODPING_LIVETEST", "False").lower() in {"true", "1", "t"}
+    if my_args["livetest"]:
+        livetest = True
+    ignore_updates = my_args["ignore"]
+
+    startup_datetime = datetime.utcnow()
+    startup_time = timer()
 
     # FROM ENV or from command line.
-    test = os.getenv("USE_TEST_NODE", "False").lower() in ("true", "1", "t")
-    if my_args["test"]:
-        test = True
-
-    @classmethod
-    def setup(cls):
-        """Setup the config"""
+    # test = os.getenv("USE_TEST_NODE", "False").lower() in ("true", "1", "t")
+    # if my_args["test"]:
+    #    test = True

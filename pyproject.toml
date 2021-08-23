@@ -1,16 +1,21 @@
 [tool.poetry]
 name = "podping_hivewriter"
-version = "0.1.0"
+version = "1.0.0-alpha.0"
 description = ""
 authors = ["Brian of London <brian@podping.org>","Alecks Gates <alecks@podping.org>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-beem = "^0.24.21"
+beem = "^0.24"
 pyzmq = "^22.1.0"
 cffi = "^1.14.5"
 pydantic = "^1.8.2"
+aiohttp = {extras = ["speedups"], version = "^3.7.4"}
+single-source = "^0.2.0"
+rfc3987 = "^1.3.8"
+pytest-timeout = "^1.4.2"
+asgiref = "^3.4"
 
 [tool.poetry.dev-dependencies]
 black = "^21.5b2"

@@ -1,22 +1,51 @@
+import asyncio
 import sys
 
 import pytest
-
-from podping_hivewriter import config, hive_writer
+from podping_hivewriter import podping_settings
 
 
 @pytest.mark.asyncio
 async def test_update_podping_settings():
     # See if we can fetch data from podping
     # Must not use Testnet when looking for config data
-    test_account_check_period = sys.maxsize
-    config.Config.podping_settings.control_account_check_period = (
-        test_account_check_period
-    )
-    await hive_writer.update_podping_settings("podping")
+
+    check_period = sys.maxsize
+
+    # Override the default value of the dataclass
+    podping_settings.PodpingSettings.__fields__[
+        "control_account_check_period"
+    ].default = check_period
+
+    with podping_settings.PodpingSettingsManager(
+        ignore_updates=True
+    ) as settings_manager:
+        await settings_manager.update_podping_settings()
+        answer = settings_manager._settings.control_account_check_period
+
+        assert settings_manager.last_update_time != float("-inf")
 
     # Compare properties specifically because we aren't overriding all default values
-    assert (
-        test_account_check_period
-        != config.Config.podping_settings.control_account_check_period
-    )
+    assert check_period != answer
+
+
+@pytest.mark.asyncio
+@pytest.mark.slow
+async def test_update_podping_settings_loop():
+    # See if we can fetch data from podping
+    # Must not use Testnet when looking for config data
+
+    check_period = 1
+
+    # Override the default value of the dataclass
+    podping_settings.PodpingSettings.__fields__[
+        "control_account_check_period"
+    ].default = check_period
+
+    with podping_settings.PodpingSettingsManager(
+        ignore_updates=False
+    ) as settings_manager:
+        await asyncio.sleep(3)
+
+        # Check last update time
+        assert settings_manager.last_update_time != float("-inf")
