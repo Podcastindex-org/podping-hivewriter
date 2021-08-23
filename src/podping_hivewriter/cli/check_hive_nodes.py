@@ -1,46 +1,14 @@
 import asyncio
 import json
 import logging
-import random
 from timeit import default_timer as timer
-from typing import Optional, Set, Tuple
+from typing import Tuple
 
 import aiohttp
 import beem
-from beem import nodelist
-from beem.account import Account
 from beem.nodelist import NodeList
-from beem.transactionbuilder import TransactionBuilder
-from beembase import operations
-
 from podping_hivewriter.config import Config
-from podping_hivewriter.hive_wrapper import get_hive
-from podping_hivewriter.models.podping_settings import PodpingSettings
-
-PODPING_SETTINGS_KEY = "podping-settings"
-
-
-# class PodingSettingsManager:
-#    def __init__(self):
-
-
-async def get_settings_from_hive(account_name: str, posting_key: str) -> Optional[dict]:
-    """Returns podping settings if they exist"""
-    # Must use main chain for settings
-    hive = get_hive(Config.podping_settings.main_nodes, posting_key)
-    acc = Account(account_name, blockchain_instance=hive, lazy=True)
-    metadata = acc["posting_json_metadata"]
-    if metadata:
-        posting_meta = json.loads(metadata)
-        return posting_meta.get(PODPING_SETTINGS_KEY)
-    else:
-        logging.error(f"posting_json_metadata for account {account_name} is empty")
-
-
-async def get_podping_settings(account_name: str, posting_key: str) -> PodpingSettings:
-    """Return PodpingSettings object"""
-    settings_dict = await get_settings_from_hive(account_name, posting_key)
-    return PodpingSettings.parse_obj(settings_dict)
+from podping_hivewriter.podping_settings import get_settings_from_hive
 
 
 async def get_node_latency(acc_name: str, node: str) -> Tuple[str, float]:
@@ -67,7 +35,7 @@ async def get_node_latency(acc_name: str, node: str) -> Tuple[str, float]:
 async def test_send_custom_json(node: str) -> Tuple[str, float]:
     """Builds but doesn't send a custom_json not async."""
     try:
-        hive = beem.Hive(node=node, nobroadcast=True, wif=Config.posting_key)
+        hive = beem.Hive(node=node, nobroadcast=True, wif=Config.posting_keys)
         data = {"something": "here"}
         start = timer()
         tx = hive.custom_json(
@@ -127,7 +95,7 @@ async def check_all_hive_nodes(acc_name: str = "podping") -> bool:
     print(json.dumps(new_nodes))
     print("--------------------")
 
-    tasks_custom = [test_send_custom_json(acc_name, node) for node in nodes]
+    tasks_custom = [test_send_custom_json(node) for node in nodes]
     answer2 = await asyncio.gather(*tasks_custom)
     answer2.sort(key=lambda a: a[1])
     print(answer2)
@@ -149,9 +117,7 @@ def run():
 
     start = timer()
     # Settings must always come from Main Hive nodes, not Test.
-    podping_settings = asyncio.run(
-        get_settings_from_hive("podping", Config.posting_key)
-    )
+    podping_settings = asyncio.run(get_settings_from_hive("podping"))
 
     logging.info(f"Took {timer() - start:0.2}s to fetch settings")
     if podping_settings:

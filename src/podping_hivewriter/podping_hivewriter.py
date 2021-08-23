@@ -1,12 +1,11 @@
 import asyncio
-import sys
-from datetime import datetime, timezone
 import json
 import logging
-from sys import getsizeof
-from timeit import default_timer as timer
-from typing import List, Set, Tuple, Iterable, Optional
+import sys
 import uuid
+from datetime import datetime, timezone, timedelta
+from timeit import default_timer as timer
+from typing import Optional, Set, Tuple, List
 
 import beem
 import rfc3987
@@ -15,25 +14,18 @@ import zmq.asyncio
 from beem.account import Account
 from beem.exceptions import AccountDoesNotExistsException, MissingKeyError
 from beemapi.exceptions import UnhandledRPCError
-from beem.nodelist import NodeList
+from podping_hivewriter.async_context import AsyncContext
+from podping_hivewriter.config import Config
+from podping_hivewriter.constants import (
+    STARTUP_FAILED_HIVE_API_ERROR_EXIT_CODE,
+    STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE,
+    STARTUP_FAILED_UNKNOWN_EXIT_CODE,
+    STARTUP_OPERATION_ID,
+)
 from podping_hivewriter.exceptions import PodpingCustomJsonPayloadExceeded
 from podping_hivewriter.hive_wrapper import HiveWrapper
 from podping_hivewriter.models.iri_batch import IRIBatch
-
-from pydantic import ValidationError
-
-from podping_hivewriter.config import Config
-from podping_hivewriter.models.podping_settings import PodpingSettings
-from podping_hivewriter.constants import (
-    STARTUP_OPERATION_ID,
-    STARTUP_FAILED_UNKNOWN_EXIT_CODE,
-    STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE,
-    STARTUP_FAILED_HIVE_API_ERROR_EXIT_CODE,
-)
-from podping_hivewriter.podping_config import (
-    get_podping_settings,
-    get_time_sorted_node_list,
-)
+from podping_hivewriter.podping_settings import PodpingSettingsManager
 
 
 def utc_date_str() -> str:
@@ -44,55 +36,39 @@ def size_of_dict_as_json(payload: dict):
     return len(json.dumps(payload, separators=(",", ":")).encode("UTF-8"))
 
 
-class PodpingHivewriter:
+class PodpingHivewriter(AsyncContext):
     def __init__(
         self,
         server_account: str,
-        posting_key: str,
-        nodes: Iterable[str],
+        posting_keys: List[str],
+        settings_manager: PodpingSettingsManager,
         operation_id="podping",
         resource_test=True,
         daemon=True,
-        use_testnet=False,
     ):
-        self._tasks: List[asyncio.Task] = []
+        super().__init__()
 
         self.server_account: str = server_account
         self.required_posting_auths = [self.server_account]
-        self.posting_key: str = posting_key
+        self.settings_manager = settings_manager
+        self.posting_keys: List[str] = posting_keys
         self.operation_id: str = operation_id
         self.daemon = daemon
-        self.use_testnet = use_testnet
 
-        self.hive_wrapper = HiveWrapper(
-            nodes, posting_key, daemon=daemon, use_testnet=use_testnet
-        )
+        self.hive_wrapper = HiveWrapper(posting_keys, settings_manager, daemon=daemon)
 
         self.total_iris_recv = 0
         self.total_iris_sent = 0
         self.total_iris_recv_deduped = 0
+
+        self._iris_in_flight = 0
+        self._iris_in_flight_lock = asyncio.Lock()
 
         self.iri_batch_queue: "asyncio.Queue[IRIBatch]" = asyncio.Queue()
         self.iri_queue: "asyncio.Queue[str]" = asyncio.Queue()
 
         self._startup_done = False
         asyncio.ensure_future(self._startup(resource_test=resource_test))
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
-
-    def __del__(self):
-        self.close()
-
-    def close(self):
-        try:
-            for task in self._tasks:
-                task.cancel()
-        except RuntimeError:
-            pass
-
-    def _add_task(self, task):
-        self._tasks.append(task)
 
     async def _startup(self, resource_test=True):
         logging.info(
@@ -103,7 +79,14 @@ class PodpingHivewriter:
         try:
             hive = await self.hive_wrapper.get_hive()
             account = Account(self.server_account, blockchain_instance=hive, lazy=True)
-            allowed = get_allowed_accounts()
+            settings = await self.settings_manager.get_settings()
+
+            # TODO: Force accounts from mainnet
+            allowed = get_allowed_accounts(
+                settings.main_nodes, settings.control_account
+            )
+            # TODO: Should we periodically check if the account is allowed
+            #  and shut down if not?
             if self.server_account not in allowed:
                 logging.error(
                     f"Account @{self.server_account} not authorised to send Podpings"
@@ -120,71 +103,7 @@ class PodpingHivewriter:
             raise
 
         if resource_test:
-            # noinspection PyBroadException
-            try:  # Now post two custom json to test.
-                manabar = account.get_rc_manabar()
-                logging.info(
-                    f"Testing Account Resource Credits"
-                    f' - before {manabar.get("current_pct"):.2f}%'
-                )
-                custom_json = {
-                    "server_account": self.server_account,
-                    "USE_TEST_NODE": self.use_testnet,
-                    "message": "Podping startup initiated",
-                    "uuid": str(uuid.uuid4()),
-                    "hive": repr(hive),
-                }
-
-                await self.send_notification(custom_json, STARTUP_OPERATION_ID)
-
-                logging.info("Testing Account Resource Credits.... 5s")
-                await asyncio.sleep(Config.podping_settings.hive_operation_period)
-                manabar_after = account.get_rc_manabar()
-                logging.info(
-                    f"Testing Account Resource Credits"
-                    f' - after {manabar_after.get("current_pct"):.2f}%'
-                )
-                cost = manabar.get("current_mana") - manabar_after.get("current_mana")
-                if cost == 0:  # skip this test if we're going to get ZeroDivision
-                    capacity = 1000000
-                else:
-                    capacity = manabar_after.get("current_mana") / cost
-                logging.info(f"Capacity for further podpings : {capacity:.1f}")
-
-                custom_json["v"] = Config.CURRENT_PODPING_VERSION
-                custom_json["capacity"] = f"{capacity:.1f}"
-                custom_json["message"] = "Podping startup complete"
-                custom_json["hive"] = repr(hive)
-
-                await self.send_notification(custom_json, STARTUP_OPERATION_ID)
-
-            except MissingKeyError as e:
-                logging.error(
-                    "Startup of Podping status: FAILED!  Invalid posting key",
-                    exc_info=True,
-                )
-                logging.error("Exiting")
-                sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
-            except UnhandledRPCError as e:
-                if not Config.test:
-                    logging.error(
-                        "Startup of Podping status: FAILED!  API error",
-                        exc_info=True,
-                    )
-                    logging.info("Exiting")
-                    sys.exit(STARTUP_FAILED_HIVE_API_ERROR_EXIT_CODE)
-                elif Config.test:
-                    logging.warning("Ignoring unknown error in test mode")
-            except Exception as e:
-                if not Config.test:
-                    logging.error(
-                        "Startup of Podping status: FAILED!  Unknown error",
-                        exc_info=True,
-                    )
-                    logging.error("Exiting")
-                    sys.exit(STARTUP_FAILED_UNKNOWN_EXIT_CODE)
-                elif Config.test:
-                    logging.warning("Ignoring unknown error in test mode")
+            await self.test_hive_resources(account, hive)
 
         logging.info("Startup of Podping status: SUCCESS! Hit the BOOST Button.")
         logging.info(
@@ -199,15 +118,81 @@ class PodpingHivewriter:
 
         self._startup_done = True
 
+    async def test_hive_resources(self, account, hive):
+        # noinspection PyBroadException
+        try:  # Now post two custom json to test.
+            manabar = account.get_rc_manabar()
+            logging.info(
+                f"Testing Account Resource Credits"
+                f' - before {manabar.get("current_pct"):.2f}%'
+            )
+
+            # TODO: See if anything depends on USE_TEST_NODE before removal
+            custom_json = {
+                "server_account": self.server_account,
+                "USE_TEST_NODE": False,
+                "message": "Podping startup initiated",
+                "uuid": str(uuid.uuid4()),
+                "hive": repr(hive),
+            }
+
+            await self.send_notification(custom_json, STARTUP_OPERATION_ID)
+
+            logging.info("Testing Account Resource Credits.... 5s")
+            settings = await self.settings_manager.get_settings()
+            await asyncio.sleep(settings.hive_operation_period)
+            manabar_after = account.get_rc_manabar()
+            logging.info(
+                f"Testing Account Resource Credits"
+                f' - after {manabar_after.get("current_pct"):.2f}%'
+            )
+            cost = manabar.get("current_mana") - manabar_after.get("current_mana")
+            if cost == 0:  # skip this test if we're going to get ZeroDivision
+                capacity = 1000000
+            else:
+                capacity = manabar_after.get("current_mana") / cost
+            logging.info(f"Capacity for further podpings : {capacity:.1f}")
+
+            custom_json["v"] = Config.CURRENT_PODPING_VERSION
+            custom_json["capacity"] = f"{capacity:.1f}"
+            custom_json["message"] = "Podping startup complete"
+            custom_json["hive"] = repr(hive)
+
+            await self.send_notification(custom_json, STARTUP_OPERATION_ID)
+
+        except MissingKeyError as _:
+            logging.error(
+                "Startup of Podping status: FAILED!  Invalid posting key",
+                exc_info=True,
+            )
+            logging.error("Exiting")
+            sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+        except UnhandledRPCError as _:
+            logging.error(
+                "Startup of Podping status: FAILED!  API error",
+                exc_info=True,
+            )
+            logging.info("Exiting")
+            sys.exit(STARTUP_FAILED_HIVE_API_ERROR_EXIT_CODE)
+        except Exception as _:
+            logging.error(
+                "Startup of Podping status: FAILED!  Unknown error",
+                exc_info=True,
+            )
+            logging.error("Exiting")
+            sys.exit(STARTUP_FAILED_UNKNOWN_EXIT_CODE)
+
     async def wait_startup(self):
+        settings = await self.settings_manager.get_settings()
         while not self._startup_done:
-            await asyncio.sleep(Config.podping_settings.hive_operation_period)
+            await asyncio.sleep(settings.hive_operation_period)
 
     async def _hive_status_loop(self):
         while True:
             try:
                 self.output_hive_status()
-                await asyncio.sleep(Config.podping_settings.diagnostic_report_period)
+                settings = await self.settings_manager.get_settings()
+                await asyncio.sleep(settings.diagnostic_report_period)
             except Exception as e:
                 logging.error(e, exc_info=True)
             except asyncio.CancelledError:
@@ -224,10 +209,13 @@ class PodpingHivewriter:
                 duration = timer() - start
 
                 self.iri_batch_queue.task_done()
+                async with self._iris_in_flight_lock:
+                    self._iris_in_flight -= len(iri_batch.iri_set)
 
                 logging.info(
-                    f"Task time: {duration:0.2f} - trx_id: {trx_id} - "
-                    f"Failures: {failure_count} - IRI batch_id {iri_batch.batch_id}"
+                    f"Batch send time: {duration:0.2f} - trx_id: {trx_id} - "
+                    f"Failures: {failure_count} - IRI batch_id {iri_batch.batch_id} - "
+                    f"IRIs in batch: {len(iri_batch.iri_set)}"
                 )
             except asyncio.CancelledError:
                 raise
@@ -239,34 +227,36 @@ class PodpingHivewriter:
             except RuntimeError:
                 return
 
+        settings = await self.settings_manager.get_settings()
+
         while True:
             iri_set: Set[str] = set()
             start = timer()
             duration = 0
             iris_size_without_commas = 0
             iris_size_total = 0
+            batch_id = uuid.uuid4()
 
             # Wait until we have enough IRIs to fit in the payload
             # or get into the current Hive block
             while (
-                duration < Config.podping_settings.hive_operation_period
-                and iris_size_total < Config.podping_settings.max_url_list_bytes
+                duration < settings.hive_operation_period
+                and iris_size_total < settings.max_url_list_bytes
             ):
-                #  get next URL from Q
                 logging.debug(
                     f"Duration: {duration:.3f} - WAITING - Queue: {len(iri_set)}"
                 )
                 try:
                     iri = await asyncio.wait_for(
                         get_from_queue(),
-                        timeout=Config.podping_settings.hive_operation_period,
+                        timeout=settings.hive_operation_period,
                     )
                     iri_set.add(iri)
                     self.iri_queue.task_done()
 
-                    logging.info(
-                        f"Duration: {duration:.3f} - IRI in queue: {iri}"
-                        f" - Num IRIs: {len(iri_set)}"
+                    logging.debug(
+                        f"Duration: {duration:.3f} - IRI in queue: {iri} - "
+                        f"IRI batch_id {batch_id} - Num IRIs: {len(iri_set)}"
                     )
 
                     # byte size of IRI in JSON is IRI + 2 quotes
@@ -288,7 +278,6 @@ class PodpingHivewriter:
 
             try:
                 if len(iri_set):
-                    batch_id = uuid.uuid4()
                     iri_batch = IRIBatch(batch_id=batch_id, iri_set=iri_set)
                     await self.iri_batch_queue.put(iri_batch)
                     self.total_iris_recv_deduped += len(iri_set)
@@ -313,6 +302,8 @@ class PodpingHivewriter:
                 iri: str = await socket.recv_string()
                 if rfc3987.match(iri, "IRI"):
                     await self.iri_queue.put(iri)
+                    async with self._iris_in_flight_lock:
+                        self._iris_in_flight += 1
                     self.total_iris_recv += 1
                     await socket.send_string("OK")
                 else:
@@ -321,10 +312,15 @@ class PodpingHivewriter:
                 socket.close()
                 raise
 
+    async def num_operations_in_queue(self) -> int:
+        async with self._iris_in_flight_lock:
+            return self._iris_in_flight
+
     def output_hive_status(self) -> None:
         """Output the name of the current hive node
         on a regular basis"""
-        up_time = datetime.utcnow() - Config.startup_datetime
+        up_time = timedelta(seconds=timer() - Config.startup_time)
+
         logging.info("--------------------------------------------------------")
         logging.info(f"Using Hive Node: {self.hive_wrapper.nodes[0]}")
         logging.info(f"Up Time: {up_time}")
@@ -417,17 +413,18 @@ class PodpingHivewriter:
             return await self.failure_retry(iri_set, failure_count + 1)
 
 
-def get_allowed_accounts(acc_name: str = "podping") -> Set[str]:
+def get_allowed_accounts(
+    nodes: Tuple[str, ...], account_name: str = "podping"
+) -> Set[str]:
     """get a list of all accounts allowed to post by acc_name (podping)
     and only react to these accounts"""
 
-    # Ignores test node.
-    nodes = Config.podping_settings.main_nodes
     try:
         hive = beem.Hive(node=nodes)
-        master_account = Account(acc_name, blockchain_instance=hive, lazy=True)
+        master_account = Account(account_name, blockchain_instance=hive, lazy=True)
         return set(master_account.get_following())
     except Exception:
         logging.error(
-            f"Allowed Account: {acc_name} - Failure on Node: {nodes[0]}", exc_info=True
+            f"Allowed Account: {account_name} - Failure on Node: {nodes[0]}",
+            exc_info=True,
         )

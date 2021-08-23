@@ -1,81 +1,67 @@
 import asyncio
-import itertools
-import json
 import logging
-import random
 from collections import deque
-from timeit import default_timer as timer
-from typing import Optional, Set, Tuple, List, Iterable
+from typing import List, Optional
 
-import aiohttp
 import beem
-from beem import nodelist
-from beem.account import Account
-from beem.nodelist import NodeList
-from beem.transactionbuilder import TransactionBuilder
-from beembase import operations
-
-from podping_hivewriter.config import Config
+from asgiref.sync import sync_to_async, SyncToAsync
+from podping_hivewriter.async_context import AsyncContext
+from podping_hivewriter.hive import get_hive
+from podping_hivewriter.podping_settings import PodpingSettingsManager
 
 
-def get_hive(nodes: Iterable[str], posting_key: str, use_testnet=False) -> beem.Hive:
-    nodes = tuple(nodes)
-    # Beem's expected type for nodes
-    # noinspection PyTypeChecker
-    hive = beem.Hive(node=nodes, keys=posting_key, nobroadcast=Config.nobroadcast)
-
-    if use_testnet:
-        logging.info(f"---------------> Using Test Nodes: {nodes}")
-    else:
-        logging.info("---------------> Using Main Hive Chain ")
-
-    return hive
-
-
-class HiveWrapper:
+class HiveWrapper(AsyncContext):
     def __init__(
         self,
-        nodes: Iterable[str],
-        posting_key: str,
+        posting_keys: List[str],
+        settings_manager: PodpingSettingsManager,
         daemon=True,
-        use_testnet=False,
     ):
-        self._tasks: List[asyncio.Task] = []
+        super().__init__()
 
-        self.posting_key = posting_key
+        self.posting_keys = posting_keys
+        self.settings_manager = settings_manager
         self.daemon = daemon
-        self.use_testnet = use_testnet
 
-        self.nodes = deque(nodes)
-        self._hive: beem.Hive = get_hive(
-            self.nodes, self.posting_key, use_testnet=self.use_testnet
-        )
+        self.nodes: Optional[deque[str]] = None
+        self._hive: Optional[beem.Hive] = None
+        self._custom_json: Optional[SyncToAsync] = None
         self._hive_lock = asyncio.Lock()
+
+        self._startup_done = False
+        asyncio.ensure_future(self._startup())
 
         if daemon:
             self._add_task(asyncio.create_task(self._rotate_nodes_loop()))
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
+    async def _startup(self):
+        nodes = await self.settings_manager.get_nodes()
 
-    def __del__(self):
-        self.close()
+        self.nodes = deque(nodes)
+        async with self._hive_lock:
+            self._hive: beem.Hive = get_hive(nodes, self.posting_keys)
+            self._custom_json = sync_to_async(
+                self._hive.custom_json, thread_sensitive=False
+            )
 
-    def close(self):
-        try:
-            for task in self._tasks:
-                task.cancel()
-        except RuntimeError:
-            pass
+        self._startup_done = True
 
-    def _add_task(self, task):
-        self._tasks.append(task)
+    async def wait_startup(self):
+        settings = await self.settings_manager.get_settings()
+        while not self._startup_done:
+            await asyncio.sleep(settings.hive_operation_period)
 
     async def _rotate_nodes_loop(self):
+        await self.wait_startup()
         while True:
             try:
-                await self.rotate_nodes()
-                await asyncio.sleep(Config.podping_settings.diagnostic_report_period)
+                nodes = await self.settings_manager.get_nodes()
+                if set(self.nodes) == set(nodes):
+                    await self.rotate_nodes()
+                else:
+                    self.nodes = deque(nodes)
+                settings = await self.settings_manager.get_settings()
+                await asyncio.sleep(settings.diagnostic_report_period)
             except Exception as e:
                 logging.error(e, exc_info=True)
             except asyncio.CancelledError:
@@ -84,17 +70,19 @@ class HiveWrapper:
     async def rotate_nodes(self):
         async with self._hive_lock:
             self.nodes.rotate(1)
-            self._hive = get_hive(
-                self.nodes, self.posting_key, use_testnet=self.use_testnet
+            self._hive = get_hive(self.nodes, self.posting_keys)
+            self._custom_json = sync_to_async(
+                self._hive.custom_json, thread_sensitive=False
             )
             logging.info(f"New Hive Nodes in use: {self._hive}")
 
     async def custom_json(
         self, operation_id: str, payload: dict, required_posting_auths: List[str]
     ):
+        await self.wait_startup()
         async with self._hive_lock:
             # noinspection PyTypeChecker
-            return self._hive.custom_json(
+            return await self._custom_json(
                 id=operation_id,
                 json_data=payload,
                 required_posting_auths=required_posting_auths,
