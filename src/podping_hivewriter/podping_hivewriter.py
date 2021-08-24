@@ -15,12 +15,12 @@ from beem.account import Account
 from beem.exceptions import AccountDoesNotExistsException, MissingKeyError
 from beemapi.exceptions import UnhandledRPCError
 from podping_hivewriter.async_context import AsyncContext
-from podping_hivewriter.config import Config
 from podping_hivewriter.constants import (
     STARTUP_FAILED_HIVE_API_ERROR_EXIT_CODE,
     STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE,
     STARTUP_FAILED_UNKNOWN_EXIT_CODE,
     STARTUP_OPERATION_ID,
+    CURRENT_PODPING_VERSION,
 )
 from podping_hivewriter.exceptions import PodpingCustomJsonPayloadExceeded
 from podping_hivewriter.hive_wrapper import HiveWrapper
@@ -153,7 +153,7 @@ class PodpingHivewriter(AsyncContext):
                 capacity = manabar_after.get("current_mana") / cost
             logging.info(f"Capacity for further podpings : {capacity:.1f}")
 
-            custom_json["v"] = Config.CURRENT_PODPING_VERSION
+            custom_json["v"] = CURRENT_PODPING_VERSION
             custom_json["capacity"] = f"{capacity:.1f}"
             custom_json["message"] = "Podping startup complete"
             custom_json["hive"] = repr(hive)

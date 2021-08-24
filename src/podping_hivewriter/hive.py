@@ -2,7 +2,6 @@ import logging
 from typing import Iterable, Optional, List
 
 import beem
-from podping_hivewriter.config import Config
 
 
 def get_hive(

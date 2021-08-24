@@ -9,6 +9,8 @@ from timeit import default_timer as timer
 # ---------------------------------------------------------------
 from typing import List
 
+'''
+
 app_description = """ PodPing - Runs as a server and writes a stream of URLs to the
 Hive Blockchain or sends a single URL to Hive (--url option)
 Defaults to running the --zmq 9999 and binding only to localhost"""
@@ -109,7 +111,6 @@ class NotificationReasons(Enum):
 class Config:
     """The Config Class"""
 
-    CURRENT_PODPING_VERSION = 2
     # MAX_URL_LIST_BYTES = 7000  # Upper limit on custom_json is 8092 bytes
 
     # This is a global signal to shut down until RC's recover
@@ -141,3 +142,4 @@ class Config:
     # test = os.getenv("USE_TEST_NODE", "False").lower() in ("true", "1", "t")
     # if my_args["test"]:
     #    test = True
+'''
