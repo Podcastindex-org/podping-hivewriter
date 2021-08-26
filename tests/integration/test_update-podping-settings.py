@@ -1,6 +1,7 @@
 import asyncio
 import sys
 
+import podping_hivewriter.podping_settings_manager
 import pytest
 from podping_hivewriter import podping_settings
 
@@ -17,7 +18,7 @@ async def test_update_podping_settings():
         "control_account_check_period"
     ].default = check_period
 
-    with podping_settings.PodpingSettingsManager(
+    with podping_hivewriter.podping_settings_manager.PodpingSettingsManager(
         ignore_updates=True
     ) as settings_manager:
         await settings_manager.update_podping_settings()
@@ -42,7 +43,7 @@ async def test_update_podping_settings_loop():
         "control_account_check_period"
     ].default = check_period
 
-    with podping_settings.PodpingSettingsManager(
+    with podping_hivewriter.podping_settings_manager.PodpingSettingsManager(
         ignore_updates=False
     ) as settings_manager:
         await asyncio.sleep(3)
