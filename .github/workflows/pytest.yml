@@ -24,7 +24,7 @@ jobs:
           poetry install --no-interaction --no-ansi
       - name: Test with pytest
         env:
-          HIVE_SERVER_ACCOUNT: ${{ secrets.HIVE_SERVER_ACCOUNT }}
-          HIVE_POSTING_KEY: ${{ secrets.HIVE_POSTING_KEY }}
+          PODPING_HIVE_ACCOUNT: ${{ secrets.PODPING_HIVE_ACCOUNT }}
+          PODPING_HIVE_POSTING_KEY: ${{ secrets.PODPING_HIVE_POSTING_KEY }}
         run: |
           pytest --runslow
