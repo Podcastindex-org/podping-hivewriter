@@ -56,8 +56,8 @@ async def test_write_zmq_single_url(event_loop):
             if "urls" in data and len(data["urls"]) == 1:
                 yield data["urls"][0]
 
-    host = os.environ["PODPING_LISTEN_IP"]
-    port = int(os.environ["PODPING_LISTEN_PORT"])
+    host = "127.0.0.1"
+    port = 9979
     podping_hivewriter = PodpingHivewriter(
         os.environ["PODPING_HIVE_ACCOUNT"],
         [os.environ["PODPING_HIVE_POSTING_KEY"]],

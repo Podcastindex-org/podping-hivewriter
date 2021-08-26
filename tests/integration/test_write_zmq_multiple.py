@@ -64,8 +64,8 @@ async def test_write_zmq_multiple_url(event_loop):
                     if u.endswith(session_uuid_str):
                         yield u
 
-    host = os.environ["PODPING_LISTEN_IP"]
-    port = int(os.environ["PODPING_LISTEN_PORT"])
+    host = "127.0.0.1"
+    port = 9979
     podping_hivewriter = PodpingHivewriter(
         os.environ["PODPING_HIVE_ACCOUNT"],
         [os.environ["PODPING_HIVE_POSTING_KEY"]],
