@@ -116,7 +116,7 @@ def server(
     ),
 ):
     logging.info(f"podping {__version__} starting up in server mode")
-    if listen_ip in {"*", "0.0.0.0"} and not i_know_what_im_doing:
+    if listen_ip in {"*", "0.0.0.0"} and not i_know_what_im_doing:  # nosec
         raise typer.BadParameter(
             "The listen-ip is configured to listen on all interfaces. "
             "Please read all server command line options."
