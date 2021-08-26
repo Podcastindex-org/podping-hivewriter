@@ -14,18 +14,21 @@ import zmq.asyncio
 from beem.account import Account
 from beem.exceptions import AccountDoesNotExistsException, MissingKeyError
 from beemapi.exceptions import UnhandledRPCError
+
 from podping_hivewriter.async_context import AsyncContext
-from podping_hivewriter.config import Config
 from podping_hivewriter.constants import (
     STARTUP_FAILED_HIVE_API_ERROR_EXIT_CODE,
     STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE,
     STARTUP_FAILED_UNKNOWN_EXIT_CODE,
     STARTUP_OPERATION_ID,
+    CURRENT_PODPING_VERSION,
+    HIVE_HALT_TIMES,
+    HIVE_CUSTOM_OP_DATA_MAX_LENGTH,
 )
 from podping_hivewriter.exceptions import PodpingCustomJsonPayloadExceeded
 from podping_hivewriter.hive_wrapper import HiveWrapper
 from podping_hivewriter.models.iri_batch import IRIBatch
-from podping_hivewriter.podping_settings import PodpingSettingsManager
+from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 def utc_date_str() -> str:
@@ -42,20 +45,29 @@ class PodpingHivewriter(AsyncContext):
         server_account: str,
         posting_keys: List[str],
         settings_manager: PodpingSettingsManager,
+        listen_ip: str = "127.0.0.1",
+        listen_port: int = 9999,
         operation_id="podping",
         resource_test=True,
+        dry_run=False,
         daemon=True,
+        status=True,
     ):
         super().__init__()
 
         self.server_account: str = server_account
         self.required_posting_auths = [self.server_account]
         self.settings_manager = settings_manager
+        self.listen_ip = listen_ip
+        self.listen_port = listen_port
         self.posting_keys: List[str] = posting_keys
         self.operation_id: str = operation_id
         self.daemon = daemon
+        self.status = status
 
-        self.hive_wrapper = HiveWrapper(posting_keys, settings_manager, daemon=daemon)
+        self.hive_wrapper = HiveWrapper(
+            posting_keys, settings_manager, dry_run=dry_run, daemon=daemon
+        )
 
         self.total_iris_recv = 0
         self.total_iris_sent = 0
@@ -66,6 +78,9 @@ class PodpingHivewriter(AsyncContext):
 
         self.iri_batch_queue: "asyncio.Queue[IRIBatch]" = asyncio.Queue()
         self.iri_queue: "asyncio.Queue[str]" = asyncio.Queue()
+
+        self.startup_datetime = datetime.utcnow()
+        self.startup_time = timer()
 
         self._startup_done = False
         asyncio.ensure_future(self._startup(resource_test=resource_test))
@@ -81,7 +96,6 @@ class PodpingHivewriter(AsyncContext):
             account = Account(self.server_account, blockchain_instance=hive, lazy=True)
             settings = await self.settings_manager.get_settings()
 
-            # TODO: Force accounts from mainnet
             allowed = get_allowed_accounts(
                 settings.main_nodes, settings.control_account
             )
@@ -94,7 +108,7 @@ class PodpingHivewriter(AsyncContext):
         except AccountDoesNotExistsException:
             logging.error(
                 f"Hive account @{self.server_account} does not exist, "
-                f"check ENV vars and try again AccountDoesNotExistsException",
+                f"check ENV vars and try again",
                 exc_info=True,
             )
             raise
@@ -106,15 +120,14 @@ class PodpingHivewriter(AsyncContext):
             await self.test_hive_resources(account, hive)
 
         logging.info("Startup of Podping status: SUCCESS! Hit the BOOST Button.")
-        logging.info(
-            f"---------------> {self.server_account} <- Hive Account will be used"
-        )
+        logging.info(f"Hive account: @{self.server_account}")
 
         if self.daemon:
-            self._add_task(asyncio.create_task(self._hive_status_loop()))
             self._add_task(asyncio.create_task(self._zmq_response_loop()))
             self._add_task(asyncio.create_task(self._iri_batch_loop()))
             self._add_task(asyncio.create_task(self._iri_batch_handler_loop()))
+            if self.status:
+                self._add_task(asyncio.create_task(self._hive_status_loop()))
 
         self._startup_done = True
 
@@ -153,7 +166,7 @@ class PodpingHivewriter(AsyncContext):
                 capacity = manabar_after.get("current_mana") / cost
             logging.info(f"Capacity for further podpings : {capacity:.1f}")
 
-            custom_json["v"] = Config.CURRENT_PODPING_VERSION
+            custom_json["v"] = CURRENT_PODPING_VERSION
             custom_json["capacity"] = f"{capacity:.1f}"
             custom_json["message"] = "Podping startup complete"
             custom_json["hive"] = repr(hive)
@@ -190,11 +203,11 @@ class PodpingHivewriter(AsyncContext):
     async def _hive_status_loop(self):
         while True:
             try:
-                self.output_hive_status()
+                await self.output_hive_status()
                 settings = await self.settings_manager.get_settings()
                 await asyncio.sleep(settings.diagnostic_report_period)
-            except Exception as e:
-                logging.error(e, exc_info=True)
+            except Exception as ex:
+                logging.error(f"{ex} occurred", exc_info=True)
             except asyncio.CancelledError:
                 raise
 
@@ -243,9 +256,6 @@ class PodpingHivewriter(AsyncContext):
                 duration < settings.hive_operation_period
                 and iris_size_total < settings.max_url_list_bytes
             ):
-                logging.debug(
-                    f"Duration: {duration:.3f} - WAITING - Queue: {len(iri_set)}"
-                )
                 try:
                     iri = await asyncio.wait_for(
                         get_from_queue(),
@@ -255,8 +265,10 @@ class PodpingHivewriter(AsyncContext):
                     self.iri_queue.task_done()
 
                     logging.debug(
-                        f"Duration: {duration:.3f} - IRI in queue: {iri} - "
-                        f"IRI batch_id {batch_id} - Num IRIs: {len(iri_set)}"
+                        f"_iri_batch_loop - Duration: {duration:.3f} - "
+                        f"IRI in queue: {iri} - "
+                        f"IRI batch_id {batch_id} - "
+                        f"Num IRIs: {len(iri_set)}"
                     )
 
                     # byte size of IRI in JSON is IRI + 2 quotes
@@ -281,7 +293,9 @@ class PodpingHivewriter(AsyncContext):
                     iri_batch = IRIBatch(batch_id=batch_id, iri_set=iri_set)
                     await self.iri_batch_queue.put(iri_batch)
                     self.total_iris_recv_deduped += len(iri_set)
-                    logging.info(f"Size of IRIs: {iris_size_total}")
+                    logging.info(
+                        f"IRI batch_id {batch_id} - Size of IRIs: {iris_size_total}"
+                    )
             except asyncio.CancelledError:
                 raise
             except Exception as ex:
@@ -292,10 +306,8 @@ class PodpingHivewriter(AsyncContext):
 
         context = zmq.asyncio.Context()
         socket = context.socket(zmq.REP, io_loop=loop)
-        if Config.bind_all:
-            socket.bind(f"tcp://*:{Config.zmq}")
-        else:
-            socket.bind(f"tcp://127.0.0.1:{Config.zmq}")
+        # TODO: Check IPv6 support
+        socket.bind(f"tcp://{self.listen_ip}:{self.listen_port}")
 
         while True:
             try:
@@ -311,34 +323,32 @@ class PodpingHivewriter(AsyncContext):
             except asyncio.CancelledError:
                 socket.close()
                 raise
+            except Exception as ex:
+                logging.error(f"{ex} occurred", exc_info=True)
 
     async def num_operations_in_queue(self) -> int:
         async with self._iris_in_flight_lock:
             return self._iris_in_flight
 
-    def output_hive_status(self) -> None:
+    async def output_hive_status(self) -> None:
         """Output the name of the current hive node
         on a regular basis"""
-        up_time = timedelta(seconds=timer() - Config.startup_time)
+        up_time = timedelta(seconds=timer() - self.startup_time)
 
-        logging.info("--------------------------------------------------------")
-        logging.info(f"Using Hive Node: {self.hive_wrapper.nodes[0]}")
-        logging.info(f"Up Time: {up_time}")
+        hive = await self.hive_wrapper.get_hive()
         logging.info(
-            f"Urls Received: {self.total_iris_recv} - "
-            f"Urls Deduped: {self.total_iris_recv_deduped} - "
-            f"Urls Sent: {self.total_iris_sent}"
+            f"Status - Hive Node: {hive} - Uptime: {up_time} - "
+            f"IRIs Received: {self.total_iris_recv} - "
+            f"IRIs Deduped: {self.total_iris_recv_deduped} - "
+            f"IRIs Sent: {self.total_iris_sent}"
         )
-        logging.info("--------------------------------------------------------")
 
     async def send_notification(
         self, payload: dict, operation_id: Optional[str] = None
     ) -> str:
         try:
-            # Assert Exception:o.json.length() <= HIVE_CUSTOM_OP_DATA_MAX_LENGTH:
-            # Operation JSON must be less than or equal to 8192 bytes.
             size_of_json = size_of_dict_as_json(payload)
-            if size_of_json > 8192:
+            if size_of_json > HIVE_CUSTOM_OP_DATA_MAX_LENGTH:
                 raise PodpingCustomJsonPayloadExceeded(
                     "Max custom_json payload exceeded"
                 )
@@ -356,27 +366,26 @@ class PodpingHivewriter(AsyncContext):
             logging.error(f"The provided key for @{self.server_account} is not valid")
             raise
 
-    async def send_notification_iri(self, iri: str, reason=1) -> str:
+    async def send_notification_iri(self, iri: str, reason="feed_update") -> str:
         payload = {
-            "v": Config.CURRENT_PODPING_VERSION,
+            "version": CURRENT_PODPING_VERSION,
             "num_urls": 1,
-            "r": reason,
+            "reason": reason,
             "urls": [iri],
         }
         return await self.send_notification(payload)
 
-    async def send_notification_iris(self, iris: Set[str], reason=1) -> str:
+    async def send_notification_iris(self, iris: Set[str], reason="feed_update") -> str:
         num_iris = len(iris)
         payload = {
-            "v": Config.CURRENT_PODPING_VERSION,
+            "version": CURRENT_PODPING_VERSION,
             "num_urls": num_iris,
-            "r": reason,
+            "reason": reason,
             "urls": list(iris),
         }
 
         tx_id = await self.send_notification(payload)
 
-        logging.info(f"Transaction sent: {tx_id} - Num IRIs: {num_iris}")
         self.total_iris_sent += num_iris
 
         return tx_id
@@ -386,8 +395,8 @@ class PodpingHivewriter(AsyncContext):
     ) -> Tuple[str, int]:
         await self.wait_startup()
         if failure_count > 0:
-            logging.warning(f"Waiting {Config.HALT_TIME[failure_count]}s before retry")
-            await asyncio.sleep(Config.HALT_TIME[failure_count])
+            logging.warning(f"Waiting {HIVE_HALT_TIMES[failure_count]}s before retry")
+            await asyncio.sleep(HIVE_HALT_TIMES[failure_count])
             logging.info(
                 f"FAILURE COUNT: {failure_count} - RETRYING {len(iri_set)} IRIs"
             )

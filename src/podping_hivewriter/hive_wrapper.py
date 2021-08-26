@@ -7,7 +7,7 @@ import beem
 from asgiref.sync import sync_to_async, SyncToAsync
 from podping_hivewriter.async_context import AsyncContext
 from podping_hivewriter.hive import get_hive
-from podping_hivewriter.podping_settings import PodpingSettingsManager
+from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 class HiveWrapper(AsyncContext):
@@ -15,12 +15,14 @@ class HiveWrapper(AsyncContext):
         self,
         posting_keys: List[str],
         settings_manager: PodpingSettingsManager,
+        dry_run=False,
         daemon=True,
     ):
         super().__init__()
 
         self.posting_keys = posting_keys
         self.settings_manager = settings_manager
+        self.dry_run = dry_run
         self.daemon = daemon
 
         self.nodes: Optional[deque[str]] = None
@@ -31,18 +33,20 @@ class HiveWrapper(AsyncContext):
         self._startup_done = False
         asyncio.ensure_future(self._startup())
 
-        if daemon:
-            self._add_task(asyncio.create_task(self._rotate_nodes_loop()))
-
     async def _startup(self):
         nodes = await self.settings_manager.get_nodes()
 
         self.nodes = deque(nodes)
         async with self._hive_lock:
-            self._hive: beem.Hive = get_hive(nodes, self.posting_keys)
+            self._hive: beem.Hive = get_hive(
+                nodes, self.posting_keys, nobroadcast=self.dry_run
+            )
             self._custom_json = sync_to_async(
                 self._hive.custom_json, thread_sensitive=False
             )
+
+        if self.daemon:
+            self._add_task(asyncio.create_task(self._rotate_nodes_loop()))
 
         self._startup_done = True
 
@@ -69,12 +73,15 @@ class HiveWrapper(AsyncContext):
 
     async def rotate_nodes(self):
         async with self._hive_lock:
+            logging.debug(f"Rotating Hive nodes")
             self.nodes.rotate(1)
-            self._hive = get_hive(self.nodes, self.posting_keys)
+            self._hive = get_hive(
+                self.nodes, self.posting_keys, nobroadcast=self.dry_run
+            )
             self._custom_json = sync_to_async(
                 self._hive.custom_json, thread_sensitive=False
             )
-            logging.info(f"New Hive Nodes in use: {self._hive}")
+            logging.debug(f"New Hive Nodes in use: {self._hive}")
 
     async def custom_json(
         self, operation_id: str, payload: dict, required_posting_auths: List[str]

@@ -3,27 +3,21 @@ import json
 import uuid
 
 import pytest
-import zmq
-import zmq.asyncio
 from beem.blockchain import Blockchain
-from podping_hivewriter import config
+from typer.testing import CliRunner
+
 from podping_hivewriter.async_wrapper import sync_to_async
-from podping_hivewriter.config import Config
+from podping_hivewriter.cli.podping import app
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
 from podping_hivewriter.hive import get_hive
-from podping_hivewriter.podping_hivewriter import PodpingHivewriter
-from podping_hivewriter.podping_settings import PodpingSettingsManager
+from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 @pytest.mark.asyncio
 @pytest.mark.timeout(60)
 @pytest.mark.slow
-async def test_write_single_url_zmq_req(event_loop):
-    # Use the livechain
-    config.Config.livetest = True
-
-    # Port for testing
-    config.Config.zmq = 9979
+async def test_write_cli_single_url():
+    runner = CliRunner()
 
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
@@ -35,7 +29,8 @@ async def test_write_single_url_zmq_req(event_loop):
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)
 
-    url = f"https://example.com?u={uuid.uuid4()}&s={session_uuid_str}"
+    test_name = "cli_single"
+    url = f"https://example.com?t={test_name}&s={session_uuid_str}"
 
     @sync_to_async
     def get_blockchain_stream(stop_block: int):
@@ -61,24 +56,13 @@ async def test_write_single_url_zmq_req(event_loop):
             if "urls" in data and len(data["urls"]) == 1:
                 yield data["urls"][0]
 
-    podping_hivewriter = PodpingHivewriter(
-        Config.server_account,
-        Config.posting_keys,
-        settings_manager,
-        resource_test=False,
-        operation_id=LIVETEST_OPERATION_ID,
-    )
-    await podping_hivewriter.wait_startup()
-    context = zmq.asyncio.Context()
-    socket = context.socket(zmq.REQ, io_loop=event_loop)
-    socket.connect(f"tcp://127.0.0.1:{config.Config.zmq}")
+    args = ["--livetest", "--no-sanity-check", "--ignore-config-updates", "write", url]
+    # Ensure hive env vars are set from .env.test file or this will fail
+    result = runner.invoke(app, args)
+
+    assert result.exit_code == 0
 
     op_period = settings_manager._settings.hive_operation_period
-
-    await socket.send_string(url)
-    response = await socket.recv_string()
-
-    assert response == "OK"
 
     # Sleep to catch up because beem isn't async and blocks
     # This is just longer than the amount of time url_q_worker waits for
@@ -90,5 +74,3 @@ async def test_write_single_url_zmq_req(event_loop):
         if stream_url == url:
             assert True
             break
-
-    podping_hivewriter.close()
