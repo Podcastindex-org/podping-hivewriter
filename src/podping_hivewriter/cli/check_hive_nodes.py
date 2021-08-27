@@ -11,6 +11,10 @@ from podping_hivewriter.config import Config
 from podping_hivewriter.podping_settings import get_settings_from_hive
 
 
+# TODO: This file is broken and hasn't been used in a very long time.
+#  Might migrate it to the main CLI
+
+
 async def get_node_latency(acc_name: str, node: str) -> Tuple[str, float]:
     """Checks a specific Hive node for allowed accounts"""
     async with aiohttp.ClientSession() as session:
