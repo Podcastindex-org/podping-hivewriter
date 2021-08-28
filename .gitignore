@@ -4,8 +4,7 @@ __pycache__/
 *$py.class
 
 # VSCode
-.vscode/*
-
+.vscode
 
 *.code-workspace
 
