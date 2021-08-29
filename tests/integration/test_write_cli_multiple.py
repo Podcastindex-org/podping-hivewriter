@@ -15,7 +15,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(60)
+@pytest.mark.timeout(120)
 @pytest.mark.slow
 async def test_write_cli_multiple_url():
     runner = CliRunner()
@@ -37,8 +37,7 @@ async def test_write_cli_multiple_url():
         for i in range(num_urls)
     }
 
-    @sync_to_async
-    def get_blockchain_stream(stop_block: int):
+    def _blockchain_stream(stop_block: int):
         # noinspection PyTypeChecker
         stream = blockchain.stream(
             opNames=["custom_json"],
@@ -53,13 +52,18 @@ async def test_write_cli_multiple_url():
         for post in (post for post in stream if post["id"] == LIVETEST_OPERATION_ID):
             yield post
 
+    get_blockchain_stream = sync_to_async(_blockchain_stream, thread_sensitive=False)
+
     async def get_url_from_blockchain(stop_block: int):
         stream = get_blockchain_stream(stop_block)
 
         async for post in stream:
             data = json.loads(post["json"])
-            if "urls" in data and len(data["urls"]) == 1:
-                yield data["urls"][0]
+            if "urls" in data:
+                for u in data["urls"]:
+                    # Only look for URLs from current session
+                    if u.endswith(session_uuid_str):
+                        yield u
 
     args = [
         "--livetest",
@@ -76,12 +80,16 @@ async def test_write_cli_multiple_url():
     op_period = settings_manager._settings.hive_operation_period
 
     # Sleep to catch up because beem isn't async and blocks
-    # This is just longer than the amount of time url_q_worker waits for
-    await asyncio.sleep(op_period * 1.1)
+    await asyncio.sleep(op_period * 25)
 
     end_block = blockchain.get_current_block_num()
 
+    answer_urls = set()
     async for stream_url in get_url_from_blockchain(end_block):
-        if stream_url == url:
-            assert True
+        answer_urls.add(stream_url)
+
+        # If we're done, end early
+        if len(answer_urls) == len(test_urls):
             break
+
+    assert answer_urls == test_urls

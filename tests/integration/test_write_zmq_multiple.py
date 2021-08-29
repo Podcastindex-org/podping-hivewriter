@@ -17,7 +17,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(240)
+@pytest.mark.timeout(120)
 @pytest.mark.slow
 async def test_write_zmq_multiple_url(event_loop):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
@@ -37,8 +37,7 @@ async def test_write_zmq_multiple_url(event_loop):
         for i in range(num_urls)
     }
 
-    @sync_to_async
-    def get_blockchain_stream(stop_block: int):
+    def _blockchain_stream(stop_block: int):
         # noinspection PyTypeChecker
         stream = blockchain.stream(
             opNames=["custom_json"],
@@ -52,6 +51,8 @@ async def test_write_zmq_multiple_url(event_loop):
 
         for post in (post for post in stream if post["id"] == LIVETEST_OPERATION_ID):
             yield post
+
+    get_blockchain_stream = sync_to_async(_blockchain_stream, thread_sensitive=False)
 
     async def get_url_from_blockchain(stop_block: int):
         stream = get_blockchain_stream(stop_block)
@@ -94,7 +95,7 @@ async def test_write_zmq_multiple_url(event_loop):
         num_urls_processing = await podping_hivewriter.num_operations_in_queue()
 
     # Sleep to catch up because beem isn't async and blocks
-    await asyncio.sleep(op_period * 40)
+    await asyncio.sleep(op_period * 25)
 
     end_block = blockchain.get_current_block_num()
 

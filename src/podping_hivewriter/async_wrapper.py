@@ -1,13 +1,20 @@
 import inspect
+from concurrent.futures import ThreadPoolExecutor
 from functools import wraps
 
 from asgiref.sync import sync_to_async as _sync_to_async
 
 
+thread_pool = ThreadPoolExecutor()
+
+
 # Async generator wrapper from https://github.com/django/asgiref/issues/142
-def sync_to_async(sync_fn):
+def sync_to_async(sync_fn, thread_sensitive=True):
+    executor = thread_pool if not thread_sensitive else None
     is_gen = inspect.isgeneratorfunction(sync_fn)
-    async_fn = _sync_to_async(sync_fn, thread_sensitive=False)
+    async_fn = _sync_to_async(
+        sync_fn, thread_sensitive=thread_sensitive, executor=executor
+    )
 
     if is_gen:
 
@@ -36,12 +43,14 @@ async def sync_to_async_iterable(sync_iterable):
             return
 
 
-iter_async = sync_to_async(iter)
+iter_async = sync_to_async(iter, thread_sensitive=False)
 
 
-@sync_to_async
-def next_async(it):
+def _next(it):
     try:
         return next(it)
     except StopIteration:
         raise StopAsyncIteration
+
+
+next_async = sync_to_async(_next, thread_sensitive=False)

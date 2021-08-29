@@ -4,8 +4,9 @@ from collections import deque
 from typing import List, Optional
 
 import beem
-from asgiref.sync import sync_to_async, SyncToAsync
+from asgiref.sync import SyncToAsync
 from podping_hivewriter.async_context import AsyncContext
+from podping_hivewriter.async_wrapper import sync_to_async
 from podping_hivewriter.hive import get_hive
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 

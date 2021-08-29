@@ -16,7 +16,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(60)
+@pytest.mark.timeout(120)
 @pytest.mark.slow
 async def test_write_zmq_single_url(event_loop):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
@@ -32,8 +32,7 @@ async def test_write_zmq_single_url(event_loop):
     test_name = "zmq_single"
     url = f"https://example.com?t={test_name}&s={session_uuid_str}"
 
-    @sync_to_async
-    def get_blockchain_stream(stop_block: int):
+    def _blockchain_stream(stop_block: int):
         # noinspection PyTypeChecker
         stream = blockchain.stream(
             opNames=["custom_json"],
@@ -47,6 +46,8 @@ async def test_write_zmq_single_url(event_loop):
 
         for post in (post for post in stream if post["id"] == LIVETEST_OPERATION_ID):
             yield post
+
+    get_blockchain_stream = sync_to_async(_blockchain_stream, thread_sensitive=False)
 
     async def get_url_from_blockchain(stop_block: int):
         stream = get_blockchain_stream(stop_block)
@@ -80,14 +81,16 @@ async def test_write_zmq_single_url(event_loop):
     assert response == "OK"
 
     # Sleep to catch up because beem isn't async and blocks
-    # This is just longer than the amount of time url_q_worker waits for
-    await asyncio.sleep(op_period * 1.1)
+    await asyncio.sleep(op_period * 25)
 
     end_block = blockchain.get_current_block_num()
 
+    url_found = False
+
     async for stream_url in get_url_from_blockchain(end_block):
         if stream_url == url:
-            assert True
+            url_found = True
             break
 
+    assert url_found
     podping_hivewriter.close()
