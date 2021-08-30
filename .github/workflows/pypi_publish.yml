@@ -1,0 +1,16 @@
+name: PyPi publish
+
+on:
+  release:
+    types: [ published ]
+
+jobs:
+  build_publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build and publish to pypi
+        uses: JRubics/poetry-publish@v1.8
+        with:
+          ignore_dev_requirements: "yes"
+          pypi_token: ${{ secrets.PYPI_TOKEN }}

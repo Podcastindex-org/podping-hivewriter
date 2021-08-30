@@ -62,8 +62,10 @@ class PodpingHivewriter(AsyncContext):
         self.listen_port = listen_port
         self.posting_keys: List[str] = posting_keys
         self.operation_id: str = operation_id
-        self.daemon = daemon
-        self.status = status
+        self.resource_test: bool = resource_test
+        self.dry_run: bool = dry_run
+        self.daemon: bool = daemon
+        self.status: bool = status
 
         self.hive_wrapper = HiveWrapper(
             posting_keys, settings_manager, dry_run=dry_run, daemon=daemon
@@ -83,13 +85,9 @@ class PodpingHivewriter(AsyncContext):
         self.startup_time = timer()
 
         self._startup_done = False
-        asyncio.ensure_future(self._startup(resource_test=resource_test))
+        asyncio.ensure_future(self._startup())
 
-    async def _startup(self, resource_test=True):
-        logging.info(
-            "Podping startup sequence initiated, please stand by, "
-            "full bozo checks in operation..."
-        )
+    async def _startup(self):
 
         try:
             hive = await self.hive_wrapper.get_hive()
@@ -116,10 +114,9 @@ class PodpingHivewriter(AsyncContext):
             logging.error("Unknown error occurred", exc_info=True)
             raise
 
-        if resource_test:
+        if self.resource_test and not self.dry_run:
             await self.test_hive_resources(account, hive)
 
-        logging.info("Startup of Podping status: SUCCESS! Hit the BOOST Button.")
         logging.info(f"Hive account: @{self.server_account}")
 
         if self.daemon:
@@ -132,6 +129,11 @@ class PodpingHivewriter(AsyncContext):
         self._startup_done = True
 
     async def test_hive_resources(self, account, hive):
+        logging.info(
+            "Podping startup sequence initiated, please stand by, "
+            "full bozo checks in operation..."
+        )
+
         # noinspection PyBroadException
         try:  # Now post two custom json to test.
             manabar = account.get_rc_manabar()
@@ -172,6 +174,8 @@ class PodpingHivewriter(AsyncContext):
             custom_json["hive"] = repr(hive)
 
             await self.send_notification(custom_json, STARTUP_OPERATION_ID)
+
+            logging.info("Startup of Podping status: SUCCESS! Hit the BOOST Button.")
 
         except MissingKeyError as _:
             logging.error(
@@ -302,12 +306,12 @@ class PodpingHivewriter(AsyncContext):
                 logging.error(f"{ex} occurred", exc_info=True)
 
     async def _zmq_response_loop(self):
-        loop = asyncio.get_event_loop()
-
         context = zmq.asyncio.Context()
-        socket = context.socket(zmq.REP, io_loop=loop)
+        socket = context.socket(zmq.REP)
         # TODO: Check IPv6 support
         socket.bind(f"tcp://{self.listen_ip}:{self.listen_port}")
+
+        logging.info(f"Running ZeroMQ server on {self.listen_ip}:{self.listen_port}")
 
         while True:
             try:

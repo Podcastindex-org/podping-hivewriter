@@ -50,7 +50,7 @@ class PodpingSettingsManager(AsyncContext):
             logging.warning(f"Problem with podping control settings: {e}")
         else:
             if self._settings != podping_settings:
-                logging.info(
+                logging.debug(
                     f"Configuration override from Podping Hive: {podping_settings}"
                 )
                 async with self._settings_lock:

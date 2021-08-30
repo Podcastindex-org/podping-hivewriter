@@ -95,7 +95,7 @@ async def test_write_zmq_multiple_url(event_loop):
         num_urls_processing = await podping_hivewriter.num_operations_in_queue()
 
     # Sleep to catch up because beem isn't async and blocks
-    await asyncio.sleep(op_period * 25)
+    await asyncio.sleep(op_period * 30)
 
     end_block = blockchain.get_current_block_num()
 
