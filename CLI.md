@@ -31,7 +31,7 @@ Run a Podping server.  Listens for IRIs on the given address/port with ZeroMQ an
 submits them to the Hive blockchain in batches.
 
 Example with default localhost:9999 settings:
-```shell
+```
 podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key> server
 
 2021-08-30T00:38:58-0500 | INFO | podping 1.0.0a0 starting up in server mode
@@ -71,7 +71,7 @@ Write one or more IRIs to the Hive blockchain without running a server.
 
 
 Example writing three IRIs:
-```shell
+```
 podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key> --no-sanity-check write https://www.example.com/feed.xml https://www.example.com/pódcast.xml ipns://example.com/feed.xml
 
 2021-08-30T00:14:35-0500 | INFO | Hive account: @podping.test
@@ -80,7 +80,7 @@ podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key>
 ```
 
 Or add `--dry-run` to test functionality without broadcasting:
-```shell
+```
 podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key> --dry-run --no-sanity-check write https://www.example.com/feed.xml
 
 2021-08-30T00:15:59-0500 | INFO | Hive account: @podping.test
