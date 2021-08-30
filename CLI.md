@@ -22,10 +22,31 @@ $ podping [OPTIONS] COMMAND [ARGS]...
 
 **Commands**:
 
-* `server`
-* `write`
+* `server`: Run a Podping server.
+* `write`: Write one or more IRIs to the Hive blockchain...
 
 ## `podping server`
+
+Run a Podping server.  Listens for IRIs on the given address/port with ZeroMQ and
+submits them to the Hive blockchain in batches.
+
+Example with default localhost:9999 settings:
+```shell
+podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key> server
+
+2021-08-30T00:38:58-0500 | INFO | podping 1.0.0a0 starting up in server mode
+2021-08-30T00:39:00-0500 | INFO | Podping startup sequence initiated, please stand by, full bozo checks in operation...
+2021-08-30T00:39:01-0500 | INFO | Testing Account Resource Credits - before 24.88%
+2021-08-30T00:39:02-0500 | INFO | Transaction sent: 39c2a396784ba6ba498cee3055900442953bb13f - JSON size: 204
+2021-08-30T00:39:02-0500 | INFO | Testing Account Resource Credits.... 5s
+2021-08-30T00:39:17-0500 | INFO | Testing Account Resource Credits - after 24.52%
+2021-08-30T00:39:17-0500 | INFO | Capacity for further podpings : 68.5
+2021-08-30T00:39:19-0500 | INFO | Transaction sent: 39405eaf4a522deb2d965fc9bd8c6b92dca44786 - JSON size: 231
+2021-08-30T00:39:19-0500 | INFO | Startup of Podping status: SUCCESS! Hit the BOOST Button.
+2021-08-30T00:39:19-0500 | INFO | Hive account: @podping.test
+2021-08-30T00:39:19-0500 | INFO | Running ZeroMQ server on 127.0.0.1:9999
+2021-08-30T00:39:19-0500 | INFO | Status - Hive Node: <Hive node=https://api.deathwing.me, nobroadcast=False> - Uptime: 0:00:20.175997 - IRIs Received: 0 - IRIs Deduped: 0 - IRIs Sent: 0
+```
 
 **Usage**:
 
@@ -35,7 +56,7 @@ $ podping server [OPTIONS] [LISTEN_IP] [LISTEN_PORT]
 
 **Arguments**:
 
-* `[LISTEN_IP]`: IP to listen on. Should accept any ZeroMQ-compatible host string. WARNING: DO NOT run this on a publicly accessible host. There currently is NO authentication required to submit to the server. Set to * or 0.0.0.0 for all interfaces. IPv6 not currently supported.  [env var: PODPING_LISTEN_IP;default: localhost]
+* `[LISTEN_IP]`: IP to listen on. Should accept any ZeroMQ-compatible host string. WARNING: DO NOT run this on a publicly accessible host. There currently is NO authentication required to submit to the server. Set to * or 0.0.0.0 for all interfaces. IPv6 not currently supported.  [env var: PODPING_LISTEN_IP;default: 127.0.0.1]
 * `[LISTEN_PORT]`: Port to listen on.  [env var: PODPING_LISTEN_PORT;default: 9999]
 
 **Options**:
@@ -45,6 +66,28 @@ $ podping server [OPTIONS] [LISTEN_IP] [LISTEN_PORT]
 * `--help`: Show this message and exit.
 
 ## `podping write`
+
+Write one or more IRIs to the Hive blockchain without running a server.
+
+
+Example writing three IRIs:
+```shell
+podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key> --no-sanity-check write https://www.example.com/feed.xml https://www.example.com/pódcast.xml ipns://example.com/feed.xml
+
+2021-08-30T00:14:35-0500 | INFO | Hive account: @podping.test
+2021-08-30T00:14:35-0500 | INFO | Received 3 IRIs
+2021-08-30T00:14:37-0500 | INFO | Transaction sent: c9cbaace76ec365052c11ec4a3726e4ed3a7c54d - JSON size: 170
+```
+
+Or add `--dry-run` to test functionality without broadcasting:
+```shell
+podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key> --dry-run --no-sanity-check write https://www.example.com/feed.xml
+
+2021-08-30T00:15:59-0500 | INFO | Hive account: @podping.test
+2021-08-30T00:15:59-0500 | INFO | Received 1 IRIs
+2021-08-30T00:16:00-0500 | INFO | Not broadcasting anything!
+2021-08-30T00:16:01-0500 | INFO | Transaction sent: 00eae43df4a202d94ef6cb797c05f39fbb50631b - JSON size: 97
+```
 
 **Usage**:
 

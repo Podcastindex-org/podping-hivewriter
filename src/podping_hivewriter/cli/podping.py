@@ -60,6 +60,29 @@ def write(
         "This will fail if you try to send too many at once.",
     ),
 ):
+    """
+    Write one or more IRIs to the Hive blockchain without running a server.
+
+
+    Example writing three IRIs:
+    ```shell
+    podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key> --no-sanity-check write https://www.example.com/feed.xml https://www.example.com/pódcast.xml ipns://example.com/feed.xml
+
+    2021-08-30T00:14:35-0500 | INFO | Hive account: @podping.test
+    2021-08-30T00:14:35-0500 | INFO | Received 3 IRIs
+    2021-08-30T00:14:37-0500 | INFO | Transaction sent: c9cbaace76ec365052c11ec4a3726e4ed3a7c54d - JSON size: 170
+    ```
+
+    Or add `--dry-run` to test functionality without broadcasting:
+    ```shell
+    podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key> --dry-run --no-sanity-check write https://www.example.com/feed.xml
+
+    2021-08-30T00:15:59-0500 | INFO | Hive account: @podping.test
+    2021-08-30T00:15:59-0500 | INFO | Received 1 IRIs
+    2021-08-30T00:16:00-0500 | INFO | Not broadcasting anything!
+    2021-08-30T00:16:01-0500 | INFO | Transaction sent: 00eae43df4a202d94ef6cb797c05f39fbb50631b - JSON size: 97
+    ```
+    """
     settings_manager = PodpingSettingsManager(Config.ignore_config_updates)
 
     with PodpingHivewriter(
@@ -115,6 +138,28 @@ def server(
         help="Set this if you really want to listen on all interfaces.",
     ),
 ):
+    """
+    Run a Podping server.  Listens for IRIs on the given address/port with ZeroMQ and
+    submits them to the Hive blockchain in batches.
+
+    Example with default localhost:9999 settings:
+    ```shell
+    podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key> server
+
+    2021-08-30T00:38:58-0500 | INFO | podping 1.0.0a0 starting up in server mode
+    2021-08-30T00:39:00-0500 | INFO | Podping startup sequence initiated, please stand by, full bozo checks in operation...
+    2021-08-30T00:39:01-0500 | INFO | Testing Account Resource Credits - before 24.88%
+    2021-08-30T00:39:02-0500 | INFO | Transaction sent: 39c2a396784ba6ba498cee3055900442953bb13f - JSON size: 204
+    2021-08-30T00:39:02-0500 | INFO | Testing Account Resource Credits.... 5s
+    2021-08-30T00:39:17-0500 | INFO | Testing Account Resource Credits - after 24.52%
+    2021-08-30T00:39:17-0500 | INFO | Capacity for further podpings : 68.5
+    2021-08-30T00:39:19-0500 | INFO | Transaction sent: 39405eaf4a522deb2d965fc9bd8c6b92dca44786 - JSON size: 231
+    2021-08-30T00:39:19-0500 | INFO | Startup of Podping status: SUCCESS! Hit the BOOST Button.
+    2021-08-30T00:39:19-0500 | INFO | Hive account: @podping.test
+    2021-08-30T00:39:19-0500 | INFO | Running ZeroMQ server on 127.0.0.1:9999
+    2021-08-30T00:39:19-0500 | INFO | Status - Hive Node: <Hive node=https://api.deathwing.me, nobroadcast=False> - Uptime: 0:00:20.175997 - IRIs Received: 0 - IRIs Deduped: 0 - IRIs Sent: 0
+    ```
+    """
     logging.info(f"podping {__version__} starting up in server mode")
     if listen_ip in {"*", "0.0.0.0"} and not i_know_what_im_doing:  # nosec
         raise typer.BadParameter(
