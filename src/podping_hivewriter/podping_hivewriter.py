@@ -306,10 +306,8 @@ class PodpingHivewriter(AsyncContext):
                 logging.error(f"{ex} occurred", exc_info=True)
 
     async def _zmq_response_loop(self):
-        loop = asyncio.get_event_loop()
-
         context = zmq.asyncio.Context()
-        socket = context.socket(zmq.REP, io_loop=loop)
+        socket = context.socket(zmq.REP)
         # TODO: Check IPv6 support
         socket.bind(f"tcp://{self.listen_ip}:{self.listen_port}")
 
