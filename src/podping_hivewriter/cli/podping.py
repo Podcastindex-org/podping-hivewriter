@@ -89,7 +89,7 @@ def write(
 @app.command()
 def server(
     listen_ip: str = typer.Argument(
-        "localhost",
+        "127.0.0.1",
         envvar="PODPING_LISTEN_IP",
         # TODO: Need validation here
         # callback=listen_ip_callback,
@@ -121,6 +121,10 @@ def server(
             "The listen-ip is configured to listen on all interfaces. "
             "Please read all server command line options."
         )
+
+    if listen_ip == "localhost":
+        # ZMQ doesn't like the localhost string, force it to ipv4
+        listen_ip = "127.0.0.1"
 
     settings_manager = PodpingSettingsManager(Config.ignore_config_updates)
 
