@@ -313,6 +313,8 @@ class PodpingHivewriter(AsyncContext):
         # TODO: Check IPv6 support
         socket.bind(f"tcp://{self.listen_ip}:{self.listen_port}")
 
+        logging.info(f"Running ZeroMQ server on {self.listen_ip}:{self.listen_port}")
+
         while True:
             try:
                 iri: str = await socket.recv_string()
