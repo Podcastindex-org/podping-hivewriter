@@ -2,8 +2,12 @@
 **/__pycache__
 build
 dist
+.git
 
 .idea
+.vscode
+.github
 .mypy_cache
 .pytest_cache
-.vscode
+
+.env*
