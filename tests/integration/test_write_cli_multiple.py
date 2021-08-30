@@ -80,7 +80,7 @@ async def test_write_cli_multiple_url():
     op_period = settings_manager._settings.hive_operation_period
 
     # Sleep to catch up because beem isn't async and blocks
-    await asyncio.sleep(op_period * 25)
+    await asyncio.sleep(op_period * 30)
 
     end_block = blockchain.get_current_block_num()
 
