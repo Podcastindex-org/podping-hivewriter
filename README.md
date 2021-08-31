@@ -1,5 +1,5 @@
 # podping-hivewriter
-The Hive writer component of podping. You will need a Hive account, see section [Hive account and Authorization](#hive-account-and-authorization) below.
+The Hive writer component of podping. You will need a Hive account, see section [Hive account and Authorization](#hive-account) below.
 
 ## Linux CLI Install
 
@@ -94,12 +94,22 @@ To run all tests, make sure to set the necessary environment variables for your 
 pytest --runslow
 ```
 
-## Hive account and Authorization
+## Hive account
 
 If you need a Hive account, please download the [Hive Keychain extension for your browser](https://hive-keychain.com/) then use this link to get your account from [https://HiveOnboard.com?ref=podping](https://hiveonboard.com?ref=podping). You will need at least 20 Hive Power "powered up" to get started (worth around $10). Please contact @brianoflondon brian@podping.org if you need assistance getting set up.
 
 If you use the [Hiveonboard]((https://hiveonboard.com?ref=podping)) link `podping` will **delegate** enough Hive Power to get you started.
 
-Whilst anyone can post `podpings` on Hive: it is a permissionless system: there is a need to register your Hive Accountname for your `podpings` to be recognized by all clients.
+### Permissions and Authorization
 
-Please contact new@podping.org or send a Hive Transfer to [@podping](https://peakd.com/@podping).
+You don't need permission, but you do need to tell `podping` that you want to send valid `podpings`:
+
+- Hive is a so-called "permissionless" blockchain. Once you have a Hive Account and a minimal amount of Hive Power, that account can post to Hive, including sending `podpings`;
+
+- Nobody can block any valid Hive Account from sending and nobody can help you if you lose your keys;
+
+- Whilst anyone can post `podpings` to Hive, there is a need to register your Hive Accountname for those `podpings` to be recognized by all clients;
+
+- Please contact new@podping.org or send a Hive Transfer to [@podping](https://peakd.com/@podping) to have your account validated.
+
+For a [comprehensive explanation of Hive and Podping, please see this post](https://peakd.com/podping/@brianoflondon/podping-and-podcasting-20-funding-to-put-hive-at-the-center-of-global-podcasting-infrastructure).
