@@ -1,5 +1,5 @@
 # podping-hivewriter
-The Hive writer component of podping.
+The Hive writer component of podping. You will need a Hive account, see section [Hive account and Authorization](#hive-account) below.
 
 ## Linux CLI Install
 
@@ -52,6 +52,19 @@ docker run --rm \
     podping --dry-run write https://www.example.com/feed.xml
 ```
 
+As another example for running a server, to run in *detached* mode, note the `-d` in the `docker run` options. Also note that `client` or `server` must come *after* the command line options for `podping`:
+```shell
+docker run --rm -d \
+    -p 9999:9999 --env-file .env \
+    --name podping podpinghivewriter:develop \
+    podping --livetest server
+```
+
+One running you can view and follow the live output with:
+```shell
+docker logs podping -f
+```
+
 See the [CLI docs](cli.md) for default values.
 
 ## Development
@@ -67,6 +80,7 @@ Then to switch to the virtual environment, use:
 ```shell
 poetry shell
 ```
+Make sure you have a `.env` file with a valid `PODPING_HIVE_ACCOUNT` and `PODPING_HIVE_POSTING_KEY` set.
 
 After that you should be able to run the `podping` command or run the tests:
 
@@ -79,3 +93,25 @@ To run all tests, make sure to set the necessary environment variables for your 
 ```shell
 pytest --runslow
 ```
+
+## Hive account
+
+If you need a Hive account, please download the [Hive Keychain extension for your browser](https://hive-keychain.com/) then use this link to get your account from [https://HiveOnboard.com?ref=podping](https://hiveonboard.com?ref=podping). You will need at least 20 Hive Power "powered up" to get started (worth around $10). Please contact @brianoflondon brian@podping.org if you need assistance getting set up.
+
+If you use the [Hiveonboard]((https://hiveonboard.com?ref=podping)) link `podping` will **delegate** enough Hive Power to get you started.
+
+### Permissions and Authorization
+
+You don't need permission, but you do need to tell `podping` that you want to send valid `podpings`:
+
+- Hive is a so-called "permissionless" blockchain. Once you have a Hive Account and a minimal amount of Hive Power, that account can post to Hive, including sending `podpings`;
+
+- Nobody can block any valid Hive Account from sending and nobody can help you if you lose your keys;
+
+- Whilst anyone can post `podpings` to Hive, there is a need to register your Hive Accountname for those `podpings` to be recognized by all clients;
+
+- Please contact new@podping.org or send a Hive Transfer to [@podping](https://peakd.com/@podping) to have your account validated.
+
+- Side note on keys: `podping` uses the `posting-key` which is the lowest value of the four Hive keys (`owner`, `active`, `memo`, `posting` and there is usually a `master password` which can generate all the keys). That is not to say that losing control of it is a good idea, but that key is not authorized to make financially important transfers. It can, however, post public information so should be treated carefully and kept secure.
+
+For a [comprehensive explanation of Hive and Podping, please see this post](https://peakd.com/podping/@brianoflondon/podping-and-podcasting-20-funding-to-put-hive-at-the-center-of-global-podcasting-infrastructure).
