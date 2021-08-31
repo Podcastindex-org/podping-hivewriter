@@ -1,5 +1,5 @@
 # podping-hivewriter
-The Hive writer component of podping. You will need a Hive account, see section [Hive account and Authorization](#hive_account_and_authorization) below.
+The Hive writer component of podping. You will need a Hive account, see section [Hive account and Authorization](#hive-account-and-authorization) below.
 
 ## Linux CLI Install
 
