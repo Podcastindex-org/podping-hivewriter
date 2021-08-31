@@ -112,4 +112,6 @@ You don't need permission, but you do need to tell `podping` that you want to se
 
 - Please contact new@podping.org or send a Hive Transfer to [@podping](https://peakd.com/@podping) to have your account validated.
 
+- Side note on keys: `podping` uses the `posting-key` which is the lowest value of the four Hive keys (`owner`, `active`, `memo`, `posting` and there is usually a `master password` which can generate all the keys). That is not to say that losing control of it is a good idea, but that key is not authorized to make financially important transfers. It can, however, post public information so should be treated carefully and kept secure.
+
 For a [comprehensive explanation of Hive and Podping, please see this post](https://peakd.com/podping/@brianoflondon/podping-and-podcasting-20-funding-to-put-hive-at-the-center-of-global-podcasting-infrastructure).
