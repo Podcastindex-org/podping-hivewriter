@@ -14,7 +14,7 @@ COPY pyproject.toml poetry.lock ./
 
 RUN apt-get update \
     && apt-get -y upgrade \
-    && apt-get -y install --no-install-recommends gcc python3.9-dev \
+    && apt-get -y install --no-install-recommends gcc python3.9-dev libffi-dev \
     && pip install --user pip-autoremove poetry \
     && poetry config virtualenvs.in-project true \
     && poetry install --no-root --no-dev --no-interaction --no-ansi \
