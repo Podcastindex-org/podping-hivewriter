@@ -14,7 +14,8 @@ COPY pyproject.toml poetry.lock ./
 
 RUN apt-get update \
     && apt-get -y upgrade \
-    && apt-get -y install --no-install-recommends gcc python3.9-dev libffi-dev rustc cargo \
+    # GCC needed to build ruamel.yaml.clib on arm64/armhf -- rustc, cargo, libffi-dev, libssl-dev for armhf "cryptography"
+    && apt-get -y install --no-install-recommends gcc python3.9-dev rustc cargo libffi-dev libssl-dev \
     && pip install --user pip-autoremove poetry \
     && poetry config virtualenvs.in-project true \
     && poetry install --no-root --no-dev --no-interaction --no-ansi \
