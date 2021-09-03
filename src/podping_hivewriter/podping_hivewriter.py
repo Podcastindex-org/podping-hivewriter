@@ -9,8 +9,6 @@ from typing import Optional, Set, Tuple, List
 
 import beem
 import rfc3987
-import zmq
-import zmq.asyncio
 from beem.account import Account
 from beem.exceptions import AccountDoesNotExistsException, MissingKeyError
 from beemapi.exceptions import UnhandledRPCError
@@ -306,6 +304,8 @@ class PodpingHivewriter(AsyncContext):
                 logging.error(f"{ex} occurred", exc_info=True)
 
     async def _zmq_response_loop(self):
+        import zmq.asyncio
+
         context = zmq.asyncio.Context()
         socket = context.socket(zmq.REP)
         # TODO: Check IPv6 support

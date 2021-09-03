@@ -27,6 +27,10 @@ bandit = "^1.7.0"
 pytest-timeout = "^1.4.2"
 typer-cli = "^0.0.12"
 
+[tool.poetry.extras]
+server = ["pyzmq"]
+
+
 [tool.poetry.scripts]
 podping = "podping_hivewriter.cli.podping:app"
 
