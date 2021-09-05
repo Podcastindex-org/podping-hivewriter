@@ -16,8 +16,8 @@ apt-get update
 # Install security updates:
 apt-get -y upgrade
 
-# Install a new package, without unnecessary recommended packages:
-#apt-get -y install --no-install-recommends libffi7 libssl1.1
+# Install application dependencies
+apt-get -y install --no-install-recommends libffi7 libssl1.1 libzmq5 zlib1g
 
 # Delete cached files we don't need anymore (note that if you're
 # using official Docker images for Debian or Ubuntu, this happens
