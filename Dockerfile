@@ -1,4 +1,4 @@
-FROM docker.io/python:3.9-slim-bullseye AS compile
+FROM docker.io/python:3.9-bullseye AS compile
 
 ENV PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random \
@@ -7,25 +7,24 @@ ENV PYTHONFAULTHANDLER=1 \
     PIP_DEFAULT_TIMEOUT=100 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
-    LANG=C.UTF-8 \
-    PATH="/root/.local/bin/:${PATH}"
+    PATH="/home/podping/.local/bin:${PATH}"
 
-COPY pyproject.toml poetry.lock ./
+RUN useradd --create-home podping && mkdir /home/podping/app && chown -R podping:podping /home/podping
 
 RUN apt-get update \
     && apt-get -y upgrade \
-    # GCC needed to build ruamel.yaml.clib on arm64/armhf
-    # g++, rustc, cargo, libffi-dev, libssl-dev, zlib1g-dev for armhf "cryptography"
-    # libczmq-dev for armhf "pyzmq"
-    && apt-get -y install --no-install-recommends gcc g++ python3.9-dev rustc cargo libffi-dev libssl-dev zlib1g-dev libczmq-dev \
-    && pip install --user pip-autoremove poetry \
+    # rustc, cargo for armhf "cryptography"
+    # libzmq3-dev for armhf "pyzmq"
+    && apt-get -y install --no-install-recommends rustc cargo libzmq3-dev
+
+USER podping
+WORKDIR /home/podping/app
+
+COPY pyproject.toml poetry.lock ./
+
+RUN pip install --user poetry \
     && poetry config virtualenvs.in-project true \
-    && poetry install --no-root --no-dev --no-interaction --no-ansi \
-    && pip-autoremove -y pip-autoremove poetry \
-    && apt-get clean  \
-    && rm -rf /var/lib/apt/lists/*
-
-
+    && poetry install --no-root --no-dev --no-interaction --no-ansi
 
 FROM docker.io/python:3.9-slim-bullseye AS app
 
@@ -35,24 +34,23 @@ ENV PYTHONFAULTHANDLER=1 \
     PYTHONUNBUFFERED=1 \
     PIP_DEFAULT_TIMEOUT=100 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_NO_CACHE_DIR=1 \
-    LANG=C.UTF-8
+    PIP_NO_CACHE_DIR=1
 
 COPY install-packages.sh .
 RUN ./install-packages.sh
 
 RUN useradd --create-home podping
-COPY --from=compile --chown=podping:podping /.venv /home/podping/.venv
-WORKDIR /home/podping
+WORKDIR /home/podping/app
+COPY --from=compile --chown=podping:podping /home/podping/.local /home/podping/.local
+COPY --from=compile --chown=podping:podping /home/podping/app/.venv /home/podping/app/.venv
 USER podping
 # podping and poetry commands install here from pip
-ENV PATH="/home/podping/.venv/bin:/home/podping/.local/bin/:${PATH}"
+ENV PATH="/home/podping/.local/bin:/home/podping/app/.venv/bin:${PATH}"
 
 COPY --chown=podping:podping . .
-RUN pip install --user pip-autoremove poetry \
+RUN /usr/local/bin/pip install poetry \
     && poetry config virtualenvs.in-project true \
-    && poetry install --no-dev --no-interaction --no-ansi \
-    && pip-autoremove -y pip-autoremove poetry
+    && poetry install --no-dev --no-interaction --no-ansi
 
 EXPOSE 9999/tcp
 
