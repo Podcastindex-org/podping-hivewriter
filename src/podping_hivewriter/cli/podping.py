@@ -152,7 +152,17 @@ def server(
     2021-08-30T00:39:19-0500 | INFO | Status - Hive Node: <Hive node=https://api.deathwing.me, nobroadcast=False> - Uptime: 0:00:20.175997 - IRIs Received: 0 - IRIs Deduped: 0 - IRIs Sent: 0
     ```
     """
+
+    try:
+        import zmq
+    except ImportError:
+        raise typer.Exit(
+            "Error: Missing pyzmq. Please reinstall podping with the server flag. "
+            "Example: pipx install podping-hivewriter[server]"
+        )
+
     logging.info(f"podping {__version__} starting up in server mode")
+
     if listen_ip in {"*", "0.0.0.0"} and not Config.i_know_what_im_doing:  # nosec
         raise typer.BadParameter(
             "The listen-ip is configured to listen on all interfaces. "
