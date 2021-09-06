@@ -54,4 +54,4 @@ RUN /usr/local/bin/pip install poetry \
 
 EXPOSE 9999/tcp
 
-CMD ["podping", "server", "--i-know-what-im-doing", "0.0.0.0", "9999"]
+ENTRYPOINT ["podping"]

@@ -238,6 +238,7 @@ def callback(
     ),
     status: Optional[bool] = typer.Option(
         True,
+        envvar="PODPING_STATUS",
         help="Periodically prints a status message. "
         "Runs every diagnostic_report_period defined in podping_settings",
     ),
@@ -251,6 +252,7 @@ def callback(
     i_know_what_im_doing: Optional[bool] = typer.Option(
         False,
         "--i-know-what-im-doing",
+        envvar="PODPING_I_KNOW_WHAT_IM_DOING",
         help="Set this if you really want to listen on all interfaces.",
     ),
     debug: Optional[bool] = typer.Option(

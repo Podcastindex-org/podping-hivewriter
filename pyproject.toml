@@ -1,10 +1,22 @@
 [tool.poetry]
 name = "podping-hivewriter"
-version = "1.0.0-alpha.0"
-description = ""
-authors = ["Brian of London <brian@podping.org>","Alecks Gates <alecks@podping.org>"]
+version = "1.0.0-beta.0"
 license = "MIT"
+authors = ["Alecks Gates <alecks@podping.org>", "Brian of London <brian@podping.org>"]
+maintainers = ["Alecks Gates <alecks@podping.org>", "Brian of London <brian@podping.org>"]
 readme = "README.md"
+description = "This is a tool used to submit RFC 3987-compliant International Resource Identifiers as a [Podping](http://podping.org/) notification on the Hive blockchain."
+homepage = "http://podping.org/"
+repository = "https://github.com/Podcastindex-org/podping-hivewriter"
+keywords = ["hive", "blockchain", "podping", "podcasting20"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Framework :: AsyncIO",
+    "Framework :: Pytest",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
 
 [tool.poetry.dependencies]
 python = "^3.7"
