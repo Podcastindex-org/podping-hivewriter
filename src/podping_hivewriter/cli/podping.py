@@ -38,7 +38,9 @@ class Config:
     sanity_check: bool
     livetest: bool
     dry_run: bool
+    status: bool
     ignore_config_updates: bool
+    i_know_what_im_doing: bool
     debug: bool
 
     operation_id: str
@@ -127,16 +129,6 @@ def server(
         # callback=iris_callback,
         help="Port to listen on.",
     ),
-    status: Optional[bool] = typer.Option(
-        True,
-        help="Periodically prints a status message. "
-        "Runs every diagnostic_report_period defined in podping_settings",
-    ),
-    i_know_what_im_doing: Optional[bool] = typer.Option(
-        False,
-        "--i-know-what-im-doing",
-        help="Set this if you really want to listen on all interfaces.",
-    ),
 ):
     """
     Run a Podping server.  Listens for IRIs on the given address/port with ZeroMQ and
@@ -160,8 +152,18 @@ def server(
     2021-08-30T00:39:19-0500 | INFO | Status - Hive Node: <Hive node=https://api.deathwing.me, nobroadcast=False> - Uptime: 0:00:20.175997 - IRIs Received: 0 - IRIs Deduped: 0 - IRIs Sent: 0
     ```
     """
+
+    try:
+        import zmq
+    except ImportError:
+        raise typer.Exit(
+            "Error: Missing pyzmq. Please reinstall podping with the server flag. "
+            "Example: pipx install podping-hivewriter[server]"
+        )
+
     logging.info(f"podping {__version__} starting up in server mode")
-    if listen_ip in {"*", "0.0.0.0"} and not i_know_what_im_doing:  # nosec
+
+    if listen_ip in {"*", "0.0.0.0"} and not Config.i_know_what_im_doing:  # nosec
         raise typer.BadParameter(
             "The listen-ip is configured to listen on all interfaces. "
             "Please read all server command line options."
@@ -183,7 +185,7 @@ def server(
         resource_test=Config.sanity_check,
         dry_run=Config.dry_run,
         daemon=True,
-        status=status,
+        status=Config.status,
     )
 
     try:
@@ -234,12 +236,24 @@ def callback(
         envvar="PODPING_DRY_RUN",
         help="Run through all posting logic without posting to the chain.",
     ),
+    status: Optional[bool] = typer.Option(
+        True,
+        envvar="PODPING_STATUS",
+        help="Periodically prints a status message. "
+        "Runs every diagnostic_report_period defined in podping_settings",
+    ),
     ignore_config_updates: Optional[bool] = typer.Option(
         False,
         envvar="PODPING_IGNORE_CONFIG_UPDATES",
         help="By default, podping will periodically pull new settings from the "
         "configured Hive control account, allowing real time updates to adapt "
         "to changes in the Hive network. This lets you ignore these updates if needed.",
+    ),
+    i_know_what_im_doing: Optional[bool] = typer.Option(
+        False,
+        "--i-know-what-im-doing",
+        envvar="PODPING_I_KNOW_WHAT_IM_DOING",
+        help="Set this if you really want to listen on all interfaces.",
     ),
     debug: Optional[bool] = typer.Option(
         False,
@@ -255,7 +269,9 @@ def callback(
     Config.sanity_check = sanity_check
     Config.livetest = livetest
     Config.dry_run = dry_run
+    Config.status = status
     Config.ignore_config_updates = ignore_config_updates
+    Config.i_know_what_im_doing = i_know_what_im_doing
     Config.debug = debug
 
     logging.basicConfig(

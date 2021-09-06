@@ -1,7 +1,9 @@
 # podping-hivewriter
 The Hive writer component of podping. You will need a Hive account, see section [Hive account and Authorization](#hive-account) below.
 
-## Linux CLI Install
+## CLI Install
+
+The following have been tested on Linux and macOS.  However, Windows should work also.  If you have issues on Windows we highly recommend the [Windows Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/) and/or Docker.
 
 ### Using [pipx](https://pypa.github.io/pipx/) (preferred over pip)
 ```shell
@@ -13,22 +15,57 @@ pipx install podping-hivewriter
 pip install --user podping-hivewriter
 ```
 
+### Installing the server
+
+If you'd like to install the server component, it's hidden behind the extra flag `server`.  This is to make it easier to install only the `write` CLI component `podping-hivewriter` on non-standard systems without a configured development enviornment.
+
+```shell
+pipx install podping-hivewriter[server]
+```
+
 Make sure you have `~/.local/bin/` on your `PATH`.
 
 See the dedicated [CLI docs](cli.md) for more information.
 
 ## Container
 
-## docker-compose
+The container images are hosted on [Docker Hub](https://hub.docker.com/r/podcastindexorg/podping-hivewriter).  Images are currently based on Debian bullseye-based Python 3.9 with the following architectures: `amd64`, `i386`, `arm64`, `armv7`, `armv6`
 
-TODO
+### docker-compose
+
+```yaml
+version: '2.0'
+services:
+  podping-hivewriter:
+    image: podcastindexorg/podping-hivewriter
+    restart: always
+    ports:
+      - "9999:9999"
+    environment:
+      - PODPING_HIVE_ACCOUNT=<account>
+      - PODPING_HIVE_POSTING_KEY=<posting-key>
+      - PODPING_LISTEN_IP=0.0.0.0
+      - PODPING_LISTEN_PORT=9999
+      - PODPING_LIVETEST=false
+      - PODPING_DRY_RUN=false
+      - PODPING_STATUS=true
+      - PODPING_IGNORE_CONFIG_UPDATES=false
+      - PODPING_I_KNOW_WHAT_IM_DOING=false
+      - PODPING_DEBUG=false
+```
+
+Assuming you just copy-pasted without reading, the above will fail at first.  As noted in the [server command documentation](https://github.com/Podcastindex-org/podping-hivewriter/blob/main/CLI.md#podping-server):
+
+>WARNING: DO NOT run this on a publicly accessible host. There currently is NO authentication required to submit to the server. Set to * or 0.0.0.0 for all interfaces.
+
+As all Docker installations vary, we set `0.0.0.0` as the listen IP for connectivity.  This doesn't affect the IP address docker listens on when we tell it to pass port `9999` through to the container.  If you understand the consequences of this, set `PODPING_I_KNOW_WHAT_IM_DOING` to `true`.
 
 ### Building the image with Docker
 
 Locally build the podping-hivewriter container with a "develop" tag
 
 ```shell
-docker build -t podpinghivewriter:develop .
+docker build -t podping-hivewriter:develop .
 ```
 
 
@@ -38,7 +75,7 @@ Run the locally built image in a container, passing local port 9999 to port 9999
 ENV variables can be passed to docker with `--env-file` option after modifying the `.env.EXAMPLE` file and renaming it to `.env`
 
 ```shell
-docker run --rm -p 9999:9999 --env-file .env --name podping podpinghivewriter:develop
+docker run --rm -p 9999:9999 --env-file .env --name podping podping-hivewriter:develop
 ```
 
 Running with command line options, like `--dry-run` for example, add them with the full podping command.
@@ -48,7 +85,7 @@ Settings can also be passed with the `-e` option for Docker.  Note, we leave out
 docker run --rm \
     -e PODPING_HIVE_ACCOUNT=<account> \
     -e PODPING_HIVE_POSTING_KEY=<posting-key> \
-    podpinghivewriter:develop \
+    podping-hivewriter:develop \
     podping --dry-run write https://www.example.com/feed.xml
 ```
 
@@ -56,7 +93,7 @@ As another example for running a server, to run in *detached* mode, note the `-d
 ```shell
 docker run --rm -d \
     -p 9999:9999 --env-file .env \
-    --name podping podpinghivewriter:develop \
+    --name podping podping-hivewriter:develop \
     podping --livetest server
 ```
 
@@ -65,7 +102,7 @@ One running you can view and follow the live output with:
 docker logs podping -f
 ```
 
-See the [CLI docs](cli.md) for default values.
+See the [CLI docs](https://github.com/Podcastindex-org/podping-hivewriter/blob/main/CLI.md) for default values.
 
 ## Development
 
@@ -80,7 +117,7 @@ Then to switch to the virtual environment, use:
 ```shell
 poetry shell
 ```
-Make sure you have a `.env` file with a valid `PODPING_HIVE_ACCOUNT` and `PODPING_HIVE_POSTING_KEY` set.
+Make sure you have a the environment variables `PODPING_HIVE_ACCOUNT` and `PODPING_HIVE_POSTING_KEY` set.
 
 After that you should be able to run the `podping` command or run the tests:
 
@@ -96,7 +133,7 @@ pytest --runslow
 
 ## Hive account
 
-If you need a Hive account, please download the [Hive Keychain extension for your browser](https://hive-keychain.com/) then use this link to get your account from [https://HiveOnboard.com?ref=podping](https://hiveonboard.com?ref=podping). You will need at least 20 Hive Power "powered up" to get started (worth around $10). Please contact @brianoflondon brian@podping.org if you need assistance getting set up.
+If you need a Hive account, please download the [Hive Keychain extension for your browser](https://hive-keychain.com/) then use this link to get your account from [https://HiveOnboard.com?ref=podping](https://hiveonboard.com?ref=podping). You will need at least 20 Hive Power "powered up" to get started (worth around $10). Please contact [@brianoflondon](https://peakd.com/@brianoflondon) brian@podping.org if you need assistance getting set up.
 
 If you use the [Hiveonboard]((https://hiveonboard.com?ref=podping)) link `podping` will **delegate** enough Hive Power to get you started.
 
@@ -104,11 +141,11 @@ If you use the [Hiveonboard]((https://hiveonboard.com?ref=podping)) link `podpin
 
 You don't need permission, but you do need to tell `podping` that you want to send valid `podpings`:
 
-- Hive is a so-called "permissionless" blockchain. Once you have a Hive Account and a minimal amount of Hive Power, that account can post to Hive, including sending `podpings`;
+- Hive is a so-called "permissionless" blockchain.  Once you have a Hive Account and a minimal amount of Hive Power, that account can post to Hive, including sending `podpings`.
 
-- Nobody can block any valid Hive Account from sending and nobody can help you if you lose your keys;
+- Nobody can block any valid Hive Account from sending and nobody can help you if you lose your keys.
 
-- Whilst anyone can post `podpings` to Hive, there is a need to register your Hive Accountname for those `podpings` to be recognized by all clients;
+- Whilst anyone can post `podpings` to Hive, there is a need to register your Hive Accountname for those `podpings` to be recognized by all clients.  This is merely a spam-prevention measure and clients may choose to ignore it.
 
 - Please contact new@podping.org or send a Hive Transfer to [@podping](https://peakd.com/@podping) to have your account validated.
 
