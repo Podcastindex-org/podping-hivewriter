@@ -25,7 +25,7 @@ pipx install podping-hivewriter[server]
 
 Make sure you have `~/.local/bin/` on your `PATH`.
 
-See the dedicated [CLI docs](cli.md) for more information.
+See the dedicated [CLI docs](CLI.md) for more information.
 
 ## Container
 
