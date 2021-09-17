@@ -40,7 +40,7 @@ async def get_podping_settings(
     """Return PodpingSettings object"""
     tasks = [get_settings_from_hive(nodes, account_name), get_fullnodeupdate_settings()]
     settings_dict, fullnodeupdate_nodes = await asyncio.gather(*tasks)
-    if settings_dict.get("use_fullnodeupdate"):
+    if settings_dict.get("use_fullnodeupdate") == True:
         # Use the nodes from @fullnodeupdate if we find the flag "use_fullnodeupdate"
         # in the reply from the control account.
         settings_dict["main_nodes"] = fullnodeupdate_nodes
