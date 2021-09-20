@@ -20,7 +20,6 @@ from podping_hivewriter.constants import (
     STARTUP_FAILED_UNKNOWN_EXIT_CODE,
     STARTUP_OPERATION_ID,
     CURRENT_PODPING_VERSION,
-    HIVE_HALT_TIMES,
     HIVE_CUSTOM_OP_DATA_MAX_LENGTH,
 )
 from podping_hivewriter.exceptions import PodpingCustomJsonPayloadExceeded
@@ -396,36 +395,37 @@ class PodpingHivewriter(AsyncContext):
 
         return tx_id
 
-    async def failure_retry(
-        self, iri_set: Set[str], failure_count=0
-    ) -> Tuple[str, int]:
+    async def failure_retry(self, iri_set: Set[str]) -> Tuple[str, int]:
         await self.wait_startup()
-        if failure_count > 0:
-            logging.warning(f"Waiting {HIVE_HALT_TIMES[failure_count]}s before retry")
-            await asyncio.sleep(HIVE_HALT_TIMES[failure_count])
-            logging.info(
-                f"FAILURE COUNT: {failure_count} - RETRYING {len(iri_set)} IRIs"
-            )
-        else:
-            logging.info(f"Received {len(iri_set)} IRIs")
+        failure_count = 0
 
-        try:
-            trx_id = await self.send_notification_iris(iris=iri_set)
+        while True:
+            # Sleep a maximum of 5 minutes, 2 additional seconds for every retry
+            sleep_time = min(failure_count * 2, 300)
             if failure_count > 0:
+                logging.warning(f"Waiting {sleep_time}s before retry")
+                await asyncio.sleep(sleep_time)
                 logging.info(
-                    f"----> FAILURE CLEARED after {failure_count} retries <-----"
+                    f"FAILURE COUNT: {failure_count} - RETRYING {len(iri_set)} IRIs"
                 )
-            return trx_id, failure_count
-        except Exception:
-            logging.warning(f"Failed to send {len(iri_set)} IRIs")
-            if logging.DEBUG >= logging.root.level:
-                for iri in iri_set:
-                    logging.debug(iri)
-            await self.hive_wrapper.rotate_nodes()
+            else:
+                logging.info(f"Received {len(iri_set)} IRIs")
 
-            # Since this is endless recursion, this could theoretically fail with
-            # enough retries ... (python doesn't optimize tail recursion)
-            return await self.failure_retry(iri_set, failure_count + 1)
+            try:
+                trx_id = await self.send_notification_iris(iris=iri_set)
+                if failure_count > 0:
+                    logging.info(
+                        f"FAILURE CLEARED after {failure_count} retries, {sleep_time}s"
+                    )
+                return trx_id, failure_count
+            except Exception:
+                logging.warning(f"Failed to send {len(iri_set)} IRIs")
+                if logging.DEBUG >= logging.root.level:
+                    for iri in iri_set:
+                        logging.debug(iri)
+                await self.hive_wrapper.rotate_nodes()
+
+                failure_count += 1
 
 
 def get_allowed_accounts(
