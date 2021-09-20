@@ -227,7 +227,9 @@ class PodpingHivewriter(AsyncContext):
                 async with self._iris_in_flight_lock:
                     self._iris_in_flight -= len(iri_batch.iri_set)
 
+                hive = await self.hive_wrapper.get_hive()
                 logging.info(
+                    f"Hive Node: {hive} - "
                     f"Batch send time: {duration:0.2f} - trx_id: {trx_id} - "
                     f"Failures: {failure_count} - IRI batch_id {iri_batch.batch_id} - "
                     f"IRIs in batch: {len(iri_batch.iri_set)}"
