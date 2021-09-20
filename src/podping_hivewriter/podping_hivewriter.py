@@ -20,7 +20,6 @@ from podping_hivewriter.constants import (
     STARTUP_FAILED_UNKNOWN_EXIT_CODE,
     STARTUP_OPERATION_ID,
     CURRENT_PODPING_VERSION,
-    HIVE_HALT_TIMES,
     HIVE_CUSTOM_OP_DATA_MAX_LENGTH,
 )
 from podping_hivewriter.exceptions import PodpingCustomJsonPayloadExceeded
@@ -399,11 +398,11 @@ class PodpingHivewriter(AsyncContext):
         failure_count = 0
 
         while True:
+            # Sleep a maximum of 5 minutes, 2 additional seconds for every retry
+            sleep_time = min(failure_count * 2, 300)
             if failure_count > 0:
-                logging.warning(
-                    f"Waiting {HIVE_HALT_TIMES[failure_count]}s before retry"
-                )
-                await asyncio.sleep(HIVE_HALT_TIMES[failure_count])
+                logging.warning(f"Waiting {sleep_time}s before retry")
+                await asyncio.sleep(sleep_time)
                 logging.info(
                     f"FAILURE COUNT: {failure_count} - RETRYING {len(iri_set)} IRIs"
                 )
@@ -414,7 +413,7 @@ class PodpingHivewriter(AsyncContext):
                 trx_id = await self.send_notification_iris(iris=iri_set)
                 if failure_count > 0:
                     logging.info(
-                        f"----> FAILURE CLEARED after {failure_count} retries <-----"
+                        f"FAILURE CLEARED after {failure_count} retries, {sleep_time}s"
                     )
                 return trx_id, failure_count
             except Exception:
