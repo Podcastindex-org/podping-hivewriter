@@ -18,7 +18,10 @@ def get_hive(
                 # Beem's expected type for nodes not set correctly
                 # noinspection PyTypeChecker
                 hive = beem.Hive(
-                    node=nodes, keys=posting_keys, nobroadcast=nobroadcast, num_retries=5
+                    node=nodes,
+                    keys=posting_keys,
+                    nobroadcast=nobroadcast,
+                    num_retries=5,
                 )
 
             else:
@@ -27,10 +30,11 @@ def get_hive(
 
             return hive
 
-
         except NumRetriesReached:
-            logging.error(f"Unable to connect to Hive API | Internet connection down? | Failures: {errors}")
-            sleep(5 + errors*2)
+            logging.error(
+                f"Unable to connect to Hive API | Internet connection down? | Failures: {errors}"
+            )
+            sleep(5 + errors * 2)
             errors += 1
 
         except Exception as ex:
