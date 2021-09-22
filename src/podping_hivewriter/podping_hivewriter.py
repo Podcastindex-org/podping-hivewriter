@@ -227,11 +227,12 @@ class PodpingHivewriter(AsyncContext):
                     self._iris_in_flight -= len(iri_batch.iri_set)
 
                 hive = await self.hive_wrapper.get_hive()
+                last_node = hive.data["last_node"]
                 logging.info(
-                    f"Hive Node: {hive} - "
                     f"Batch send time: {duration:0.2f} - trx_id: {trx_id} - "
                     f"Failures: {failure_count} - IRI batch_id {iri_batch.batch_id} - "
-                    f"IRIs in batch: {len(iri_batch.iri_set)}"
+                    f"IRIs in batch: {len(iri_batch.iri_set)} - "
+                    f"{last_node}"
                 )
             except asyncio.CancelledError:
                 raise
@@ -341,11 +342,13 @@ class PodpingHivewriter(AsyncContext):
         up_time = timedelta(seconds=timer() - self.startup_time)
 
         hive = await self.hive_wrapper.get_hive()
+        last_node = hive.data["last_node"]
         logging.info(
-            f"Status - Hive Node: {hive} - Uptime: {up_time} - "
+            f"Status - Uptime: {up_time} - "
             f"IRIs Received: {self.total_iris_recv} - "
             f"IRIs Deduped: {self.total_iris_recv_deduped} - "
-            f"IRIs Sent: {self.total_iris_sent}"
+            f"IRIs Sent: {self.total_iris_sent} - "
+            f"{last_node}"
         )
 
     async def send_notification(
