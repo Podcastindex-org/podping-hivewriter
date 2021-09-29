@@ -31,12 +31,12 @@ def get_hive(
             return hive
 
         except NumRetriesReached:
-            logging.error(
+            logging.warning(
                 f"Unable to connect to Hive API | Internet connection down? | Failures: {errors}"
             )
             sleep(5 + errors * 2)
             errors += 1
 
         except Exception as ex:
-            logging.debug(f"{ex}")
+            logging.error(f"{ex}")
             raise
