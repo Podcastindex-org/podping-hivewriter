@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "podping-hivewriter"
-version = "1.0.2"
+version = "1.0.3"
 license = "MIT"
 authors = ["Alecks Gates <alecks@podping.org>", "Brian of London <brian@podping.org>"]
 maintainers = ["Alecks Gates <alecks@podping.org>", "Brian of London <brian@podping.org>"]
@@ -33,10 +33,10 @@ typer = {extras = ["all"], version = "^0.3.2"}
 black = "^21.5b2"
 isort = "^5.8.0"
 pytest = "^6.2.4"
-pytest-cov = "^2.12.1"
-pytest-asyncio = "^0.15.1"
+pytest-cov = "^3.0.0"
+pytest-asyncio = "^0.16.0"
 bandit = "^1.7.0"
-pytest-timeout = "^1.4.2"
+pytest-timeout = "^2.0.2"
 typer-cli = "^0.0.12"
 
 [tool.poetry.extras]
@@ -51,7 +51,7 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.black]
-target-version = ['py37', 'py38', 'py39']
+target-version = ['py37', 'py38', 'py39', 'py310']
 
 [tool.isort]
 profile = "black"
