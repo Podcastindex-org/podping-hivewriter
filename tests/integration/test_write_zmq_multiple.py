@@ -22,7 +22,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 async def test_write_zmq_multiple_url(event_loop):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
-    hive = get_hive(settings_manager._settings.main_nodes)
+    hive = await get_hive(settings_manager._settings.main_nodes)
 
     blockchain = Blockchain(mode="head", blockchain_instance=hive)
     start_block = blockchain.get_current_block_num()

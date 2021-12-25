@@ -13,7 +13,7 @@ async def get_settings_from_hive(
 ) -> Optional[dict]:
     """Returns podping settings if they exist"""
     # Must use main chain for settings
-    hive = get_hive(nodes)
+    hive = await get_hive(nodes)
     account = Account(account_name, blockchain_instance=hive, lazy=True)
     metadata = account["posting_json_metadata"]
     if metadata:
