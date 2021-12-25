@@ -84,7 +84,7 @@ class HiveWrapper(AsyncContext):
         async with self._hive_lock:
             logging.debug(f"Rotating Hive nodes")
             self.nodes.rotate(1)
-            self._hive = get_hive(
+            self._hive = await get_hive(
                 self.nodes, self.posting_keys, nobroadcast=self.dry_run
             )
             self._custom_json = sync_to_async(
