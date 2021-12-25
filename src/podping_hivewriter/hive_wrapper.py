@@ -41,7 +41,7 @@ class HiveWrapper(AsyncContext):
         self.nodes = deque(nodes)
         async with self._hive_lock:
             try:
-                self._hive: beem.Hive = get_hive(
+                self._hive: beem.Hive = await get_hive(
                     nodes, self.posting_keys, nobroadcast=self.dry_run
                 )
                 self._custom_json = sync_to_async(

@@ -1,11 +1,12 @@
+import asyncio
 import logging
 from typing import Iterable, Optional, List
+
 import beem
 from beemapi.exceptions import NumRetriesReached
-from time import sleep
 
 
-def get_hive(
+async def get_hive(
     nodes: Iterable[str],
     posting_keys: Optional[List[str]] = None,
     nobroadcast: Optional[bool] = False,
@@ -34,7 +35,7 @@ def get_hive(
             logging.warning(
                 f"Unable to connect to Hive API | Internet connection down? | Failures: {errors}"
             )
-            sleep(5 + errors * 2)
+            await asyncio.sleep(5 + errors * 2)
             errors += 1
 
         except Exception as ex:
