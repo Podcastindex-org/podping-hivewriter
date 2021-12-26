@@ -4,6 +4,7 @@ from collections import deque
 from typing import List, Optional
 
 import beem
+from beemapi.exceptions import NumRetriesReached
 from asgiref.sync import SyncToAsync
 from podping_hivewriter.async_context import AsyncContext
 from podping_hivewriter.async_wrapper import sync_to_async
@@ -39,12 +40,19 @@ class HiveWrapper(AsyncContext):
 
         self.nodes = deque(nodes)
         async with self._hive_lock:
-            self._hive: beem.Hive = get_hive(
-                nodes, self.posting_keys, nobroadcast=self.dry_run
-            )
-            self._custom_json = sync_to_async(
-                self._hive.custom_json, thread_sensitive=False
-            )
+            try:
+                self._hive: beem.Hive = await get_hive(
+                    nodes, self.posting_keys, nobroadcast=self.dry_run
+                )
+                self._custom_json = sync_to_async(
+                    self._hive.custom_json, thread_sensitive=False
+                )
+            except NumRetriesReached:
+                logging.error(f"Error in beem")
+                raise NumRetriesReached
+            except Exception as ex:
+                logging.error(f"Error in beem {ex.__repr__()}")
+                raise ex
 
         if self.daemon:
             self._add_task(asyncio.create_task(self._rotate_nodes_loop()))
@@ -76,7 +84,7 @@ class HiveWrapper(AsyncContext):
         async with self._hive_lock:
             logging.debug(f"Rotating Hive nodes")
             self.nodes.rotate(1)
-            self._hive = get_hive(
+            self._hive = await get_hive(
                 self.nodes, self.posting_keys, nobroadcast=self.dry_run
             )
             self._custom_json = sync_to_async(
