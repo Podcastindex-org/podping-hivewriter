@@ -157,3 +157,5 @@ cython_debug/
 .env.test
 .vscode/tasks.json
 .vscode/settings.json
+
+.python-version
