@@ -10,7 +10,7 @@ homepage = "http://podping.org/"
 repository = "https://github.com/Podcastindex-org/podping-hivewriter"
 keywords = ["hive", "blockchain", "podping", "podcasting20"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Framework :: AsyncIO",
     "Framework :: Pytest",
