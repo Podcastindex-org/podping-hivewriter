@@ -36,21 +36,25 @@ ENV PYTHONFAULTHANDLER=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
 
+RUN useradd --create-home podping && mkdir /home/podping/app && chown -R podping:podping /home/podping
+
 COPY install-packages.sh .
 RUN ./install-packages.sh
 
-RUN useradd --create-home podping
-WORKDIR /home/podping/app
 COPY --from=compile --chown=podping:podping /home/podping/.local /home/podping/.local
 COPY --from=compile --chown=podping:podping /home/podping/app/.venv /home/podping/app/.venv
 USER podping
-# podping and poetry commands install here from pip
-ENV PATH="/home/podping/.local/bin:/home/podping/app/.venv/bin:${PATH}"
+WORKDIR /home/podping/app
+# poetry command installs here from pip
+ENV PATH="/home/podping/.local/bin:${PATH}"
 
 COPY --chown=podping:podping . .
 RUN pip install poetry \
     && poetry config virtualenvs.in-project true \
     && poetry install --no-dev --no-interaction --no-ansi
+
+# podping command installs here
+ENV PATH="/home/podping/app/.venv/bin:${PATH}"
 
 EXPOSE 9999/tcp
 
