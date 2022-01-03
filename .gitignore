@@ -1,3 +1,6 @@
+.python-version
+src/podping_hivewriter/schema/*.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -157,5 +160,3 @@ cython_debug/
 .env.test
 .vscode/tasks.json
 .vscode/settings.json
-
-.python-version
