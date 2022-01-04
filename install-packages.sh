@@ -17,7 +17,7 @@ apt-get update
 apt-get -y upgrade
 
 # Install application dependencies
-apt-get -y install --no-install-recommends libffi7 libssl1.1 libzmq5 zlib1g
+apt-get -y install --no-install-recommends capnproto libffi7 libssl1.1 libzmq5 zlib1g
 
 # Delete cached files we don't need anymore (note that if you're
 # using official Docker images for Debian or Ubuntu, this happens

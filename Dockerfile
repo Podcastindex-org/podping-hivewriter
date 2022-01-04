@@ -15,7 +15,7 @@ RUN apt-get update \
     && apt-get -y upgrade \
     # rustc, cargo for armhf "cryptography"
     # libzmq3-dev for armhf "pyzmq"
-    && apt-get -y install --no-install-recommends rustc cargo libzmq3-dev
+    && apt-get -y install --no-install-recommends capnproto cargo libzmq3-dev rustc
 
 USER podping
 WORKDIR /home/podping/app

@@ -9,6 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Install build dependencies
+        run: |
+          apt install build-essential capnproto
       - name: Build and publish to pypi
         uses: JRubics/poetry-publish@v1.8
         with:
