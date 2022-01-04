@@ -17,6 +17,8 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
+build = "build.py"
+include = ["src/podping_hivewriter/schema/*.py", "src/podping_hivewriter/schema/*.so"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
@@ -48,7 +50,7 @@ server = ["pyzmq"]
 podping = "podping_hivewriter.cli.podping:app"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=1.0.0", "capnpy"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.black]

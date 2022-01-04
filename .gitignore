@@ -1,5 +1,8 @@
 .python-version
-src/podping_hivewriter/schema/*.py
+**/schema/*.c
+**/schema/*.py
+**/schema/*.pyx
+!**/schema/__init__.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
