@@ -8,12 +8,15 @@ from timeit import default_timer as timer
 from typing import List, Optional, Set, Tuple
 
 import beem
-import nest_asyncio
+# import nest_asyncio
 import rfc3987
 from beem.account import Account
 from beem.exceptions import AccountDoesNotExistsException, MissingKeyError
 from beemapi.exceptions import UnhandledRPCError
 from lighthive.client import Client
+from lighthive.node_picker import compare_nodes
+from lighthive.datastructures import Operation
+from lighthive.exceptions import RPCNodeException
 
 from podping_hivewriter.async_context import AsyncContext
 from podping_hivewriter.constants import (
@@ -73,6 +76,8 @@ class PodpingHivewriter(AsyncContext):
             posting_keys, settings_manager, dry_run=dry_run, daemon=daemon
         )
 
+        self.lighthive_client = Client(keys=posting_keys, loglevel=logging.WARNING)
+
         self.total_iris_recv = 0
         self.total_iris_sent = 0
         self.total_iris_recv_deduped = 0
@@ -92,12 +97,16 @@ class PodpingHivewriter(AsyncContext):
     async def _startup(self):
 
         try:
+            self.lighthive_client.nodes = await compare_nodes(
+                nodes = self.lighthive_client.nodes, logger = self.lighthive_client.logger
+                )
             hive = await self.hive_wrapper.get_hive()
             account = Account(self.server_account, blockchain_instance=hive, lazy=True)
             settings = await self.settings_manager.get_settings()
 
+            account = self.lighthive_client.account(self.server_account)
             allowed = get_allowed_accounts(
-                settings.main_nodes, settings.control_account
+                self.lighthive_client, settings.control_account
             )
             # TODO: Should we periodically check if the account is allowed
             #  and shut down if not?
@@ -365,18 +374,32 @@ class PodpingHivewriter(AsyncContext):
                 raise PodpingCustomJsonPayloadExceeded(
                     "Max custom_json payload exceeded"
                 )
-            tx = await self.hive_wrapper.custom_json(
-                hive_operation_id, payload, self.required_posting_auths
-            )
+            # tx = await self.hive_wrapper.custom_json(
+            #     hive_operation_id, payload, self.required_posting_auths
+            # )
 
-            tx_id = tx["trx_id"]
+            # tx_id = tx["trx_id"]
+            op = Operation('custom_json',
+                {
+                    "required_auths": [],
+                    "required_posting_auths": self.required_posting_auths,
+                    "id": str(hive_operation_id),
+                    "json":json.dumps(payload)
+                }
+            )
+            tx_new = self.lighthive_client.broadcast_sync(op)
+            tx_id = tx_new.get("id")
 
             logging.info(f"Transaction sent: {tx_id} - JSON size: {size_of_json}")
 
             return tx_id
 
-        except MissingKeyError:
-            logging.error(f"The provided key for @{self.server_account} is not valid")
+        except RPCNodeException as ex:
+            logging.error(f"{ex}")
+            raise
+
+        except Exception as ex:
+            logging.error(f"{ex}")
             raise
 
     async def send_notification_iri(
@@ -441,27 +464,26 @@ class PodpingHivewriter(AsyncContext):
                         f"FAILURE CLEARED after {failure_count} retries, {sleep_time}s"
                     )
                 return trx_id, failure_count
-            except Exception:
+            except Exception as ex:
                 logging.warning(f"Failed to send {len(iri_set)} IRIs")
+                logging.error(f"{ex}")
                 if logging.DEBUG >= logging.root.level:
                     for iri in iri_set:
                         logging.debug(iri)
-                await self.hive_wrapper.rotate_nodes()
+                self.lighthive_client.next_node()
+                # await self.hive_wrapper.rotate_nodes()
 
                 failure_count += 1
 
 
 def get_allowed_accounts(
-    nodes: Tuple[str, ...], account_name: str = "podping"
+    client: Client, account_name: str = "podping"
 ) -> Set[str]:
     """get a list of all accounts allowed to post by acc_name (podping)
     and only react to these accounts"""
-    nest_asyncio.apply()
-    client = Client(automatic_node_selection=True, loglevel=logging.DEBUG)
+
     master_account = client.account(account_name)
     return set(master_account.following())
-
-
 
     try:
         hive = beem.Hive(node=nodes)

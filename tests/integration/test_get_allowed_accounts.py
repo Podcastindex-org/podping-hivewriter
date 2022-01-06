@@ -12,8 +12,10 @@ from podping_hivewriter.async_wrapper import sync_to_async
 @pytest.mark.asyncio
 async def test_get_allowed_accounts():
     # Checks the allowed accounts checkup
-    settings = PodpingSettings()
-    allowed_accounts = get_allowed_accounts(settings.main_nodes)
+    nest_asyncio.apply()
+    client = Client(automatic_node_selection=True, loglevel=logging.WARNING)
+
+    allowed_accounts = get_allowed_accounts(client)
 
     assert type(allowed_accounts) == set and len(allowed_accounts) > 0
 
@@ -21,9 +23,9 @@ async def test_get_allowed_accounts():
 @pytest.mark.asyncio
 async def test_automatic_node_selection():
     nest_asyncio.apply()
-    client = Client(automatic_node_selection=True, loglevel=logging.DEBUG)
+    client = Client(automatic_node_selection=True, loglevel=logging.INFO)
     nodes = client.nodes
     current_node = client.current_node
     sorted_nodes = client.node_list
     raw_nodes = client._raw_node_list
-    assert True
+    assert not raw_nodes == sorted_nodes
