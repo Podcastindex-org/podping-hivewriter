@@ -106,6 +106,12 @@ See the [CLI docs](https://github.com/Podcastindex-org/podping-hivewriter/blob/m
 
 ## Development
 
+You'll need a few extras:
+
+1. [capnproto](https://capnproto.org/). On a Mac: `brew instal capnp`
+2. [Poetry](https://python-poetry.org/docs/)
+
+
 We use [poetry](https://python-poetry.org/) for dependency management.  Once you have it, clone this repo and run:
 
 ```shell
