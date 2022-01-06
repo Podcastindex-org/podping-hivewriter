@@ -8,6 +8,7 @@ from timeit import default_timer as timer
 from typing import List, Optional, Set, Tuple
 
 import beem
+
 # import nest_asyncio
 import rfc3987
 from beem.account import Account
@@ -34,6 +35,7 @@ from podping_hivewriter.models.iri_batch import IRIBatch
 from podping_hivewriter.models.medium import Medium
 from podping_hivewriter.models.reason import Reason
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
+
 
 def utc_date_str() -> str:
     return datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
@@ -376,15 +378,14 @@ class PodpingHivewriter(AsyncContext):
             # tx = await self.hive_wrapper.custom_json(
             #     hive_operation_id, payload, self.required_posting_auths
             # )
-
             # tx_id = tx["trx_id"]
             op = Operation(
-                'custom_json',
+                "custom_json",
                 {
                     "required_auths": [],
                     "required_posting_auths": self.required_posting_auths,
                     "id": str(hive_operation_id),
-                    "json":json.dumps(payload),
+                    "json": json.dumps(payload),
                 },
             )
             tx_new = self.lighthive_client.broadcast_sync(op)
@@ -476,19 +477,14 @@ class PodpingHivewriter(AsyncContext):
                 failure_count += 1
 
 
-def get_allowed_accounts(client: Client, account_name: str = "podping") -> Set[str]:
+def get_allowed_accounts(
+    client: Client = None, account_name: str = "podping"
+) -> Set[str]:
     """get a list of all accounts allowed to post by acc_name (podping)
     and only react to these accounts"""
 
+    if not client:
+        client = Client()
+
     master_account = client.account(account_name)
     return set(master_account.following())
-
-    try:
-        hive = beem.Hive(node=nodes)
-        master_account = Account(account_name, blockchain_instance=hive, lazy=True)
-        return set(master_account.get_following())
-    except Exception:
-        logging.error(
-            f"Allowed Account: {account_name} - Failure on Node: {nodes[0]}",
-            exc_info=True,
-        )
