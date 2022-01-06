@@ -5,8 +5,8 @@ import sys
 import uuid
 from datetime import datetime, timedelta, timezone
 from timeit import default_timer as timer
-from typing import List, Optional, Set, Tuple
-
+from typing import List, Set, Tuple
+from itertools import cycle
 import beem
 
 # import nest_asyncio
@@ -98,14 +98,18 @@ class PodpingHivewriter(AsyncContext):
     async def _startup(self):
 
         try:
-            self.lighthive_client.nodes = await compare_nodes(
+
+            self.lighthive_client._node_list = await compare_nodes(
                 nodes=self.lighthive_client.nodes, logger=self.lighthive_client.logger
             )
+            self.lighthive_client.node_list = cycle(self.lighthive_client._node_list)
+            self.lighthive_client.next_node()
+            logging.info(f"Lighthive Fastest: {self.lighthive_client.current_node}")
             hive = await self.hive_wrapper.get_hive()
             account = Account(self.server_account, blockchain_instance=hive, lazy=True)
             settings = await self.settings_manager.get_settings()
 
-            account = self.lighthive_client.account(self.server_account)
+            lh_account = self.lighthive_client.account(self.server_account)
             allowed = get_allowed_accounts(
                 self.lighthive_client, settings.control_account
             )
@@ -189,21 +193,21 @@ class PodpingHivewriter(AsyncContext):
 
             logging.info("Startup of Podping status: SUCCESS! Hit the BOOST Button.")
 
-        except MissingKeyError as _:
+        except MissingKeyError:
             logging.error(
                 "Startup of Podping status: FAILED!  Invalid posting key",
                 exc_info=True,
             )
             logging.error("Exiting")
             sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
-        except UnhandledRPCError as _:
+        except UnhandledRPCError:
             logging.error(
                 "Startup of Podping status: FAILED!  API error",
                 exc_info=True,
             )
             logging.info("Exiting")
             sys.exit(STARTUP_FAILED_HIVE_API_ERROR_EXIT_CODE)
-        except Exception as _:
+        except Exception:
             logging.error(
                 "Startup of Podping status: FAILED!  Unknown error",
                 exc_info=True,
@@ -390,7 +394,7 @@ class PodpingHivewriter(AsyncContext):
             )
             tx_new = self.lighthive_client.broadcast_sync(op)
             tx_id = tx_new.get("id")
-
+            logging.info(f"Lighthive Node: {self.lighthive_client.current_node}")
             logging.info(f"Transaction sent: {tx_id} - JSON size: {size_of_json}")
 
             return tx_id

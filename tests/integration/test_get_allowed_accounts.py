@@ -1,7 +1,6 @@
 import logging
 import pytest
 
-from podping_hivewriter.models.podping_settings import PodpingSettings
 from podping_hivewriter.podping_hivewriter import get_allowed_accounts
 
 from lighthive.client import Client
