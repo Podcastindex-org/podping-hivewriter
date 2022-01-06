@@ -35,7 +35,6 @@ from podping_hivewriter.models.medium import Medium
 from podping_hivewriter.models.reason import Reason
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
-
 def utc_date_str() -> str:
     return datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
 
@@ -98,8 +97,8 @@ class PodpingHivewriter(AsyncContext):
 
         try:
             self.lighthive_client.nodes = await compare_nodes(
-                nodes = self.lighthive_client.nodes, logger = self.lighthive_client.logger
-                )
+                nodes=self.lighthive_client.nodes, logger=self.lighthive_client.logger
+            )
             hive = await self.hive_wrapper.get_hive()
             account = Account(self.server_account, blockchain_instance=hive, lazy=True)
             settings = await self.settings_manager.get_settings()
@@ -379,13 +378,14 @@ class PodpingHivewriter(AsyncContext):
             # )
 
             # tx_id = tx["trx_id"]
-            op = Operation('custom_json',
+            op = Operation(
+                'custom_json',
                 {
                     "required_auths": [],
                     "required_posting_auths": self.required_posting_auths,
                     "id": str(hive_operation_id),
-                    "json":json.dumps(payload)
-                }
+                    "json":json.dumps(payload),
+                },
             )
             tx_new = self.lighthive_client.broadcast_sync(op)
             tx_id = tx_new.get("id")
@@ -471,14 +471,12 @@ class PodpingHivewriter(AsyncContext):
                     for iri in iri_set:
                         logging.debug(iri)
                 self.lighthive_client.next_node()
-                # await self.hive_wrapper.rotate_nodes()
+                await self.hive_wrapper.rotate_nodes()
 
                 failure_count += 1
 
 
-def get_allowed_accounts(
-    client: Client, account_name: str = "podping"
-) -> Set[str]:
+def get_allowed_accounts(client: Client, account_name: str = "podping") -> Set[str]:
     """get a list of all accounts allowed to post by acc_name (podping)
     and only react to these accounts"""
 
