@@ -3,30 +3,31 @@ import json
 import logging
 import sys
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from timeit import default_timer as timer
-from typing import Optional, Set, Tuple, List
+from typing import List, Optional, Set, Tuple
 
 import beem
+import nest_asyncio
 import rfc3987
 from beem.account import Account
 from beem.exceptions import AccountDoesNotExistsException, MissingKeyError
 from beemapi.exceptions import UnhandledRPCError
+from lighthive.client import Client
 
 from podping_hivewriter.async_context import AsyncContext
 from podping_hivewriter.constants import (
+    CURRENT_PODPING_VERSION,
+    HIVE_CUSTOM_OP_DATA_MAX_LENGTH,
     STARTUP_FAILED_HIVE_API_ERROR_EXIT_CODE,
     STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE,
     STARTUP_FAILED_UNKNOWN_EXIT_CODE,
     STARTUP_OPERATION_ID,
-    CURRENT_PODPING_VERSION,
-    HIVE_CUSTOM_OP_DATA_MAX_LENGTH,
 )
 from podping_hivewriter.exceptions import PodpingCustomJsonPayloadExceeded
 from podping_hivewriter.hive_wrapper import HiveWrapper
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.iri_batch import IRIBatch
-
 from podping_hivewriter.models.medium import Medium
 from podping_hivewriter.models.reason import Reason
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
@@ -48,7 +49,7 @@ class PodpingHivewriter(AsyncContext):
         settings_manager: PodpingSettingsManager,
         listen_ip: str = "127.0.0.1",
         listen_port: int = 9999,
-        operation_id="podping",
+        operation_id="pp",
         resource_test=True,
         dry_run=False,
         daemon=True,
@@ -455,6 +456,12 @@ def get_allowed_accounts(
 ) -> Set[str]:
     """get a list of all accounts allowed to post by acc_name (podping)
     and only react to these accounts"""
+    nest_asyncio.apply()
+    client = Client(automatic_node_selection=True, loglevel=logging.DEBUG)
+    master_account = client.account(account_name)
+    return set(master_account.following())
+
+
 
     try:
         hive = beem.Hive(node=nodes)
