@@ -2,9 +2,9 @@ import json
 import logging
 from typing import Iterable, Optional
 
-from beem.account import Account
+from lighthive.client import Client
 from podping_hivewriter.constants import PODPING_SETTINGS_KEY
-from podping_hivewriter.hive import get_hive
+from podping_hivewriter.hive import get_client
 from podping_hivewriter.models.podping_settings import PodpingSettings
 
 
@@ -13,14 +13,14 @@ async def get_settings_from_hive(
 ) -> Optional[dict]:
     """Returns podping settings if they exist"""
     # Must use main chain for settings
-    hive = await get_hive(nodes)
-    account = Account(account_name, blockchain_instance=hive, lazy=True)
-    metadata = account["posting_json_metadata"]
-    if metadata:
-        posting_meta = json.loads(metadata)
-        return posting_meta.get(PODPING_SETTINGS_KEY)
-    else:
-        logging.error(f"posting_json_metadata for account {account_name} is empty")
+    client: Client = get_client()
+    account = client.account(account_name)
+    if raw_meta := account.raw_data.get("posting_json_metadata"):
+        metadata = json.loads(raw_meta)
+        if podping_settings := metadata.get(PODPING_SETTINGS_KEY):
+            return podping_settings
+        else:
+            logging.error(f"posting_json_metadata for account {account_name} is empty")
 
 
 async def get_podping_settings(

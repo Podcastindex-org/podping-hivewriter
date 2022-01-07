@@ -6,16 +6,9 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from timeit import default_timer as timer
 from typing import List, Set, Tuple
-from itertools import cycle
-import beem
 
-# import nest_asyncio
 import rfc3987
-from beem.account import Account
-from beem.exceptions import AccountDoesNotExistsException, MissingKeyError
-from beemapi.exceptions import UnhandledRPCError
 from lighthive.client import Client
-from lighthive.node_picker import compare_nodes
 from lighthive.datastructures import Operation
 from lighthive.exceptions import RPCNodeException
 
@@ -29,7 +22,7 @@ from podping_hivewriter.constants import (
     STARTUP_OPERATION_ID,
 )
 from podping_hivewriter.exceptions import PodpingCustomJsonPayloadExceeded
-from podping_hivewriter.hive_wrapper import HiveWrapper
+from podping_hivewriter.hive import get_automatic_node_selection, get_client
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.iri_batch import IRIBatch
 from podping_hivewriter.models.medium import Medium
@@ -73,11 +66,9 @@ class PodpingHivewriter(AsyncContext):
         self.daemon: bool = daemon
         self.status: bool = status
 
-        self.hive_wrapper = HiveWrapper(
-            posting_keys, settings_manager, dry_run=dry_run, daemon=daemon
+        self.lighthive_client = get_client(
+            posting_keys=posting_keys, loglevel=logging.WARNING
         )
-
-        self.lighthive_client = Client(keys=posting_keys, loglevel=logging.WARNING)
 
         self.total_iris_recv = 0
         self.total_iris_sent = 0
@@ -98,18 +89,10 @@ class PodpingHivewriter(AsyncContext):
     async def _startup(self):
 
         try:
-
-            self.lighthive_client._node_list = await compare_nodes(
-                nodes=self.lighthive_client.nodes, logger=self.lighthive_client.logger
+            self.lighthive_client = await get_automatic_node_selection(
+                self.lighthive_client
             )
-            self.lighthive_client.node_list = cycle(self.lighthive_client._node_list)
-            self.lighthive_client.next_node()
-            logging.info(f"Lighthive Fastest: {self.lighthive_client.current_node}")
-            hive = await self.hive_wrapper.get_hive()
-            account = Account(self.server_account, blockchain_instance=hive, lazy=True)
             settings = await self.settings_manager.get_settings()
-
-            lh_account = self.lighthive_client.account(self.server_account)
             allowed = get_allowed_accounts(
                 self.lighthive_client, settings.control_account
             )
@@ -119,7 +102,7 @@ class PodpingHivewriter(AsyncContext):
                 logging.error(
                     f"Account @{self.server_account} not authorised to send Podpings"
                 )
-        except AccountDoesNotExistsException:
+        except 45:
             logging.error(
                 f"Hive account @{self.server_account} does not exist, "
                 f"check ENV vars and try again",
@@ -131,7 +114,7 @@ class PodpingHivewriter(AsyncContext):
             raise
 
         if self.resource_test and not self.dry_run:
-            await self.test_hive_resources(account, hive)
+            await self.test_hive_resources()
 
         logging.info(f"Hive account: @{self.server_account}")
 
@@ -144,7 +127,7 @@ class PodpingHivewriter(AsyncContext):
 
         self._startup_done = True
 
-    async def test_hive_resources(self, account, hive):
+    async def test_hive_resources(self):
         logging.info(
             "Podping startup sequence initiated, please stand by, "
             "full bozo checks in operation..."
@@ -152,10 +135,12 @@ class PodpingHivewriter(AsyncContext):
 
         # noinspection PyBroadException
         try:  # Now post two custom json to test.
-            manabar = account.get_rc_manabar()
+            account = self.lighthive_client.account(self.server_account)
+            manabar = account.get_resource_credit_info()
+
             logging.info(
                 f"Testing Account Resource Credits"
-                f' - before {manabar.get("current_pct"):.2f}%'
+                f' - before {manabar.get("last_mana_percent"):.2f}%'
             )
 
             # TODO: See if anything depends on USE_TEST_NODE before removal
@@ -164,18 +149,20 @@ class PodpingHivewriter(AsyncContext):
                 "USE_TEST_NODE": False,
                 "message": "Podping startup initiated",
                 "uuid": str(uuid.uuid4()),
-                "hive": repr(hive),
+                "hive": str(self.lighthive_client.current_node),
             }
 
             await self.send_notification(custom_json, STARTUP_OPERATION_ID)
-
-            logging.info("Testing Account Resource Credits.... 5s")
             settings = await self.settings_manager.get_settings()
+            logging.info(
+                f"Testing Account Resource Credits {settings.hive_operation_period}s"
+            )
             await asyncio.sleep(settings.hive_operation_period)
-            manabar_after = account.get_rc_manabar()
+
+            manabar_after = account.get_resource_credit_info()
             logging.info(
                 f"Testing Account Resource Credits"
-                f' - after {manabar_after.get("current_pct"):.2f}%'
+                f' - after {manabar_after.get("last_mana_percent"):.2f}%'
             )
             cost = manabar.get("current_mana") - manabar_after.get("current_mana")
             if cost == 0:  # skip this test if we're going to get ZeroDivision
@@ -187,26 +174,26 @@ class PodpingHivewriter(AsyncContext):
             custom_json["v"] = CURRENT_PODPING_VERSION
             custom_json["capacity"] = f"{capacity:.1f}"
             custom_json["message"] = "Podping startup complete"
-            custom_json["hive"] = repr(hive)
+            custom_json["hive"] = str(self.lighthive_client.current_node)
 
             await self.send_notification(custom_json, STARTUP_OPERATION_ID)
 
             logging.info("Startup of Podping status: SUCCESS! Hit the BOOST Button.")
 
-        except MissingKeyError:
-            logging.error(
-                "Startup of Podping status: FAILED!  Invalid posting key",
-                exc_info=True,
-            )
-            logging.error("Exiting")
-            sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
-        except UnhandledRPCError:
-            logging.error(
-                "Startup of Podping status: FAILED!  API error",
-                exc_info=True,
-            )
-            logging.info("Exiting")
-            sys.exit(STARTUP_FAILED_HIVE_API_ERROR_EXIT_CODE)
+        # except MissingKeyError:
+        #     logging.error(
+        #         "Startup of Podping status: FAILED!  Invalid posting key",
+        #         exc_info=True,
+        #     )
+        #     logging.error("Exiting")
+        #     sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+        # except UnhandledRPCError:
+        #     logging.error(
+        #         "Startup of Podping status: FAILED!  API error",
+        #         exc_info=True,
+        #     )
+        #     logging.info("Exiting")
+        #     sys.exit(STARTUP_FAILED_HIVE_API_ERROR_EXIT_CODE)
         except Exception:
             logging.error(
                 "Startup of Podping status: FAILED!  Unknown error",
@@ -245,8 +232,7 @@ class PodpingHivewriter(AsyncContext):
                 async with self._iris_in_flight_lock:
                     self._iris_in_flight -= len(iri_batch.iri_set)
 
-                hive = await self.hive_wrapper.get_hive()
-                last_node = hive.data["last_node"]
+                last_node = self.lighthive_client.current_node
                 logging.info(
                     f"Batch send time: {duration:0.2f} - trx_id: {trx_id} - "
                     f"Failures: {failure_count} - IRI batch_id {iri_batch.batch_id} - "
@@ -360,8 +346,7 @@ class PodpingHivewriter(AsyncContext):
         on a regular basis"""
         up_time = timedelta(seconds=timer() - self.startup_time)
 
-        hive = await self.hive_wrapper.get_hive()
-        last_node = hive.data["last_node"]
+        last_node = self.lighthive_client.current_node
         logging.info(
             f"Status - Uptime: {up_time} - "
             f"IRIs Received: {self.total_iris_recv} - "
@@ -379,10 +364,6 @@ class PodpingHivewriter(AsyncContext):
                 raise PodpingCustomJsonPayloadExceeded(
                     "Max custom_json payload exceeded"
                 )
-            # tx = await self.hive_wrapper.custom_json(
-            #     hive_operation_id, payload, self.required_posting_auths
-            # )
-            # tx_id = tx["trx_id"]
             op = Operation(
                 "custom_json",
                 {
@@ -476,8 +457,6 @@ class PodpingHivewriter(AsyncContext):
                     for iri in iri_set:
                         logging.debug(iri)
                 self.lighthive_client.next_node()
-                await self.hive_wrapper.rotate_nodes()
-
                 failure_count += 1
 
 
