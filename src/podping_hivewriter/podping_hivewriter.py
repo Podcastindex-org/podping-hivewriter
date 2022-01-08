@@ -382,7 +382,7 @@ class PodpingHivewriter(AsyncContext):
         self,
         iri: str,
         medium: Medium = Medium.podcast,
-        reason: Reason = Reason.feed_update,
+        reason: Reason = Reason.update,
     ) -> str:
         payload = {
             "version": CURRENT_PODPING_VERSION,
@@ -399,7 +399,7 @@ class PodpingHivewriter(AsyncContext):
         self,
         iris: Set[str],
         medium: Medium = Medium.podcast,
-        reason: Reason = Reason.feed_update,
+        reason: Reason = Reason.update,
     ) -> str:
         num_iris = len(iris)
         payload = {

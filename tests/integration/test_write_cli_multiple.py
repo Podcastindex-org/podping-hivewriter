@@ -41,7 +41,7 @@ async def test_write_cli_multiple_url():
     }
 
     default_hive_operation_id = HiveOperationId(
-        LIVETEST_OPERATION_ID, Medium.podcast, Reason.feed_update
+        LIVETEST_OPERATION_ID, Medium.podcast, Reason.update
     )
     default_hive_operation_id_str = str(default_hive_operation_id)
 
