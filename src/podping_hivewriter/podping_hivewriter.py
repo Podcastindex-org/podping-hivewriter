@@ -349,6 +349,11 @@ class PodpingHivewriter(AsyncContext):
         on a regular basis"""
         up_time = timedelta(seconds=timer() - self.startup_time)
 
+        # self.lighthive_client.set_logger(loglevel=logging.INFO)
+        self.lighthive_client = await get_automatic_node_selection(
+            self.lighthive_client
+        )
+        # self.lighthive_client.set_logger(loglevel=logging.WARNING)
         last_node = self.lighthive_client.current_node
         logging.info(
             f"Status - Uptime: {up_time} - "
