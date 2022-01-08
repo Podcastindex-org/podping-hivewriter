@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Iterable, Optional
+from typing import Optional
 
 from lighthive.client import Client
 from podping_hivewriter.constants import PODPING_SETTINGS_KEY
@@ -23,9 +23,7 @@ async def get_settings_from_hive(account_name: str) -> Optional[dict]:
             logging.error(f"posting_json_metadata for account {account_name} is empty")
 
 
-async def get_podping_settings(
-    nodes: Iterable[str], account_name: str
-) -> PodpingSettings:
+async def get_podping_settings(account_name: str) -> PodpingSettings:
     """Return PodpingSettings object"""
     settings_dict = await get_settings_from_hive(account_name)
     return PodpingSettings.parse_obj(settings_dict)
