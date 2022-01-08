@@ -24,7 +24,7 @@ async def test_write_cli_single_url():
 
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
-    hive = await get_hive(settings_manager._settings.main_nodes)
+    hive = await get_hive()
 
     blockchain = Blockchain(mode="head", blockchain_instance=hive)
     start_block = blockchain.get_current_block_num()

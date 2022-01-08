@@ -8,9 +8,7 @@ from podping_hivewriter.hive import get_client
 from podping_hivewriter.models.podping_settings import PodpingSettings
 
 
-async def get_settings_from_hive(
-    nodes: Iterable[str], account_name: str
-) -> Optional[dict]:
+async def get_settings_from_hive(account_name: str) -> Optional[dict]:
     """Returns podping settings if they exist"""
     # Must use main chain for settings
     client: Client = get_client()
@@ -29,5 +27,5 @@ async def get_podping_settings(
     nodes: Iterable[str], account_name: str
 ) -> PodpingSettings:
     """Return PodpingSettings object"""
-    settings_dict = await get_settings_from_hive(nodes, account_name)
+    settings_dict = await get_settings_from_hive(account_name)
     return PodpingSettings.parse_obj(settings_dict)
