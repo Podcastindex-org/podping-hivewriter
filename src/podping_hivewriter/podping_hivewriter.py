@@ -4,6 +4,7 @@ import logging
 import sys
 import uuid
 from datetime import datetime, timedelta, timezone
+from itertools import cycle
 from timeit import default_timer as timer
 from typing import List, Set, Tuple
 
@@ -11,18 +12,17 @@ import rfc3987
 from lighthive.client import Client
 from lighthive.datastructures import Operation
 from lighthive.exceptions import RPCNodeException
+from lighthive.node_picker import compare_nodes
 
 from podping_hivewriter.async_context import AsyncContext
 from podping_hivewriter.constants import (
     CURRENT_PODPING_VERSION,
     HIVE_CUSTOM_OP_DATA_MAX_LENGTH,
-    # STARTUP_FAILED_HIVE_API_ERROR_EXIT_CODE,
-    # STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE,
     STARTUP_FAILED_UNKNOWN_EXIT_CODE,
     STARTUP_OPERATION_ID,
 )
 from podping_hivewriter.exceptions import PodpingCustomJsonPayloadExceeded
-from podping_hivewriter.hive import get_automatic_node_selection, get_client
+from podping_hivewriter.hive import get_client
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.iri_batch import IRIBatch
 from podping_hivewriter.models.medium import Medium
@@ -89,10 +89,6 @@ class PodpingHivewriter(AsyncContext):
     async def _startup(self):
 
         try:
-
-            self.lighthive_client = await get_automatic_node_selection(
-                self.lighthive_client
-            )
             settings = await self.settings_manager.get_settings()
             allowed = get_allowed_accounts(
                 self.lighthive_client, settings.control_account
@@ -118,6 +114,7 @@ class PodpingHivewriter(AsyncContext):
 
         if self.resource_test and not self.dry_run:
             await self.test_hive_resources()
+            await self.automatic_node_selection()
 
         logging.info(f"Hive account: @{self.server_account}")
 
@@ -129,6 +126,15 @@ class PodpingHivewriter(AsyncContext):
                 self._add_task(asyncio.create_task(self._hive_status_loop()))
 
         self._startup_done = True
+
+    async def automatic_node_selection(self) -> None:
+        """Use the automatic async feature to find the fastests API"""
+        self.lighthive_client._node_list = await compare_nodes(
+            nodes=self.lighthive_client.nodes, logger=self.lighthive_client.logger
+        )
+        self.lighthive_client.node_list = cycle(self.lighthive_client._node_list)
+        self.lighthive_client.next_node()
+        logging.info(f"Lighthive Fastest: {self.lighthive_client.current_node}")
 
     async def test_hive_resources(self):
         logging.info(
@@ -350,9 +356,7 @@ class PodpingHivewriter(AsyncContext):
         up_time = timedelta(seconds=timer() - self.startup_time)
 
         # self.lighthive_client.set_logger(loglevel=logging.INFO)
-        self.lighthive_client = await get_automatic_node_selection(
-            self.lighthive_client
-        )
+        await self.automatic_node_selection()
         # self.lighthive_client.set_logger(loglevel=logging.WARNING)
         last_node = self.lighthive_client.current_node
         logging.info(

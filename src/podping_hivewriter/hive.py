@@ -1,12 +1,10 @@
 import asyncio
 import logging
-from itertools import cycle
 from typing import Iterable, List, Optional
 
 import beem
 from beemapi.exceptions import NumRetriesReached
 from lighthive.client import Client
-from lighthive.node_picker import compare_nodes
 
 
 def get_client(
@@ -31,17 +29,6 @@ def get_client(
         return client
     except Exception as ex:
         raise ex
-
-
-async def get_automatic_node_selection(client: Client = None) -> Client:
-    """Use the automatic async feature to find the fastests API"""
-    if not client:
-        client = Client()
-    client._node_list = await compare_nodes(nodes=client.nodes, logger=client.logger)
-    client.node_list = cycle(client._node_list)
-    client.next_node()
-    logging.info(f"Lighthive Fastest: {client.current_node}")
-    return client
 
 
 async def get_hive(
