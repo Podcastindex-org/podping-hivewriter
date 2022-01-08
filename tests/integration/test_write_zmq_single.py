@@ -19,12 +19,12 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(240)
+@pytest.mark.timeout(120)
 @pytest.mark.slow
 async def test_write_zmq_single_url(event_loop):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
-    hive = await get_hive(settings_manager._settings.main_nodes)
+    hive = await get_hive()
 
     blockchain = Blockchain(mode="head", blockchain_instance=hive)
     start_block = blockchain.get_current_block_num()
