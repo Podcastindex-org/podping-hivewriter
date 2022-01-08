@@ -10,24 +10,27 @@ homepage = "http://podping.org/"
 repository = "https://github.com/Podcastindex-org/podping-hivewriter"
 keywords = ["hive", "blockchain", "podping", "podcasting20"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Framework :: AsyncIO",
     "Framework :: Pytest",
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
+build = "build.py"
+include = ["src/podping_hivewriter/schema/*.py", "src/podping_hivewriter/schema/*.so"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
 beem = "^0.24"
 pyzmq = "^22.1.0"
 cffi = "^1.14.5"
-pydantic = "^1.8.2"
+pydantic = "^1.9.0"
 single-source = "^0.2.0"
 rfc3987 = "^1.3.8"
 asgiref = "^3.4"
 typer = {extras = ["all"], version = "^0.3.2"}
+capnpy = "^0.9.0"
 
 [tool.poetry.dev-dependencies]
 black = "^21.5b2"
@@ -47,7 +50,7 @@ server = ["pyzmq"]
 podping = "podping_hivewriter.cli.podping:app"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=1.0.0", "capnpy"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.black]

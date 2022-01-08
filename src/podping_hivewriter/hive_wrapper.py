@@ -9,6 +9,7 @@ from asgiref.sync import SyncToAsync
 from podping_hivewriter.async_context import AsyncContext
 from podping_hivewriter.async_wrapper import sync_to_async
 from podping_hivewriter.hive import get_hive
+from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
@@ -93,13 +94,16 @@ class HiveWrapper(AsyncContext):
             logging.debug(f"New Hive Nodes in use: {self._hive}")
 
     async def custom_json(
-        self, operation_id: str, payload: dict, required_posting_auths: List[str]
+        self,
+        hive_operation_id: HiveOperationId,
+        payload: dict,
+        required_posting_auths: List[str],
     ):
         await self.wait_startup()
         async with self._hive_lock:
             # noinspection PyTypeChecker
             return await self._custom_json(
-                id=operation_id,
+                id=str(hive_operation_id),
                 json_data=payload,
                 required_posting_auths=required_posting_auths,
             )

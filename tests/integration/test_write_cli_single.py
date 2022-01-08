@@ -10,6 +10,9 @@ from podping_hivewriter.async_wrapper import sync_to_async
 from podping_hivewriter.cli.podping import app
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
 from podping_hivewriter.hive import get_hive
+from podping_hivewriter.models.hive_operation_id import HiveOperationId
+from podping_hivewriter.models.medium import Medium
+from podping_hivewriter.models.reason import Reason
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
@@ -32,6 +35,11 @@ async def test_write_cli_single_url():
     test_name = "cli_single"
     url = f"https://example.com?t={test_name}&s={session_uuid_str}"
 
+    default_hive_operation_id = HiveOperationId(
+        LIVETEST_OPERATION_ID, Medium.podcast, Reason.update
+    )
+    default_hive_operation_id_str = str(default_hive_operation_id)
+
     def _blockchain_stream(stop_block: int):
         # noinspection PyTypeChecker
         stream = blockchain.stream(
@@ -44,7 +52,9 @@ async def test_write_cli_single_url():
             threading=False,
         )
 
-        for post in (post for post in stream if post["id"] == LIVETEST_OPERATION_ID):
+        for post in (
+            post for post in stream if post["id"] == default_hive_operation_id_str
+        ):
             yield post
 
     get_blockchain_stream = sync_to_async(_blockchain_stream, thread_sensitive=False)

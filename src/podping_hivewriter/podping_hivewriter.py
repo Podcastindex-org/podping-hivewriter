@@ -24,7 +24,11 @@ from podping_hivewriter.constants import (
 )
 from podping_hivewriter.exceptions import PodpingCustomJsonPayloadExceeded
 from podping_hivewriter.hive_wrapper import HiveWrapper
+from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.iri_batch import IRIBatch
+
+from podping_hivewriter.models.medium import Medium
+from podping_hivewriter.models.reason import Reason
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
@@ -352,7 +356,7 @@ class PodpingHivewriter(AsyncContext):
         )
 
     async def send_notification(
-        self, payload: dict, operation_id: Optional[str] = None
+        self, payload: dict, hive_operation_id: HiveOperationId
     ) -> str:
         try:
             size_of_json = size_of_dict_as_json(payload)
@@ -361,7 +365,7 @@ class PodpingHivewriter(AsyncContext):
                     "Max custom_json payload exceeded"
                 )
             tx = await self.hive_wrapper.custom_json(
-                operation_id or self.operation_id, payload, self.required_posting_auths
+                hive_operation_id, payload, self.required_posting_auths
             )
 
             tx_id = tx["trx_id"]
@@ -374,25 +378,40 @@ class PodpingHivewriter(AsyncContext):
             logging.error(f"The provided key for @{self.server_account} is not valid")
             raise
 
-    async def send_notification_iri(self, iri: str, reason="feed_update") -> str:
+    async def send_notification_iri(
+        self,
+        iri: str,
+        medium: Medium = Medium.podcast,
+        reason: Reason = Reason.update,
+    ) -> str:
         payload = {
             "version": CURRENT_PODPING_VERSION,
             "num_urls": 1,
-            "reason": reason,
+            "reason": str(reason),
             "urls": [iri],
         }
-        return await self.send_notification(payload)
 
-    async def send_notification_iris(self, iris: Set[str], reason="feed_update") -> str:
+        hive_operation_id = HiveOperationId(self.operation_id, medium, reason)
+
+        return await self.send_notification(payload, hive_operation_id)
+
+    async def send_notification_iris(
+        self,
+        iris: Set[str],
+        medium: Medium = Medium.podcast,
+        reason: Reason = Reason.update,
+    ) -> str:
         num_iris = len(iris)
         payload = {
             "version": CURRENT_PODPING_VERSION,
             "num_urls": num_iris,
-            "reason": reason,
+            "reason": str(reason),
             "urls": list(iris),
         }
 
-        tx_id = await self.send_notification(payload)
+        hive_operation_id = HiveOperationId(self.operation_id, medium, reason)
+
+        tx_id = await self.send_notification(payload, hive_operation_id)
 
         self.total_iris_sent += num_iris
 
