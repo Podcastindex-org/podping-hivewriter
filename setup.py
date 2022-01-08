@@ -6,7 +6,6 @@ package_dir = {"": "src"}
 packages = [
     "podping_hivewriter",
     "podping_hivewriter.cli",
-    "podping_hivewriter.config",
     "podping_hivewriter.models",
     "podping_hivewriter.schema",
 ]
