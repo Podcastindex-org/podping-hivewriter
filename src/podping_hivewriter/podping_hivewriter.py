@@ -385,7 +385,9 @@ class PodpingHivewriter(AsyncContext):
                     "json": json.dumps(payload),
                 },
             )
-            tx_new = self.lighthive_client.broadcast_sync(op)
+            # Use asynchronous broadcast but means we don't get back tx, kinder to
+            # API servers
+            tx_new = self.lighthive_client.broadcast(op=op, dry_run=self.dry_run)
             tx_id = tx_new.get("id")
             logging.info(f"Lighthive Node: {self.lighthive_client.current_node}")
             logging.info(f"Transaction sent: {tx_id} - JSON size: {size_of_json}")
