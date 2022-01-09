@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import re
 import sys
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -21,7 +22,10 @@ from podping_hivewriter.constants import (
     STARTUP_FAILED_UNKNOWN_EXIT_CODE,
     STARTUP_OPERATION_ID,
 )
-from podping_hivewriter.exceptions import PodpingCustomJsonPayloadExceeded
+from podping_hivewriter.exceptions import (
+    PodpingCustomJsonPayloadExceeded,
+    TooManyCustomJsonsPerBlock,
+)
 from podping_hivewriter.hive import get_client
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.iri_batch import IRIBatch
@@ -376,6 +380,7 @@ class PodpingHivewriter(AsyncContext):
                 raise PodpingCustomJsonPayloadExceeded(
                     "Max custom_json payload exceeded"
                 )
+
             op = Operation(
                 "custom_json",
                 {
@@ -396,7 +401,9 @@ class PodpingHivewriter(AsyncContext):
 
         except RPCNodeException as ex:
             logging.error(f"{ex}")
-            raise
+            if re.match(r"plugin exception.*custom json.*", str(ex)):
+                raise TooManyCustomJsonsPerBlock
+            raise ex
 
         except Exception as ex:
             logging.error(f"{ex}")
