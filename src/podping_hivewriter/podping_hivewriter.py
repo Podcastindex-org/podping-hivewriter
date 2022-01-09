@@ -71,7 +71,7 @@ class PodpingHivewriter(AsyncContext):
         self.status: bool = status
 
         self.lighthive_client = get_client(
-            posting_keys=posting_keys, loglevel=logging.WARNING
+            posting_keys=posting_keys, loglevel=logging.ERROR
         )
 
         self.total_iris_recv = 0
