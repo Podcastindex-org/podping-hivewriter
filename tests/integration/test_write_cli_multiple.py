@@ -2,6 +2,7 @@ import asyncio
 import json
 import uuid
 from random import randint
+from platform import python_version as pv
 
 import pytest
 from beem.blockchain import Blockchain
@@ -36,7 +37,7 @@ async def test_write_cli_multiple_url():
     num_urls = randint(2, 25)
     test_name = "cli_multiple"
     test_urls = {
-        f"https://example.com?t={test_name}&i={i}&s={session_uuid_str}"
+        f"https://example.com?t={test_name}&i={i}&v={pv()}&s={session_uuid_str}"
         for i in range(num_urls)
     }
 

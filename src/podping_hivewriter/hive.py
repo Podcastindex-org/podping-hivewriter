@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import beem
 from beemapi.exceptions import NumRetriesReached
@@ -36,6 +36,20 @@ async def get_hive(
     nobroadcast: Optional[bool] = False,
 ) -> beem.Hive:
     """Used for the test scripts only"""
+    nodes: Tuple[str, ...] = (
+        "https://api.deathwing.me",
+        "https://api.pharesim.me",
+        "https://hived.emre.sh",
+        "https://hive.roelandp.nl",
+        "https://rpc.ausbit.dev",
+        "https://hived.privex.io",
+        "https://hive-api.arcange.eu",
+        "https://rpc.ecency.com",
+        "https://api.hive.blog",
+        "https://api.openhive.network",
+        "https://api.ha.deathwing.me",
+        "https://anyx.io",
+    )
     errors = 0
     while True:
         try:
@@ -43,15 +57,14 @@ async def get_hive(
                 # Beem's expected type for nodes not set correctly
                 # noinspection PyTypeChecker
                 hive = beem.Hive(
+                    node=nodes,
                     keys=posting_keys,
                     nobroadcast=nobroadcast,
                     num_retries=5,
                 )
-
             else:
                 # noinspection PyTypeChecker
-                hive = beem.Hive(nobroadcast=nobroadcast, num_retries=5)
-
+                hive = beem.Hive(node=nodes, nobroadcast=nobroadcast, num_retries=5)
             return hive
 
         except NumRetriesReached:

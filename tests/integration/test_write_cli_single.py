@@ -1,6 +1,7 @@
 import asyncio
 import json
 import uuid
+from platform import python_version as pv
 
 import pytest
 from beem.blockchain import Blockchain
@@ -33,7 +34,7 @@ async def test_write_cli_single_url():
     session_uuid_str = str(session_uuid)
 
     test_name = "cli_single"
-    url = f"https://example.com?t={test_name}&s={session_uuid_str}"
+    url = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
 
     default_hive_operation_id = HiveOperationId(
         LIVETEST_OPERATION_ID, Medium.podcast, Reason.update

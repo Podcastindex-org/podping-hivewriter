@@ -3,6 +3,7 @@ import json
 import os
 import uuid
 from random import randint
+from platform import python_version as pv
 
 import pytest
 import zmq
@@ -36,7 +37,7 @@ async def test_write_zmq_multiple_url(event_loop):
     num_urls = randint(2, 25)
     test_name = "zmq_multiple"
     test_urls = {
-        f"https://example.com?t={test_name}&i={i}&s={session_uuid_str}"
+        f"https://example.com?t={test_name}&i={i}&v={pv()}&s={session_uuid_str}"
         for i in range(num_urls)
     }
 

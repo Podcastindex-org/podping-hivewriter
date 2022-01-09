@@ -2,6 +2,7 @@ import asyncio
 import json
 from timeit import default_timer as timer
 import uuid
+from platform import python_version as pv
 
 import pytest
 from beem.blockchain import Blockchain
@@ -76,7 +77,7 @@ async def test_write_cli_single_url():
     urls = []
     for n in range(6):
         test_name = f"cli_simulcast_{n}"
-        url = f"https://example.com?t={test_name}&s={session_uuid_str}"
+        url = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
         args = [
             "--livetest",
             "--no-sanity-check",
