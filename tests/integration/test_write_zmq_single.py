@@ -36,7 +36,7 @@ async def test_write_zmq_single_url(event_loop):
     url = f"https://example.com?t={test_name}&s={session_uuid_str}"
 
     default_hive_operation_id = HiveOperationId(
-        LIVETEST_OPERATION_ID, Medium.podcast, Reason.feed_update
+        LIVETEST_OPERATION_ID, Medium.podcast, Reason.update
     )
     default_hive_operation_id_str = str(default_hive_operation_id)
 

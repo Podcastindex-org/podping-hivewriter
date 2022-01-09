@@ -7,7 +7,7 @@ class HiveOperationId:
         self,
         podping: str,
         medium: Medium = Medium.podcast,
-        reason: Reason = Reason.feed_update,
+        reason: Reason = Reason.update,
     ):
         self.podping: str = podping
         self.medium: Medium = medium
