@@ -88,7 +88,7 @@ async def test_write_cli_single_simulcast():
     await asyncio.sleep(op_period * 25)
 
     answer_urls = set()
-    async for stream_url in get_url_from_blockchain(current_block):
+    async for stream_url in get_url_from_blockchain(current_block - 5):
         answer_urls.add(stream_url)
 
         # If we're done, end early

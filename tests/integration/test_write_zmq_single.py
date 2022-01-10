@@ -78,7 +78,7 @@ async def test_write_zmq_single_url(event_loop):
 
     url_found = False
 
-    async for stream_url in get_url_from_blockchain(current_block):
+    async for stream_url in get_url_from_blockchain(current_block - 5):
         if stream_url == url:
             url_found = True
             break
