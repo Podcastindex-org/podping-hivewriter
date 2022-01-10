@@ -50,7 +50,10 @@ async def test_write_cli_single_simulcast():
         ):
             data = json.loads(post["op"][1]["json"])
             if "urls" in data and len(data["urls"]) == 1:
-                yield data["urls"][0]
+                u = data["urls"][0]
+                # Only look for URLs from current session
+                if u.endswith(session_uuid_str):
+                    yield u
 
     # Ensure hive env vars are set from .env.test file or this will fail
 
