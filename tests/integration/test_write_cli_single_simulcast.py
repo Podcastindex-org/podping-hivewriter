@@ -62,7 +62,7 @@ async def test_write_cli_single_simulcast():
     tasks = []
     test_urls = {
         f"https://example.com?t=cli_simulcast_{n}&v={python_version}&s={session_uuid_str}"
-        for n in range(11)
+        for n in range(6)
     }
     for url in test_urls:
         args = [
