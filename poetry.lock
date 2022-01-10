@@ -348,7 +348,7 @@ plugins = ["setuptools"]
 
 [[package]]
 name = "lighthive"
-version = "0.3.0"
+version = "0.3.1"
 description = "A light python client to interact with the HIVE blockchain"
 category = "main"
 optional = false
@@ -1050,7 +1050,7 @@ isort = [
     {file = "isort-5.10.1.tar.gz", hash = "sha256:e8443a5e7a020e9d7f97f1d7d9cd17c88bcb3bc7e218bf9cf5095fe550be2951"},
 ]
 lighthive = [
-    {file = "lighthive-0.3.0.tar.gz", hash = "sha256:816bcd83e0351a12b9a62c9eb9e6f40290dcf71b3726ec0a411f278e64f8606b"},
+    {file = "lighthive-0.3.1.tar.gz", hash = "sha256:161fdae5fed38ba79f13b8438fd1e04379f19fd580c1976164c030b3d5569ecd"},
 ]
 mccabe = [
     {file = "mccabe-0.6.1-py2.py3-none-any.whl", hash = "sha256:ab8a6258860da4b6677da4bd2fe5dc2c659cff31b3ee4f7f5d64e79735b80d42"},
