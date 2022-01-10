@@ -1,9 +1,6 @@
-import asyncio
 import logging
-from typing import List, Optional, Tuple
+from typing import List, Optional, Set
 
-import beem
-from beemapi.exceptions import NumRetriesReached
 from lighthive.client import Client
 
 
@@ -31,50 +28,14 @@ def get_client(
         raise ex
 
 
-async def get_hive(
-    posting_keys: Optional[List[str]] = None,
-    nobroadcast: Optional[bool] = False,
-) -> beem.Hive:
-    """Used for the test scripts only"""
-    nodes: Tuple[str, ...] = (
-        "https://api.deathwing.me",
-        "https://api.pharesim.me",
-        "https://hived.emre.sh",
-        "https://hive.roelandp.nl",
-        "https://rpc.ausbit.dev",
-        "https://hived.privex.io",
-        "https://hive-api.arcange.eu",
-        "https://rpc.ecency.com",
-        "https://api.hive.blog",
-        "https://api.openhive.network",
-        "https://api.ha.deathwing.me",
-        "https://anyx.io",
-    )
-    errors = 0
-    while True:
-        try:
-            if posting_keys:
-                # Beem's expected type for nodes not set correctly
-                # noinspection PyTypeChecker
-                hive = beem.Hive(
-                    node=nodes,
-                    keys=posting_keys,
-                    nobroadcast=nobroadcast,
-                    num_retries=5,
-                )
-            else:
-                # noinspection PyTypeChecker
-                hive = beem.Hive(node=nodes, nobroadcast=nobroadcast, num_retries=5)
-            return hive
+def get_allowed_accounts(
+    client: Client = None, account_name: str = "podping"
+) -> Set[str]:
+    """get a list of all accounts allowed to post by acc_name (podping)
+    and only react to these accounts"""
 
-        except NumRetriesReached:
-            logging.warning(
-                f"Unable to connect to Hive API | "
-                f"Internet connection down? | Failures: {errors}"
-            )
-            await asyncio.sleep(5 + errors * 2)
-            errors += 1
+    if not client:
+        client = Client()
 
-        except Exception as ex:
-            logging.error(f"{ex}")
-            raise
+    master_account = client.account(account_name)
+    return set(master_account.following())
