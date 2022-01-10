@@ -406,6 +406,7 @@ class PodpingHivewriter(AsyncContext):
         except RPCNodeException as ex:
             logging.error(f"{ex}")
             if re.match(r"plugin exception.*custom json.*", str(ex)):
+                self.lighthive_client.next_node()
                 raise TooManyCustomJsonsPerBlock()
             raise ex
 
