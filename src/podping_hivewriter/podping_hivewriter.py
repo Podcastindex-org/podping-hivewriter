@@ -10,12 +10,12 @@ from timeit import default_timer as timer
 from typing import List, Set, Tuple
 
 import rfc3987
-from lighthive.client import Client
 from lighthive.datastructures import Operation
 from lighthive.exceptions import RPCNodeException
 from lighthive.node_picker import compare_nodes
 
 from podping_hivewriter.async_context import AsyncContext
+from podping_hivewriter.async_wrapper import sync_to_async
 from podping_hivewriter.constants import (
     CURRENT_PODPING_VERSION,
     HIVE_CUSTOM_OP_DATA_MAX_LENGTH,
@@ -26,7 +26,7 @@ from podping_hivewriter.exceptions import (
     PodpingCustomJsonPayloadExceeded,
     TooManyCustomJsonsPerBlock,
 )
-from podping_hivewriter.hive import get_client
+from podping_hivewriter.hive import get_client, get_allowed_accounts
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.iri_batch import IRIBatch
 from podping_hivewriter.models.medium import Medium
@@ -72,6 +72,10 @@ class PodpingHivewriter(AsyncContext):
 
         self.lighthive_client = get_client(
             posting_keys=posting_keys, loglevel=logging.ERROR
+        )
+
+        self._async_hive_broadcast = sync_to_async(
+            self.lighthive_client.broadcast, thread_sensitive=False
         )
 
         self.total_iris_recv = 0
@@ -132,7 +136,7 @@ class PodpingHivewriter(AsyncContext):
         self._startup_done = True
 
     async def automatic_node_selection(self) -> None:
-        """Use the automatic async feature to find the fastests API"""
+        """Use the automatic async feature to find the fastest API"""
         self.lighthive_client._node_list = await compare_nodes(
             nodes=self.lighthive_client.nodes, logger=self.lighthive_client.logger
         )
@@ -392,7 +396,7 @@ class PodpingHivewriter(AsyncContext):
             )
             # Use asynchronous broadcast but means we don't get back tx, kinder to
             # API servers
-            tx_new = self.lighthive_client.broadcast(op=op, dry_run=self.dry_run)
+            tx_new = await self._async_hive_broadcast(op=op, dry_run=self.dry_run)
             tx_id = tx_new.get("id")
             logging.info(f"Lighthive Node: {self.lighthive_client.current_node}")
             logging.info(f"Transaction sent: {tx_id} - JSON size: {size_of_json}")
@@ -402,7 +406,7 @@ class PodpingHivewriter(AsyncContext):
         except RPCNodeException as ex:
             logging.error(f"{ex}")
             if re.match(r"plugin exception.*custom json.*", str(ex)):
-                raise TooManyCustomJsonsPerBlock
+                raise TooManyCustomJsonsPerBlock()
             raise ex
 
         except Exception as ex:
@@ -454,7 +458,7 @@ class PodpingHivewriter(AsyncContext):
 
         while True:
             # Sleep a maximum of 5 minutes, 2 additional seconds for every retry
-            sleep_time = min(failure_count * 2, 300)
+            sleep_time = min(failure_count * 3, 300)
             if failure_count > 0:
                 logging.warning(f"Waiting {sleep_time}s before retry")
                 await asyncio.sleep(sleep_time)
@@ -479,16 +483,3 @@ class PodpingHivewriter(AsyncContext):
                         logging.debug(iri)
                 self.lighthive_client.next_node()
                 failure_count += 1
-
-
-def get_allowed_accounts(
-    client: Client = None, account_name: str = "podping"
-) -> Set[str]:
-    """get a list of all accounts allowed to post by acc_name (podping)
-    and only react to these accounts"""
-
-    if not client:
-        client = Client()
-
-    master_account = client.account(account_name)
-    return set(master_account.following())
