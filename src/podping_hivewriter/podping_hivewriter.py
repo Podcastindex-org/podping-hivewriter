@@ -478,6 +478,8 @@ class PodpingHivewriter(AsyncContext):
                 return trx_id, failure_count
             except Exception as ex:
                 logging.warning(f"Failed to send {len(iri_set)} IRIs")
+                for iri in iri_set:
+                    logging.warning(iri)
                 logging.error(f"{ex}")
                 if logging.DEBUG >= logging.root.level:
                     for iri in iri_set:
