@@ -197,20 +197,6 @@ class PodpingHivewriter(AsyncContext):
 
             logging.info("Startup of Podping status: SUCCESS! Hit the BOOST Button.")
 
-        # except MissingKeyError:
-        #     logging.error(
-        #         "Startup of Podping status: FAILED!  Invalid posting key",
-        #         exc_info=True,
-        #     )
-        #     logging.error("Exiting")
-        #     sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
-        # except UnhandledRPCError:
-        #     logging.error(
-        #         "Startup of Podping status: FAILED!  API error",
-        #         exc_info=True,
-        #     )
-        #     logging.info("Exiting")
-        #     sys.exit(STARTUP_FAILED_HIVE_API_ERROR_EXIT_CODE)
         except Exception:
             logging.error(
                 "Startup of Podping status: FAILED!  Unknown error",
@@ -362,10 +348,7 @@ class PodpingHivewriter(AsyncContext):
         """Output the name of the current hive node
         on a regular basis"""
         up_time = timedelta(seconds=timer() - self.startup_time)
-
-        # self.lighthive_client.set_logger(loglevel=logging.INFO)
         await self.automatic_node_selection()
-        # self.lighthive_client.set_logger(loglevel=logging.WARNING)
         last_node = self.lighthive_client.current_node
         logging.info(
             f"Status - Uptime: {up_time} - "
