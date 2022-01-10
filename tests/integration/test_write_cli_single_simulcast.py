@@ -22,7 +22,8 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 @pytest.mark.timeout(180)
 @pytest.mark.slow
 async def test_write_cli_single_simulcast():
-    """This test forces 11 separate posts to ensure we retry after exceeding the limit # of posts per block (5)"""
+    """This test forces 11 separate posts to ensure we retry after exceeding the
+    limit of posts per block (5)"""
     runner = CliRunner()
     start = timer()
     settings_manager = PodpingSettingsManager(ignore_updates=True)
