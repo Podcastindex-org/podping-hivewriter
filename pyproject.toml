@@ -5,7 +5,7 @@ license = "MIT"
 authors = ["Alecks Gates <alecks@podping.org>", "Brian of London <brian@podping.org>"]
 maintainers = ["Alecks Gates <alecks@podping.org>", "Brian of London <brian@podping.org>"]
 readme = "README.md"
-description = "This is a tool used to submit RFC 3987-compliant International Resource Identifiers as a [Podping](http://podping.org/) notification on the Hive blockchain."
+description = "This is a tool used to submit RFC 3987-compliant International Resource Identifiers as a Podping notification on the Hive blockchain."
 homepage = "http://podping.org/"
 repository = "https://github.com/Podcastindex-org/podping-hivewriter"
 keywords = ["hive", "blockchain", "podping", "podcasting20"]
@@ -22,7 +22,6 @@ include = ["src/podping_hivewriter/schema/*.py", "src/podping_hivewriter/schema/
 
 [tool.poetry.dependencies]
 python = "^3.7"
-beem = "^0.24"
 pyzmq = "^22.1.0"
 cffi = "^1.14.5"
 pydantic = "^1.9.0"
@@ -32,7 +31,6 @@ asgiref = "^3.4"
 typer = {extras = ["all"], version = "^0.3.2"}
 capnpy = "^0.9.0"
 lighthive = "^0.3.0"
-nest-asyncio = "^1.5.4"
 
 [tool.poetry.dev-dependencies]
 black = "^21.5b2"
