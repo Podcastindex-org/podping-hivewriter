@@ -458,7 +458,7 @@ class PodpingHivewriter(AsyncContext):
 
         while True:
             # Sleep a maximum of 5 minutes, 2 additional seconds for every retry
-            sleep_time = min(failure_count * 2, 300)
+            sleep_time = min(failure_count * 3, 300)
             if failure_count > 0:
                 logging.warning(f"Waiting {sleep_time}s before retry")
                 await asyncio.sleep(sleep_time)
