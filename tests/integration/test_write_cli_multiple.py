@@ -19,7 +19,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(120)
+@pytest.mark.timeout(180)
 @pytest.mark.slow
 async def test_write_cli_multiple_url():
     runner = CliRunner()

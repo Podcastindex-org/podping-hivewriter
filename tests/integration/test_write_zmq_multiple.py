@@ -21,7 +21,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(120)
+@pytest.mark.timeout(180)
 @pytest.mark.slow
 async def test_write_zmq_multiple_url(event_loop):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
