@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from timeit import default_timer as timer
-from typing import Tuple
 
 from podping_hivewriter.async_context import AsyncContext
 from podping_hivewriter.models.podping_settings import PodpingSettings
@@ -41,9 +40,8 @@ class PodpingSettingsManager(AsyncContext):
 
     async def update_podping_settings(self) -> None:
         try:
-            nodes = await self.get_nodes()
             podping_settings = await get_podping_settings(
-                nodes, self._settings.control_account
+                self._settings.control_account
             )
             self.last_update_time = timer()
         except ValidationError as e:
@@ -59,7 +57,3 @@ class PodpingSettingsManager(AsyncContext):
     async def get_settings(self) -> PodpingSettings:
         async with self._settings_lock:
             return self._settings
-
-    async def get_nodes(self) -> Tuple[str, ...]:
-        settings = await self.get_settings()
-        return settings.main_nodes

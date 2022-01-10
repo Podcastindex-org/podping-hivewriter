@@ -1,5 +1,6 @@
 import asyncio
 import json
+from timeit import default_timer as timer
 import uuid
 from platform import python_version as pv
 
@@ -20,9 +21,11 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 @pytest.mark.asyncio
 @pytest.mark.timeout(180)
 @pytest.mark.slow
-async def test_write_cli_single_url():
+async def test_write_cli_single_simulcast():
+    """This test forces 11 separate posts to ensure we retry after exceeding the
+    limit of posts per block (5)"""
     runner = CliRunner()
-
+    start = timer()
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
     client = Client()
@@ -30,13 +33,15 @@ async def test_write_cli_single_url():
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)
 
-    test_name = "cli_single"
-    url = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
-
     default_hive_operation_id = HiveOperationId(
         LIVETEST_OPERATION_ID, Medium.podcast, Reason.update
     )
     default_hive_operation_id_str = str(default_hive_operation_id)
+
+    async def _run_cli_once(_app, _args):
+        print(f"Timer: {timer()-start}")
+        result = runner.invoke(_app, _args)
+        return result
 
     async def get_url_from_blockchain(start_block: int):
         event_listener = EventListener(client, "head", start_block=start_block)
@@ -46,27 +51,54 @@ async def test_write_cli_single_url():
         ):
             data = json.loads(post["op"][1]["json"])
             if "urls" in data and len(data["urls"]) == 1:
-                yield data["urls"][0]
+                u = data["urls"][0]
+                # Only look for URLs from current session
+                if u.endswith(session_uuid_str):
+                    yield u
 
-    args = ["--livetest", "--no-sanity-check", "--ignore-config-updates", "write", url]
+    # Ensure hive env vars are set from .env.test file or this will fail
+
+    python_version = pv()
+    tasks = []
+    test_urls = {
+        f"https://example.com?t=cli_simulcast_{n}&v={python_version}&s={session_uuid_str}"
+        for n in range(6)
+    }
+    for url in test_urls:
+        args = [
+            "--livetest",
+            "--no-sanity-check",
+            "--ignore-config-updates",
+            "--debug",
+            "write",
+            url,
+        ]
+        tasks.append(_run_cli_once(app, args))
 
     current_block = client.get_dynamic_global_properties()["head_block_number"]
 
-    # Ensure hive env vars are set from .env.test file or this will fail
-    result = runner.invoke(app, args)
+    results = await asyncio.gather(*tasks)
 
-    assert result.exit_code == 0
+    all_ok = all(r.exit_code == 0 for r in results)
+    assert all_ok
 
     op_period = settings_manager._settings.hive_operation_period
 
     # Sleep to catch up because beem isn't async and blocks
     await asyncio.sleep(op_period * 25)
 
-    url_found = False
-
+    answer_urls = set()
     async for stream_url in get_url_from_blockchain(current_block - 5):
-        if stream_url == url:
-            url_found = True
+        answer_urls.add(stream_url)
+
+        # If we're done, end early
+        if len(answer_urls) == len(test_urls):
             break
 
-    assert url_found
+    assert answer_urls == test_urls
+
+
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    coro = test_write_cli_single_simulcast()
+    loop.run_until_complete(coro)

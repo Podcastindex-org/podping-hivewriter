@@ -2,15 +2,16 @@ import asyncio
 import json
 import uuid
 from random import randint
+from platform import python_version as pv
 
 import pytest
-from beem.blockchain import Blockchain
+from lighthive.client import Client
+from lighthive.helpers.event_listener import EventListener
 from typer.testing import CliRunner
 
 from podping_hivewriter.async_wrapper import sync_to_async
 from podping_hivewriter.cli.podping import app
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
-from podping_hivewriter.hive import get_hive
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.medium import Medium
 from podping_hivewriter.models.reason import Reason
@@ -18,25 +19,23 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(120)
+@pytest.mark.timeout(180)
 @pytest.mark.slow
 async def test_write_cli_multiple_url():
     runner = CliRunner()
 
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
-    hive = await get_hive(settings_manager._settings.main_nodes)
-
-    blockchain = Blockchain(mode="head", blockchain_instance=hive)
-    start_block = blockchain.get_current_block_num()
+    client = Client()
 
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)
 
     num_urls = randint(2, 25)
     test_name = "cli_multiple"
+    python_version = pv()
     test_urls = {
-        f"https://example.com?t={test_name}&i={i}&s={session_uuid_str}"
+        f"https://example.com?t={test_name}&i={i}&v={python_version}&s={session_uuid_str}"
         for i in range(num_urls)
     }
 
@@ -45,30 +44,13 @@ async def test_write_cli_multiple_url():
     )
     default_hive_operation_id_str = str(default_hive_operation_id)
 
-    def _blockchain_stream(stop_block: int):
-        # noinspection PyTypeChecker
-        stream = blockchain.stream(
-            opNames=["custom_json"],
-            start=start_block,
-            stop=stop_block,
-            max_batch_size=None,
-            raw_ops=False,
-            only_ops=True,
-            threading=False,
-        )
-
-        for post in (
-            post for post in stream if post["id"] == default_hive_operation_id_str
+    async def get_url_from_blockchain(start_block: int):
+        event_listener = EventListener(client, "head", start_block=start_block)
+        _on = sync_to_async(event_listener.on, thread_sensitive=False)
+        async for post in _on(
+            "custom_json", filter_by={"id": default_hive_operation_id_str}
         ):
-            yield post
-
-    get_blockchain_stream = sync_to_async(_blockchain_stream, thread_sensitive=False)
-
-    async def get_url_from_blockchain(stop_block: int):
-        stream = get_blockchain_stream(stop_block)
-
-        async for post in stream:
-            data = json.loads(post["json"])
+            data = json.loads(post["op"][1]["json"])
             if "urls" in data:
                 for u in data["urls"]:
                     # Only look for URLs from current session
@@ -82,6 +64,9 @@ async def test_write_cli_multiple_url():
         "write",
         *test_urls,
     ]
+
+    current_block = client.get_dynamic_global_properties()["head_block_number"]
+
     # Ensure hive env vars are set from .env.test file or this will fail
     result = runner.invoke(app, args)
 
@@ -92,10 +77,8 @@ async def test_write_cli_multiple_url():
     # Sleep to catch up because beem isn't async and blocks
     await asyncio.sleep(op_period * 30)
 
-    end_block = blockchain.get_current_block_num()
-
     answer_urls = set()
-    async for stream_url in get_url_from_blockchain(end_block):
+    async for stream_url in get_url_from_blockchain(current_block - 5):
         answer_urls.add(stream_url)
 
         # If we're done, end early

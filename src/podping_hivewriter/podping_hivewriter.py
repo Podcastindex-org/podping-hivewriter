@@ -1,32 +1,34 @@
 import asyncio
 import json
 import logging
+import re
 import sys
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
+from itertools import cycle
 from timeit import default_timer as timer
-from typing import Optional, Set, Tuple, List
+from typing import List, Set, Tuple
 
-import beem
 import rfc3987
-from beem.account import Account
-from beem.exceptions import AccountDoesNotExistsException, MissingKeyError
-from beemapi.exceptions import UnhandledRPCError
+from lighthive.datastructures import Operation
+from lighthive.exceptions import RPCNodeException
+from lighthive.node_picker import compare_nodes
 
 from podping_hivewriter.async_context import AsyncContext
+from podping_hivewriter.async_wrapper import sync_to_async
 from podping_hivewriter.constants import (
-    STARTUP_FAILED_HIVE_API_ERROR_EXIT_CODE,
-    STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE,
-    STARTUP_FAILED_UNKNOWN_EXIT_CODE,
-    STARTUP_OPERATION_ID,
     CURRENT_PODPING_VERSION,
     HIVE_CUSTOM_OP_DATA_MAX_LENGTH,
+    STARTUP_FAILED_UNKNOWN_EXIT_CODE,
+    STARTUP_OPERATION_ID,
 )
-from podping_hivewriter.exceptions import PodpingCustomJsonPayloadExceeded
-from podping_hivewriter.hive_wrapper import HiveWrapper
+from podping_hivewriter.exceptions import (
+    PodpingCustomJsonPayloadExceeded,
+    TooManyCustomJsonsPerBlock,
+)
+from podping_hivewriter.hive import get_client, get_allowed_accounts
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.iri_batch import IRIBatch
-
 from podping_hivewriter.models.medium import Medium
 from podping_hivewriter.models.reason import Reason
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
@@ -48,7 +50,7 @@ class PodpingHivewriter(AsyncContext):
         settings_manager: PodpingSettingsManager,
         listen_ip: str = "127.0.0.1",
         listen_port: int = 9999,
-        operation_id="podping",
+        operation_id="pp",
         resource_test=True,
         dry_run=False,
         daemon=True,
@@ -68,8 +70,12 @@ class PodpingHivewriter(AsyncContext):
         self.daemon: bool = daemon
         self.status: bool = status
 
-        self.hive_wrapper = HiveWrapper(
-            posting_keys, settings_manager, dry_run=dry_run, daemon=daemon
+        self.lighthive_client = get_client(
+            posting_keys=posting_keys, loglevel=logging.ERROR
+        )
+
+        self._async_hive_broadcast = sync_to_async(
+            self.lighthive_client.broadcast, thread_sensitive=False
         )
 
         self.total_iris_recv = 0
@@ -91,32 +97,32 @@ class PodpingHivewriter(AsyncContext):
     async def _startup(self):
 
         try:
-            hive = await self.hive_wrapper.get_hive()
-            account = Account(self.server_account, blockchain_instance=hive, lazy=True)
             settings = await self.settings_manager.get_settings()
-
             allowed = get_allowed_accounts(
-                settings.main_nodes, settings.control_account
+                self.lighthive_client, settings.control_account
             )
+            # Check the account exists
+            self.lighthive_client.account(self.server_account)
             # TODO: Should we periodically check if the account is allowed
             #  and shut down if not?
             if self.server_account not in allowed:
                 logging.error(
                     f"Account @{self.server_account} not authorised to send Podpings"
                 )
-        except AccountDoesNotExistsException:
+        except ValueError as ex:
             logging.error(
                 f"Hive account @{self.server_account} does not exist, "
                 f"check ENV vars and try again",
                 exc_info=True,
             )
-            raise
-        except Exception:
-            logging.error("Unknown error occurred", exc_info=True)
-            raise
+            raise ex
+        except Exception as ex:
+            logging.error(f"Unknown error occurred: {ex}", exc_info=True)
+            raise ex
 
         if self.resource_test and not self.dry_run:
-            await self.test_hive_resources(account, hive)
+            await self.test_hive_resources()
+            await self.automatic_node_selection()
 
         logging.info(f"Hive account: @{self.server_account}")
 
@@ -129,7 +135,16 @@ class PodpingHivewriter(AsyncContext):
 
         self._startup_done = True
 
-    async def test_hive_resources(self, account, hive):
+    async def automatic_node_selection(self) -> None:
+        """Use the automatic async feature to find the fastest API"""
+        self.lighthive_client._node_list = await compare_nodes(
+            nodes=self.lighthive_client.nodes, logger=self.lighthive_client.logger
+        )
+        self.lighthive_client.node_list = cycle(self.lighthive_client._node_list)
+        self.lighthive_client.next_node()
+        logging.info(f"Lighthive Fastest: {self.lighthive_client.current_node}")
+
+    async def test_hive_resources(self):
         logging.info(
             "Podping startup sequence initiated, please stand by, "
             "full bozo checks in operation..."
@@ -137,10 +152,12 @@ class PodpingHivewriter(AsyncContext):
 
         # noinspection PyBroadException
         try:  # Now post two custom json to test.
-            manabar = account.get_rc_manabar()
+            account = self.lighthive_client.account(self.server_account)
+            manabar = account.get_resource_credit_info()
+
             logging.info(
                 f"Testing Account Resource Credits"
-                f' - before {manabar.get("current_pct"):.2f}%'
+                f' - before {manabar.get("last_mana_percent"):.2f}%'
             )
 
             # TODO: See if anything depends on USE_TEST_NODE before removal
@@ -149,18 +166,20 @@ class PodpingHivewriter(AsyncContext):
                 "USE_TEST_NODE": False,
                 "message": "Podping startup initiated",
                 "uuid": str(uuid.uuid4()),
-                "hive": repr(hive),
+                "hive": str(self.lighthive_client.current_node),
             }
 
             await self.send_notification(custom_json, STARTUP_OPERATION_ID)
-
-            logging.info("Testing Account Resource Credits.... 5s")
             settings = await self.settings_manager.get_settings()
+            logging.info(
+                f"Testing Account Resource Credits {settings.hive_operation_period}s"
+            )
             await asyncio.sleep(settings.hive_operation_period)
-            manabar_after = account.get_rc_manabar()
+
+            manabar_after = account.get_resource_credit_info()
             logging.info(
                 f"Testing Account Resource Credits"
-                f' - after {manabar_after.get("current_pct"):.2f}%'
+                f' - after {manabar_after.get("last_mana_percent"):.2f}%'
             )
             cost = manabar.get("current_mana") - manabar_after.get("current_mana")
             if cost == 0:  # skip this test if we're going to get ZeroDivision
@@ -172,27 +191,13 @@ class PodpingHivewriter(AsyncContext):
             custom_json["v"] = CURRENT_PODPING_VERSION
             custom_json["capacity"] = f"{capacity:.1f}"
             custom_json["message"] = "Podping startup complete"
-            custom_json["hive"] = repr(hive)
+            custom_json["hive"] = str(self.lighthive_client.current_node)
 
             await self.send_notification(custom_json, STARTUP_OPERATION_ID)
 
             logging.info("Startup of Podping status: SUCCESS! Hit the BOOST Button.")
 
-        except MissingKeyError as _:
-            logging.error(
-                "Startup of Podping status: FAILED!  Invalid posting key",
-                exc_info=True,
-            )
-            logging.error("Exiting")
-            sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
-        except UnhandledRPCError as _:
-            logging.error(
-                "Startup of Podping status: FAILED!  API error",
-                exc_info=True,
-            )
-            logging.info("Exiting")
-            sys.exit(STARTUP_FAILED_HIVE_API_ERROR_EXIT_CODE)
-        except Exception as _:
+        except Exception:
             logging.error(
                 "Startup of Podping status: FAILED!  Unknown error",
                 exc_info=True,
@@ -230,8 +235,7 @@ class PodpingHivewriter(AsyncContext):
                 async with self._iris_in_flight_lock:
                     self._iris_in_flight -= len(iri_batch.iri_set)
 
-                hive = await self.hive_wrapper.get_hive()
-                last_node = hive.data["last_node"]
+                last_node = self.lighthive_client.current_node
                 logging.info(
                     f"Batch send time: {duration:0.2f} - trx_id: {trx_id} - "
                     f"Failures: {failure_count} - IRI batch_id {iri_batch.batch_id} - "
@@ -344,9 +348,8 @@ class PodpingHivewriter(AsyncContext):
         """Output the name of the current hive node
         on a regular basis"""
         up_time = timedelta(seconds=timer() - self.startup_time)
-
-        hive = await self.hive_wrapper.get_hive()
-        last_node = hive.data["last_node"]
+        await self.automatic_node_selection()
+        last_node = self.lighthive_client.current_node
         logging.info(
             f"Status - Uptime: {up_time} - "
             f"IRIs Received: {self.total_iris_recv} - "
@@ -364,18 +367,34 @@ class PodpingHivewriter(AsyncContext):
                 raise PodpingCustomJsonPayloadExceeded(
                     "Max custom_json payload exceeded"
                 )
-            tx = await self.hive_wrapper.custom_json(
-                hive_operation_id, payload, self.required_posting_auths
+
+            op = Operation(
+                "custom_json",
+                {
+                    "required_auths": [],
+                    "required_posting_auths": self.required_posting_auths,
+                    "id": str(hive_operation_id),
+                    "json": json.dumps(payload),
+                },
             )
-
-            tx_id = tx["trx_id"]
-
+            # Use asynchronous broadcast but means we don't get back tx, kinder to
+            # API servers
+            tx_new = await self._async_hive_broadcast(op=op, dry_run=self.dry_run)
+            tx_id = tx_new.get("id")
+            logging.info(f"Lighthive Node: {self.lighthive_client.current_node}")
             logging.info(f"Transaction sent: {tx_id} - JSON size: {size_of_json}")
 
             return tx_id
 
-        except MissingKeyError:
-            logging.error(f"The provided key for @{self.server_account} is not valid")
+        except RPCNodeException as ex:
+            logging.error(f"{ex}")
+            if re.match(r"plugin exception.*custom json.*", str(ex)):
+                self.lighthive_client.next_node()
+                raise TooManyCustomJsonsPerBlock()
+            raise ex
+
+        except Exception as ex:
+            logging.error(f"{ex}")
             raise
 
     async def send_notification_iri(
@@ -423,7 +442,7 @@ class PodpingHivewriter(AsyncContext):
 
         while True:
             # Sleep a maximum of 5 minutes, 2 additional seconds for every retry
-            sleep_time = min(failure_count * 2, 300)
+            sleep_time = min(failure_count * 3, 300)
             if failure_count > 0:
                 logging.warning(f"Waiting {sleep_time}s before retry")
                 await asyncio.sleep(sleep_time)
@@ -440,28 +459,13 @@ class PodpingHivewriter(AsyncContext):
                         f"FAILURE CLEARED after {failure_count} retries, {sleep_time}s"
                     )
                 return trx_id, failure_count
-            except Exception:
+            except Exception as ex:
                 logging.warning(f"Failed to send {len(iri_set)} IRIs")
+                for iri in iri_set:
+                    logging.warning(iri)
+                logging.error(f"{ex}")
                 if logging.DEBUG >= logging.root.level:
                     for iri in iri_set:
                         logging.debug(iri)
-                await self.hive_wrapper.rotate_nodes()
-
+                self.lighthive_client.next_node()
                 failure_count += 1
-
-
-def get_allowed_accounts(
-    nodes: Tuple[str, ...], account_name: str = "podping"
-) -> Set[str]:
-    """get a list of all accounts allowed to post by acc_name (podping)
-    and only react to these accounts"""
-
-    try:
-        hive = beem.Hive(node=nodes)
-        master_account = Account(account_name, blockchain_instance=hive, lazy=True)
-        return set(master_account.get_following())
-    except Exception:
-        logging.error(
-            f"Allowed Account: {account_name} - Failure on Node: {nodes[0]}",
-            exc_info=True,
-        )
