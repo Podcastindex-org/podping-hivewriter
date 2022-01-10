@@ -5,13 +5,13 @@ import uuid
 from platform import python_version as pv
 
 import pytest
-from beem.blockchain import Blockchain
+from lighthive.client import Client
+from lighthive.helpers.event_listener import EventListener
 from typer.testing import CliRunner
 
 from podping_hivewriter.async_wrapper import sync_to_async
 from podping_hivewriter.cli.podping import app
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
-from podping_hivewriter.hive import get_hive
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.medium import Medium
 from podping_hivewriter.models.reason import Reason
@@ -21,15 +21,13 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 @pytest.mark.asyncio
 @pytest.mark.timeout(180)
 @pytest.mark.slow
-async def test_write_cli_single_url():
+async def test_write_cli_single_simulcast():
+    """This test forces 11 separate posts to ensure we retry after exceeding the limit # of posts per block (5)"""
     runner = CliRunner()
     start = timer()
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
-    hive = await get_hive()
-
-    blockchain = Blockchain(mode="head", blockchain_instance=hive)
-    start_block = blockchain.get_current_block_num()
+    client = Client()
 
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)
@@ -39,45 +37,30 @@ async def test_write_cli_single_url():
     )
     default_hive_operation_id_str = str(default_hive_operation_id)
 
-    def _blockchain_stream(stop_block: int):
-        # noinspection PyTypeChecker
-        stream = blockchain.stream(
-            opNames=["custom_json"],
-            start=start_block,
-            stop=stop_block,
-            max_batch_size=None,
-            raw_ops=False,
-            only_ops=True,
-            threading=False,
-        )
-
-        for post in (
-            post for post in stream if post["id"] == default_hive_operation_id_str
-        ):
-            yield post
-
-    async def _run_cli_once(app, args):
+    async def _run_cli_once(_app, _args):
         print(f"Timer: {timer()-start}")
-        result = runner.invoke(app, args)
+        result = runner.invoke(_app, _args)
         return result
 
-    get_blockchain_stream = sync_to_async(_blockchain_stream, thread_sensitive=False)
-
-    async def get_url_from_blockchain(stop_block: int):
-        stream = get_blockchain_stream(stop_block)
-
-        async for post in stream:
-            data = json.loads(post["json"])
+    async def get_url_from_blockchain(start_block: int):
+        event_listener = EventListener(client, "head", start_block=start_block)
+        _on = sync_to_async(event_listener.on, thread_sensitive=False)
+        async for post in _on(
+            "custom_json", filter_by={"id": default_hive_operation_id_str}
+        ):
+            data = json.loads(post["op"][1]["json"])
             if "urls" in data and len(data["urls"]) == 1:
                 yield data["urls"][0]
 
     # Ensure hive env vars are set from .env.test file or this will fail
 
+    python_version = pv()
     tasks = []
-    urls = []
-    for n in range(6):
-        test_name = f"cli_simulcast_{n}"
-        url = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
+    test_urls = {
+        f"https://example.com?t=cli_simulcast_{n}&v={python_version}&s={session_uuid_str}"
+        for n in range(11)
+    }
+    for url in test_urls:
         args = [
             "--livetest",
             "--no-sanity-check",
@@ -86,8 +69,9 @@ async def test_write_cli_single_url():
             "write",
             url,
         ]
-        urls.append(url)
         tasks.append(_run_cli_once(app, args))
+
+    current_block = client.get_dynamic_global_properties()["head_block_number"]
 
     results = await asyncio.gather(*tasks)
 
@@ -99,18 +83,18 @@ async def test_write_cli_single_url():
     # Sleep to catch up because beem isn't async and blocks
     await asyncio.sleep(op_period * 25)
 
-    end_block = blockchain.get_current_block_num()
+    answer_urls = set()
+    async for stream_url in get_url_from_blockchain(current_block):
+        answer_urls.add(stream_url)
 
-    url_found = 0
+        # If we're done, end early
+        if len(answer_urls) == len(test_urls):
+            break
 
-    async for stream_url in get_url_from_blockchain(end_block):
-        if stream_url in urls:
-            url_found += 1
-
-    assert url_found == 6
+    assert answer_urls == test_urls
 
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
-    coro = test_write_cli_single_url()
+    coro = test_write_cli_single_simulcast()
     loop.run_until_complete(coro)
