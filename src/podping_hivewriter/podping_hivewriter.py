@@ -183,7 +183,9 @@ class PodpingHivewriter(AsyncContext):
             custom_json["message"] = "Podping startup complete"
             custom_json["hive"] = str(self.lighthive_client.current_node)
 
-            await self.send_notification(custom_json, STARTUP_OPERATION_ID)
+            hive_operation_id = self.operation_id + STARTUP_OPERATION_ID
+
+            await self.send_notification(custom_json, hive_operation_id)
 
             logging.info("Startup of Podping status: SUCCESS! Hit the BOOST Button.")
 
