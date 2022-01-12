@@ -351,25 +351,33 @@ class PodpingHivewriter(AsyncContext):
             f"last_node: {last_node}"
         )
 
+    async def construct_operation(
+        self, payload: dict, hive_operation_id: HiveOperationId
+    ) -> Tuple[Operation, int]:
+        """Builed the operation for the blockchain"""
+        payload_json = json.dumps(payload, separators=(",", ":"))
+        size_of_json = len(payload_json)
+        if size_of_json > HIVE_CUSTOM_OP_DATA_MAX_LENGTH:
+            raise PodpingCustomJsonPayloadExceeded("Max custom_json payload exceeded")
+
+        op = Operation(
+            "custom_json",
+            {
+                "required_auths": [],
+                "required_posting_auths": self.required_posting_auths,
+                "id": str(hive_operation_id),
+                "json": payload_json,
+            },
+        )
+        return op, size_of_json
+
     async def send_notification(
         self, payload: dict, hive_operation_id: HiveOperationId
     ) -> str:
+        """Build and send an operation to the blockchain"""
         try:
-            payload_json = json.dumps(payload, separators=(",", ":"))
-            size_of_json = len(payload_json)
-            if len(payload_json) > HIVE_CUSTOM_OP_DATA_MAX_LENGTH:
-                raise PodpingCustomJsonPayloadExceeded(
-                    "Max custom_json payload exceeded"
-                )
-
-            op = Operation(
-                "custom_json",
-                {
-                    "required_auths": [],
-                    "required_posting_auths": self.required_posting_auths,
-                    "id": str(hive_operation_id),
-                    "json": payload_json,
-                },
+            op, size_of_json = await self.construct_operation(
+                payload, hive_operation_id
             )
             # Use asynchronous broadcast but means we don't get back tx, kinder to
             # API servers
@@ -385,6 +393,9 @@ class PodpingHivewriter(AsyncContext):
             if re.match(r"plugin exception.*custom json.*", str(ex)):
                 self.lighthive_client.next_node()
                 raise TooManyCustomJsonsPerBlock()
+            raise ex
+
+        except PodpingCustomJsonPayloadExceeded as ex:
             raise ex
 
         except Exception as ex:
