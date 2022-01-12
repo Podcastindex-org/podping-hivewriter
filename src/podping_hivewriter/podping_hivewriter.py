@@ -152,7 +152,7 @@ class PodpingHivewriter(AsyncContext):
                 f"Testing Account Resource Credits"
                 f' - before {manabar.get("last_mana_percent"):.2f}%'
             )
-
+            rc = self.lighthive_client.rc()
             # TODO: See if anything depends on USE_TEST_NODE before removal
             custom_json = {
                 "server_account": self.server_account,
@@ -161,28 +161,25 @@ class PodpingHivewriter(AsyncContext):
                 "uuid": str(uuid.uuid4()),
                 "hive": str(self.lighthive_client.current_node),
             }
-
-            await self.send_notification(custom_json, STARTUP_OPERATION_ID)
-            settings = await self.settings_manager.get_settings()
-            logging.info(
-                f"Testing Account Resource Credits {settings.hive_operation_period}s"
+            op, size_of_json = await self.construct_operation(
+                custom_json, STARTUP_OPERATION_ID
             )
-            await asyncio.sleep(settings.hive_operation_period)
-
-            manabar_after = account.get_resource_credit_info()
-            logging.info(
-                f"Testing Account Resource Credits"
-                f' - after {manabar_after.get("last_mana_percent"):.2f}%'
+            rc_cost = rc.get_cost(op)
+            percent_after = (
+                100
+                * (manabar.get("last_mana") - (1e6 * rc_cost * 100))
+                / manabar["max_mana"]
             )
-            cost = manabar.get("current_mana") - manabar_after.get("current_mana")
-            if cost == 0:  # skip this test if we're going to get ZeroDivision
-                capacity = 1000000
-            else:
-                capacity = manabar_after.get("current_mana") / cost
-            logging.info(f"Capacity for further podpings : {capacity:.1f}")
+            percent_drop = manabar.get("last_mana_percent") - percent_after
+            capacity = (100 / percent_drop) * 100
+            logging.info(
+                f"Calculating Account Resource Credits "
+                f"for 100 pings: {percent_drop:.2f}% | "
+                f"Capacity: {capacity:,.0f}"
+            )
 
             custom_json["v"] = podping_hivewriter_version
-            custom_json["capacity"] = f"{capacity:.1f}"
+            custom_json["capacity"] = f"{capacity:,.0f}"
             custom_json["message"] = "Podping startup complete"
             custom_json["hive"] = str(self.lighthive_client.current_node)
 
