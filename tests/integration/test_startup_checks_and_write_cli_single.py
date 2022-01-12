@@ -23,7 +23,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 async def test_startup_checks_and_write_cli_single():
     runner = CliRunner()
 
-    settings_manager = PodpingSettingsManager(ignore_updates=False)
+    settings_manager = PodpingSettingsManager(ignore_updates=True)
 
     client = Client()
 
