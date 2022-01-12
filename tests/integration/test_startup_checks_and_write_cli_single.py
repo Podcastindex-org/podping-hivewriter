@@ -23,7 +23,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 async def test_startup_checks_and_write_cli_single():
     runner = CliRunner()
 
-    settings_manager = PodpingSettingsManager(ignore_updates=True)
+    settings_manager = PodpingSettingsManager(ignore_updates=False)
 
     client = Client()
 
@@ -57,10 +57,8 @@ async def test_startup_checks_and_write_cli_single():
 
     assert result.exit_code == 0
 
-    op_period = settings_manager._settings.hive_operation_period
-
     # Sleep to catch up because beem isn't async and blocks
-    await asyncio.sleep(op_period * 25)
+    await asyncio.sleep(3 * 25)
 
     iri_found = False
 
@@ -69,4 +67,5 @@ async def test_startup_checks_and_write_cli_single():
             iri_found = True
             break
 
+    del settings_manager
     assert iri_found
