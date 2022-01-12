@@ -21,7 +21,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 @pytest.mark.asyncio
 @pytest.mark.timeout(180)
 @pytest.mark.slow
-async def test_write_cli_multiple_url():
+async def test_write_cli_multiple():
     runner = CliRunner()
 
     settings_manager = PodpingSettingsManager(ignore_updates=True)
@@ -31,12 +31,12 @@ async def test_write_cli_multiple_url():
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)
 
-    num_urls = randint(2, 25)
+    num_iris = randint(2, 25)
     test_name = "cli_multiple"
     python_version = pv()
-    test_urls = {
+    test_iris = {
         f"https://example.com?t={test_name}&i={i}&v={python_version}&s={session_uuid_str}"
-        for i in range(num_urls)
+        for i in range(num_iris)
     }
 
     default_hive_operation_id = HiveOperationId(
@@ -44,25 +44,25 @@ async def test_write_cli_multiple_url():
     )
     default_hive_operation_id_str = str(default_hive_operation_id)
 
-    async def get_url_from_blockchain(start_block: int):
+    async def get_iri_from_blockchain(start_block: int):
         event_listener = EventListener(client, "head", start_block=start_block)
         _on = sync_to_async(event_listener.on, thread_sensitive=False)
         async for post in _on(
             "custom_json", filter_by={"id": default_hive_operation_id_str}
         ):
             data = json.loads(post["op"][1]["json"])
-            if "urls" in data:
-                for u in data["urls"]:
-                    # Only look for URLs from current session
-                    if u.endswith(session_uuid_str):
-                        yield u
+            if "iris" in data:
+                for iri in data["iris"]:
+                    # Only look for IRIs from current session
+                    if iri.endswith(session_uuid_str):
+                        yield iri
 
     args = [
         "--livetest",
         "--no-sanity-check",
         "--ignore-config-updates",
         "write",
-        *test_urls,
+        *test_iris,
     ]
 
     current_block = client.get_dynamic_global_properties()["head_block_number"]
@@ -77,12 +77,12 @@ async def test_write_cli_multiple_url():
     # Sleep to catch up because beem isn't async and blocks
     await asyncio.sleep(op_period * 30)
 
-    answer_urls = set()
-    async for stream_url in get_url_from_blockchain(current_block - 5):
-        answer_urls.add(stream_url)
+    answer_iris = set()
+    async for stream_iri in get_iri_from_blockchain(current_block - 5):
+        answer_iris.add(stream_iri)
 
         # If we're done, end early
-        if len(answer_urls) == len(test_urls):
+        if len(answer_iris) == len(test_iris):
             break
 
-    assert answer_urls == test_urls
+    assert answer_iris == test_iris

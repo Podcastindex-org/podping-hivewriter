@@ -21,7 +21,7 @@ build = "build.py"
 include = ["src/podping_hivewriter/schema/*.py", "src/podping_hivewriter/schema/*.so"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 pyzmq = "^22.1.0"
 cffi = "^1.14.5"
 pydantic = "^1.9.0"
@@ -55,7 +55,7 @@ requires = ["poetry-core>=1.0.0", "capnpy"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.black]
-target-version = ['py37', 'py38', 'py39', 'py310']
+target-version = ['py38', 'py39', 'py310']
 
 [tool.isort]
 profile = "black"

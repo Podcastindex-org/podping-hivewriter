@@ -4,7 +4,7 @@ import logging
 import re
 import sys
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from itertools import cycle
 from timeit import default_timer as timer
 from typing import List, Set, Tuple
@@ -14,10 +14,10 @@ from lighthive.datastructures import Operation
 from lighthive.exceptions import RPCNodeException
 from lighthive.node_picker import compare_nodes
 
+from podping_hivewriter import __version__ as podping_hivewriter_version
 from podping_hivewriter.async_context import AsyncContext
 from podping_hivewriter.async_wrapper import sync_to_async
 from podping_hivewriter.constants import (
-    CURRENT_PODPING_VERSION,
     HIVE_CUSTOM_OP_DATA_MAX_LENGTH,
     STARTUP_FAILED_UNKNOWN_EXIT_CODE,
     STARTUP_OPERATION_ID,
@@ -30,16 +30,9 @@ from podping_hivewriter.hive import get_client, get_allowed_accounts
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.iri_batch import IRIBatch
 from podping_hivewriter.models.medium import Medium
+from podping_hivewriter.models.podping import Podping
 from podping_hivewriter.models.reason import Reason
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
-
-
-def utc_date_str() -> str:
-    return datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
-
-
-def size_of_dict_as_json(payload: dict):
-    return len(json.dumps(payload, separators=(",", ":")).encode("UTF-8"))
 
 
 class PodpingHivewriter(AsyncContext):
@@ -188,7 +181,7 @@ class PodpingHivewriter(AsyncContext):
                 capacity = manabar_after.get("current_mana") / cost
             logging.info(f"Capacity for further podpings : {capacity:.1f}")
 
-            custom_json["v"] = CURRENT_PODPING_VERSION
+            custom_json["v"] = podping_hivewriter_version
             custom_json["capacity"] = f"{capacity:.1f}"
             custom_json["message"] = "Podping startup complete"
             custom_json["hive"] = str(self.lighthive_client.current_node)
@@ -362,8 +355,9 @@ class PodpingHivewriter(AsyncContext):
         self, payload: dict, hive_operation_id: HiveOperationId
     ) -> str:
         try:
-            size_of_json = size_of_dict_as_json(payload)
-            if size_of_json > HIVE_CUSTOM_OP_DATA_MAX_LENGTH:
+            payload_json = json.dumps(payload, separators=(",", ":"))
+            size_of_json = len(payload_json)
+            if len(payload_json) > HIVE_CUSTOM_OP_DATA_MAX_LENGTH:
                 raise PodpingCustomJsonPayloadExceeded(
                     "Max custom_json payload exceeded"
                 )
@@ -374,7 +368,7 @@ class PodpingHivewriter(AsyncContext):
                     "required_auths": [],
                     "required_posting_auths": self.required_posting_auths,
                     "id": str(hive_operation_id),
-                    "json": json.dumps(payload),
+                    "json": payload_json,
                 },
             )
             # Use asynchronous broadcast but means we don't get back tx, kinder to
@@ -403,16 +397,15 @@ class PodpingHivewriter(AsyncContext):
         medium: Medium = Medium.podcast,
         reason: Reason = Reason.update,
     ) -> str:
-        payload = {
-            "version": CURRENT_PODPING_VERSION,
-            "num_urls": 1,
-            "reason": str(reason),
-            "urls": [iri],
-        }
+        payload = Podping(medium=medium, reason=reason, iris=[iri])
 
         hive_operation_id = HiveOperationId(self.operation_id, medium, reason)
 
-        return await self.send_notification(payload, hive_operation_id)
+        tx_id = await self.send_notification(payload.dict(), hive_operation_id)
+
+        self.total_iris_sent += 1
+
+        return tx_id
 
     async def send_notification_iris(
         self,
@@ -421,16 +414,11 @@ class PodpingHivewriter(AsyncContext):
         reason: Reason = Reason.update,
     ) -> str:
         num_iris = len(iris)
-        payload = {
-            "version": CURRENT_PODPING_VERSION,
-            "num_urls": num_iris,
-            "reason": str(reason),
-            "urls": list(iris),
-        }
+        payload = Podping(medium=medium, reason=reason, iris=list(iris))
 
         hive_operation_id = HiveOperationId(self.operation_id, medium, reason)
 
-        tx_id = await self.send_notification(payload, hive_operation_id)
+        tx_id = await self.send_notification(payload.dict(), hive_operation_id)
 
         self.total_iris_sent += num_iris
 
@@ -441,7 +429,7 @@ class PodpingHivewriter(AsyncContext):
         failure_count = 0
 
         while True:
-            # Sleep a maximum of 5 minutes, 2 additional seconds for every retry
+            # Sleep a maximum of 5 minutes, 3 additional seconds for every retry
             sleep_time = min(failure_count * 3, 300)
             if failure_count > 0:
                 logging.warning(f"Waiting {sleep_time}s before retry")
