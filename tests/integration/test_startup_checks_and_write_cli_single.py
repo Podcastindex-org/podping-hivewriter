@@ -10,12 +10,15 @@ from typer.testing import CliRunner
 
 from podping_hivewriter.async_wrapper import sync_to_async
 from podping_hivewriter.cli.podping import app
-from podping_hivewriter.constants import LIVETEST_OPERATION_ID
+from podping_hivewriter.constants import (
+    LIVETEST_OPERATION_ID,
+    STARTUP_FAILED_INVALID_ACCOUNT,
+    STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE,
+)
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.medium import Medium
 from podping_hivewriter.models.reason import Reason
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
-from podping_hivewriter.constants import STARTUP_FAILED_INVALID_ACCOUNT
 
 
 @pytest.mark.asyncio
@@ -49,12 +52,6 @@ async def test_startup_checks_and_write_cli_single():
             if "iris" in data and len(data["iris"]) == 1:
                 yield data["iris"][0]
 
-    # This will fail, bad hive account name
-    args = ["--livetest", "--hive-account", "_podping", "write", iri]
-    result = runner.invoke(app, args)
-
-    assert result.exit_code == STARTUP_FAILED_INVALID_ACCOUNT
-
     args = ["--livetest", "write", iri]
 
     current_block = client.get_dynamic_global_properties()["head_block_number"]
@@ -76,3 +73,26 @@ async def test_startup_checks_and_write_cli_single():
 
     del settings_manager
     assert iri_found
+
+
+@pytest.mark.asyncio
+async def test_startup_failures():
+    """Deliberately force failure in startup of cli"""
+    runner = CliRunner()
+
+    session_uuid = uuid.uuid4()
+    session_uuid_str = str(session_uuid)
+
+    test_name = "cli_fail"
+    iri = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
+
+    # This will fail, bad hive account name
+    args = ["--livetest", "--hive-account", "_podping", "write", iri]
+    result = runner.invoke(app, args)
+
+    assert result.exit_code == STARTUP_FAILED_INVALID_ACCOUNT
+
+    args = ["--livetest", "--hive-posting-key", "not_a_valid_key", "write", iri]
+    result = runner.invoke(app, args)
+
+    assert result.exit_code == STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE

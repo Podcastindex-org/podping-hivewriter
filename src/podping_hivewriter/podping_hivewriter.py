@@ -19,6 +19,7 @@ from podping_hivewriter.async_context import AsyncContext
 from podping_hivewriter.async_wrapper import sync_to_async
 from podping_hivewriter.constants import (
     HIVE_CUSTOM_OP_DATA_MAX_LENGTH,
+    STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE,
     STARTUP_FAILED_UNKNOWN_EXIT_CODE,
     STARTUP_OPERATION_ID,
 )
@@ -26,7 +27,7 @@ from podping_hivewriter.exceptions import (
     PodpingCustomJsonPayloadExceeded,
     TooManyCustomJsonsPerBlock,
 )
-from podping_hivewriter.hive import get_client, get_allowed_accounts
+from podping_hivewriter.hive import get_allowed_accounts, get_client
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.iri_batch import IRIBatch
 from podping_hivewriter.models.medium import Medium
@@ -181,9 +182,18 @@ class PodpingHivewriter(AsyncContext):
 
             logging.info("Startup of Podping status: SUCCESS! Hit the BOOST Button.")
 
-        except Exception:
+        except ValueError as ex:
+            if str(ex) == "Error loading Base58 object":
+                logging.error(
+                    f"Startup of Podping status: FAILED!  {ex}",
+                    exc_info=True,
+                )
+                logging.error("Exiting")
+                sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+
+        except Exception as ex:
             logging.error(
-                "Startup of Podping status: FAILED!  Unknown error",
+                f"Startup of Podping status: FAILED!  {ex}",
                 exc_info=True,
             )
             logging.error("Exiting")
@@ -370,18 +380,25 @@ class PodpingHivewriter(AsyncContext):
             op, size_of_json = await self.construct_operation(
                 payload, hive_operation_id
             )
+            # if you want to FORCE the error condition for >5 operations
+            # in one block, uncomment this line.
+            # op = [op] * 6
+
             # Use asynchronous broadcast but means we don't get back tx, kinder to
             # API servers
             tx_new = await self._async_hive_broadcast(op=op, dry_run=self.dry_run)
-            tx_id = tx_new.get("id")
+            trx_id = tx_new.get("id")
+            trx_id = "Using async no trx_id" if not trx_id else trx_id
             logging.info(f"Lighthive Node: {self.lighthive_client.current_node}")
-            logging.info(f"Transaction sent: {tx_id} - JSON size: {size_of_json}")
+            logging.info(f"Transaction sent: {trx_id} - JSON size: {size_of_json}")
 
-            return tx_id
+            return trx_id
 
         except RPCNodeException as ex:
-            logging.error(f"{ex}")
-            if re.match(r"plugin exception.*custom json.*", str(ex)):
+            logging.error(f"send_notification error: {ex}")
+            if re.match(
+                r"plugin exception.*custom json.*", ex.raw_body["error"]["message"]
+            ):
                 self.lighthive_client.next_node()
                 raise TooManyCustomJsonsPerBlock()
             raise ex
@@ -391,7 +408,7 @@ class PodpingHivewriter(AsyncContext):
 
         except Exception as ex:
             logging.error(f"{ex}")
-            raise
+            raise ex
 
     async def send_notification_iri(
         self,
@@ -449,13 +466,24 @@ class PodpingHivewriter(AsyncContext):
                         f"FAILURE CLEARED after {failure_count} retries, {sleep_time}s"
                     )
                 return trx_id, failure_count
+            except RPCNodeException as ex:
+                logging.warning(f"{ex}")
+                logging.warning(f"Failed to send {len(iri_set)} IRIs")
+                if ex.raw_body["error"]["data"]["name"] == "tx_missing_posting_auth":
+                    for iri in iri_set:
+                        logging.error(iri)
+                    logging.error(
+                        f"Terminating: exit code: {STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE}"
+                    )
+                    sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+
             except Exception as ex:
                 logging.warning(f"Failed to send {len(iri_set)} IRIs")
-                for iri in iri_set:
-                    logging.warning(iri)
-                logging.error(f"{ex}")
+                logging.warning(f"{ex}")
                 if logging.DEBUG >= logging.root.level:
                     for iri in iri_set:
                         logging.debug(iri)
+
+            finally:
                 self.lighthive_client.next_node()
                 failure_count += 1
