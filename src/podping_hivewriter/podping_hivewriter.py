@@ -94,21 +94,13 @@ class PodpingHivewriter(AsyncContext):
             allowed = get_allowed_accounts(
                 self.lighthive_client, settings.control_account
             )
-            # Check the account exists
-            self.lighthive_client.account(self.server_account)
             # TODO: Should we periodically check if the account is allowed
             #  and shut down if not?
             if self.server_account not in allowed:
                 logging.error(
                     f"Account @{self.server_account} not authorised to send Podpings"
                 )
-        except ValueError as ex:
-            logging.error(
-                f"Hive account @{self.server_account} does not exist, "
-                f"check ENV vars and try again",
-                exc_info=True,
-            )
-            raise ex
+
         except Exception as ex:
             logging.error(f"Unknown error occurred: {ex}", exc_info=True)
             raise ex

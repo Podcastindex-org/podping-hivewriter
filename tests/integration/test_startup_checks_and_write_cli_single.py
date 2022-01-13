@@ -15,6 +15,7 @@ from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.medium import Medium
 from podping_hivewriter.models.reason import Reason
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
+from podping_hivewriter.constants import STARTUP_FAILED_INVALID_ACCOUNT
 
 
 @pytest.mark.asyncio
@@ -47,6 +48,12 @@ async def test_startup_checks_and_write_cli_single():
             data = json.loads(post["op"][1]["json"])
             if "iris" in data and len(data["iris"]) == 1:
                 yield data["iris"][0]
+
+    # This will fail, bad hive account name
+    args = ["--livetest", "--hive-account", "_podping", "write", iri]
+    result = runner.invoke(app, args)
+
+    assert result.exit_code == STARTUP_FAILED_INVALID_ACCOUNT
 
     args = ["--livetest", "write", iri]
 
