@@ -18,17 +18,14 @@ from podping_hivewriter.hive import get_client
 from podping_hivewriter.podping_hivewriter import PodpingHivewriter
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
+from lighthive.broadcast.base58 import Base58
 
-def is_base64(sb):
+
+def is_base58(sb: str) -> bool:
     try:
-        if isinstance(sb, str):
-            # If there's any unicode here, an exception will be thrown and the function will return false
-            sb_bytes = bytes(sb, "ascii")
-        elif isinstance(sb, bytes):
-            sb_bytes = sb
-        else:
-            raise ValueError("Argument must be string or bytes")
-        return base64.b64encode(base64.b64decode(sb_bytes)) == sb_bytes
+        base58 = Base58(sb)
+        return True
+
     except Exception:
         return False
 
@@ -319,11 +316,16 @@ def callback(
         logging.error("Exiting")
         sys.exit(STARTUP_FAILED_INVALID_ACCOUNT)
 
+    account = client.account(hive_account)
+
+    public_key = account.raw_data["posting"]["key_auths"][0][0]
+    # address = Address(pubkey=public_key)
+
     for key in posting_keys:
-        if not is_base64(key):
+        if not is_base58(key):
             logging.error("Startup of Podping status: FAILED!")
             logging.error(
-                "Posting Key not valid Base64 - check ENV vars and try again",
+                "Posting Key not valid Base58 - check ENV vars and try again",
             )
             logging.error("Exiting")
             sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
