@@ -42,6 +42,7 @@ bandit = "^1.7.0"
 pytest-timeout = "^2.0.2"
 typer-cli = "^0.0.12"
 flake8 = "^4.0.1"
+mypy = "^0.931"
 
 [tool.poetry.extras]
 server = ["pyzmq"]
