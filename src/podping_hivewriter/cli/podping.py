@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import logging
 import sys
 from typing import List, Optional
@@ -11,10 +12,25 @@ from podping_hivewriter.constants import (
     LIVETEST_OPERATION_ID,
     PODPING_OPERATION_ID,
     STARTUP_FAILED_INVALID_ACCOUNT,
+    STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE,
 )
+from podping_hivewriter.hive import get_client
 from podping_hivewriter.podping_hivewriter import PodpingHivewriter
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
-from podping_hivewriter.hive import get_client
+
+
+def is_base64(sb):
+    try:
+        if isinstance(sb, str):
+            # If there's any unicode here, an exception will be thrown and the function will return false
+            sb_bytes = bytes(sb, "ascii")
+        elif isinstance(sb, bytes):
+            sb_bytes = sb
+        else:
+            raise ValueError("Argument must be string or bytes")
+        return base64.b64encode(base64.b64decode(sb_bytes)) == sb_bytes
+    except Exception:
+        return False
 
 
 def iris_callback(iris: List[str]) -> List[str]:
@@ -302,6 +318,15 @@ def callback(
         )
         logging.error("Exiting")
         sys.exit(STARTUP_FAILED_INVALID_ACCOUNT)
+
+    for key in posting_keys:
+        if not is_base64(key):
+            logging.error("Startup of Podping status: FAILED!")
+            logging.error(
+                "Posting Key not valid Base64 - check ENV vars and try again",
+            )
+            logging.error("Exiting")
+            sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
 
 
 if __name__ == "__main__":
