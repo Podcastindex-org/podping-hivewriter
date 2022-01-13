@@ -332,14 +332,16 @@ def callback(
         if not str(private_key.pubkey) in public_keys:
             logging.error("Startup of Podping status: FAILED!")
             logging.error(
-                f"Posting Key doesn't match @{hive_account} - check ENV vars and try again",
+                f"Posting Key doesn't match @{hive_account} - "
+                f"check ENV vars and try again",
             )
             logging.error("Exiting")
             sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
     except Exception:
         logging.error("Startup of Podping status: FAILED!")
         logging.error(
-            f"Some other error with keys for @{hive_account} - check ENV vars and try again",
+            f"Some other error with keys for @{hive_account} - "
+            f"check ENV vars and try again",
         )
         logging.error("Exiting")
         sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
