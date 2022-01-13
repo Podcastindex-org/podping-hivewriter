@@ -19,7 +19,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(60*15)
+@pytest.mark.timeout(60 * 15)
 @pytest.mark.slow
 async def test_write_cli_single_simulcast():
     """This test forces 6 separate posts to ensure we retry after exceeding the
