@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime, timedelta
 from itertools import cycle
 from timeit import default_timer as timer
-from typing import List, Set, Tuple
+from typing import List, Set, Tuple, Union
 
 import rfc3987
 from lighthive.datastructures import Operation
@@ -353,7 +353,7 @@ class PodpingHivewriter(AsyncContext):
         )
 
     async def construct_operation(
-        self, payload: dict, hive_operation_id: HiveOperationId
+        self, payload: dict, hive_operation_id: Union[HiveOperationId, str]
     ) -> Tuple[Operation, int]:
         """Builed the operation for the blockchain"""
         payload_json = json.dumps(payload, separators=(",", ":"))
@@ -373,7 +373,7 @@ class PodpingHivewriter(AsyncContext):
         return op, size_of_json
 
     async def send_notification(
-        self, payload: dict, hive_operation_id: HiveOperationId
+        self, payload: dict, hive_operation_id: Union[HiveOperationId, str]
     ) -> str:
         """Build and send an operation to the blockchain"""
         try:
