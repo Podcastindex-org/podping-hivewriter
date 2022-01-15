@@ -222,7 +222,7 @@ class PodpingHivewriter(AsyncContext):
                 iri_batch = await self.iri_batch_queue.get()
 
                 start = timer()
-                trx_id, failure_count = await self.failure_retry(iri_batch.iri_set)
+                failure_count = await self.failure_retry(iri_batch.iri_set)
                 duration = timer() - start
 
                 self.iri_batch_queue.task_done()
@@ -231,12 +231,15 @@ class PodpingHivewriter(AsyncContext):
 
                 last_node = self.lighthive_client.current_node
                 logging.info(
-                    f"Batch send time: {duration:0.2f} - trx_id: {trx_id} - "
-                    f"Failures: {failure_count} - IRI batch_id {iri_batch.batch_id} - "
-                    f"IRIs in batch: {len(iri_batch.iri_set)} - "
+                    f"Batch send time: {duration:0.2f} | "
+                    f"Failures: {failure_count} - IRI batch_id {iri_batch.batch_id} | "
+                    f"IRIs in batch: {len(iri_batch.iri_set)} | "
                     f"last_node: {last_node}"
                 )
             except asyncio.CancelledError:
+                raise
+            except Exception as ex:
+                logging.error(f"{ex} occurred", exc_info=True)
                 raise
 
     async def _iri_batch_loop(self):
@@ -473,7 +476,8 @@ class PodpingHivewriter(AsyncContext):
                     for iri in iri_set:
                         logging.error(iri)
                     logging.error(
-                        f"Terminating: exit code: {STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE}"
+                        f"Terminating: exit code: "
+                        f"{STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE}"
                     )
                     sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
 
