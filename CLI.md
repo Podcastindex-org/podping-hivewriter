@@ -101,4 +101,6 @@ $ podping write [OPTIONS] IRI...
 
 **Options**:
 
+* `--medium TEXT`: The medium of the feed being updated. Must be one of the following: podcast blog film newsletter video audiobook music  [env var: PODPING_MEDIUM; default: podcast]
+* `--reason TEXT`: The reason the feed is being updated. Must be one of the following: live update  [env var: PODPING_REASON; default: update]
 * `--help`: Show this message and exit.

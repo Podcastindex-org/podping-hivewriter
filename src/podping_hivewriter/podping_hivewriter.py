@@ -443,7 +443,12 @@ class PodpingHivewriter(AsyncContext):
 
         return tx_id
 
-    async def failure_retry(self, iri_set: Set[str]) -> Tuple[str, int]:
+    async def failure_retry(
+        self,
+        iri_set: Set[str],
+        medium: Medium = Medium.podcast,
+        reason: Reason = Reason.update,
+    ) -> Tuple[str, int]:
         await self.wait_startup()
         failure_count = 0
 
@@ -460,7 +465,9 @@ class PodpingHivewriter(AsyncContext):
                 logging.info(f"Received {len(iri_set)} IRIs")
 
             try:
-                trx_id = await self.send_notification_iris(iris=iri_set)
+                trx_id = await self.send_notification_iris(
+                    iris=iri_set, medium=medium, reason=reason
+                )
                 if failure_count > 0:
                     logging.info(
                         f"FAILURE CLEARED after {failure_count} retries, {sleep_time}s"
