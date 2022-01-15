@@ -79,6 +79,12 @@ podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key>
 2021-08-30T00:14:37-0500 | INFO | Transaction sent: c9cbaace76ec365052c11ec4a3726e4ed3a7c54d - JSON size: 170
 ```
 
+Adding a Medium and Reason:
+```
+podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key> --no-dry-run --no-sanity-check write https://3speak.tv/rss/podping.xml --medium video --reason update
+```
+
+
 Or add `--dry-run` to test functionality without broadcasting:
 ```
 podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key> --dry-run --no-sanity-check write https://www.example.com/feed.xml
@@ -101,4 +107,6 @@ $ podping write [OPTIONS] IRI...
 
 **Options**:
 
+* `--medium TEXT`: The medium of the feed being updated. Must be one of the following: audiobook podcast newsletter video film blog music  [env var: PODPING_MEDIUM; default: podcast]
+* `--reason TEXT`: The reason the feed is being updated. Must be one of the following: live update  [env var: PODPING_REASON; default: update]
 * `--help`: Show this message and exit.

@@ -1,11 +1,12 @@
 import asyncio
-import base64
 import logging
 import sys
 from typing import List, Optional
 
 import rfc3987
 import typer
+from lighthive.broadcast.base58 import Base58
+from lighthive.broadcast.key_objects import PrivateKey
 
 from podping_hivewriter import __version__
 from podping_hivewriter.constants import (
@@ -15,20 +16,35 @@ from podping_hivewriter.constants import (
     STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE,
 )
 from podping_hivewriter.hive import get_client
+from podping_hivewriter.models.medium import Medium, mediums, str_medium_map
+from podping_hivewriter.models.reason import Reason, reasons, str_reason_map
 from podping_hivewriter.podping_hivewriter import PodpingHivewriter
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
-
-from lighthive.broadcast.base58 import Base58
-from lighthive.broadcast.key_objects import PrivateKey
 
 
 def is_base58(sb: str) -> bool:
     try:
-        base58 = Base58(sb)
+        _ = Base58(sb)
         return True
 
     except Exception:
         return False
+
+
+def medium_callback(medium: str) -> str:
+    if medium not in mediums:
+        raise typer.BadParameter(
+            f"Medium be one of the following: {str(', '.join(mediums))}"
+        )
+    return medium
+
+
+def reason_callback(reason: str) -> str:
+    if reason not in reasons:
+        raise typer.BadParameter(
+            f"Reason must be one of the following: {str(', '.join(reasons))}"
+        )
+    return reason
 
 
 def iris_callback(iris: List[str]) -> List[str]:
@@ -72,6 +88,20 @@ def exit_cli(_):
 
 @app.command()
 def write(
+    medium: str = typer.Option(
+        str(Medium.podcast),
+        envvar=["PODPING_MEDIUM"],
+        callback=medium_callback,
+        autocompletion=lambda: list(mediums),
+        help=f"The medium of the feed being updated. Must be one of the following: {str(' '.join(mediums))}",
+    ),
+    reason: str = typer.Option(
+        str(Reason.update),
+        envvar=["PODPING_REASON"],
+        callback=reason_callback,
+        autocompletion=lambda: list(reasons),
+        help=f"The reason the feed is being updated. Must be one of the following: {str(' '.join(reasons))}",
+    ),
     iris: List[str] = typer.Argument(
         ...,
         metavar="IRI...",
@@ -95,6 +125,12 @@ def write(
     2021-08-30T00:14:37-0500 | INFO | Transaction sent: c9cbaace76ec365052c11ec4a3726e4ed3a7c54d - JSON size: 170
     ```
 
+    Adding a Medium and Reason:
+    ```
+    podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key> --no-dry-run --no-sanity-check write https://3speak.tv/rss/podping.xml --medium video --reason update
+    ```
+
+
     Or add `--dry-run` to test functionality without broadcasting:
     ```
     podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key> --dry-run --no-sanity-check write https://www.example.com/feed.xml
@@ -116,7 +152,9 @@ def write(
         daemon=False,
         dry_run=Config.dry_run,
     ) as podping_hivewriter:
-        coro = podping_hivewriter.failure_retry(set(iris))
+        coro = podping_hivewriter.failure_retry(
+            set(iris), medium=str_medium_map[medium], reason=str_reason_map[reason]
+        )
         try:
             # Try to get an existing loop in case of running from other program
             # Mostly used for pytest
