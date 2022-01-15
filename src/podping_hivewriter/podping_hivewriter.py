@@ -146,16 +146,18 @@ class PodpingHivewriter(AsyncContext):
                 f' - before {manabar.get("last_mana_percent"):.2f}%'
             )
             rc = self.lighthive_client.rc()
-            # TODO: See if anything depends on USE_TEST_NODE before removal
+            
             custom_json = {
                 "server_account": self.server_account,
-                "USE_TEST_NODE": False,
                 "message": "Podping startup initiated",
                 "uuid": str(uuid.uuid4()),
                 "hive": str(self.lighthive_client.current_node),
             }
+
+            startup_hive_operation_id = self.operation_id + STARTUP_OPERATION_ID
+
             op, size_of_json = await self.construct_operation(
-                custom_json, STARTUP_OPERATION_ID
+                custom_json, startup_hive_operation_id
             )
             rc_cost = rc.get_cost(op)
             percent_after = (
@@ -176,9 +178,7 @@ class PodpingHivewriter(AsyncContext):
             custom_json["message"] = "Podping startup complete"
             custom_json["hive"] = str(self.lighthive_client.current_node)
 
-            hive_operation_id = self.operation_id + STARTUP_OPERATION_ID
-
-            await self.send_notification(custom_json, hive_operation_id)
+            await self.send_notification(custom_json, startup_hive_operation_id)
 
             logging.info("Startup of Podping status: SUCCESS! Hit the BOOST Button.")
 
