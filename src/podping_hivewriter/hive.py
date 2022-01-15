@@ -6,7 +6,6 @@ from lighthive.client import Client
 
 def get_client(
     posting_keys: Optional[List[str]] = None,
-    nobroadcast: Optional[bool] = False,
     nodes=None,
     connect_timeout=3,
     read_timeout=30,
