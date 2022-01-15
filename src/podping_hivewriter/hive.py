@@ -35,7 +35,7 @@ def get_allowed_accounts(
     and only react to these accounts"""
 
     if not client:
-        client = Client()
+        client = get_client()
 
     master_account = client.account(account_name)
     return set(master_account.following())
