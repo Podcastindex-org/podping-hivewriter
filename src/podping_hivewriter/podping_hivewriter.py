@@ -146,7 +146,7 @@ class PodpingHivewriter(AsyncContext):
                 f' - before {manabar.get("last_mana_percent"):.2f}%'
             )
             rc = self.lighthive_client.rc()
-            
+
             custom_json = {
                 "server_account": self.server_account,
                 "message": "Podping startup initiated",
