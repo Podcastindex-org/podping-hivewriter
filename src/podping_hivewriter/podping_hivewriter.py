@@ -374,7 +374,7 @@ class PodpingHivewriter(AsyncContext):
 
     async def send_notification(
         self, payload: dict, hive_operation_id: Union[HiveOperationId, str]
-    ) -> str:
+    ) -> None:
         """Build and send an operation to the blockchain"""
         try:
             op, size_of_json = await self.construct_operation(
@@ -386,13 +386,10 @@ class PodpingHivewriter(AsyncContext):
 
             # Use asynchronous broadcast but means we don't get back tx, kinder to
             # API servers
-            tx_new = await self._async_hive_broadcast(op=op, dry_run=self.dry_run)
-            trx_id = tx_new.get("id")
-            trx_id = "Using async no trx_id" if not trx_id else trx_id
-            logging.info(f"Lighthive Node: {self.lighthive_client.current_node}")
-            logging.info(f"Transaction sent: {trx_id} - JSON size: {size_of_json}")
+            await self._async_hive_broadcast(op=op, dry_run=self.dry_run)
 
-            return trx_id
+            logging.info(f"Lighthive Node: {self.lighthive_client.current_node}")
+            logging.info(f"JSON size: {size_of_json}")
 
         except RPCNodeException as ex:
             logging.error(f"send_notification error: {ex}")
@@ -415,40 +412,36 @@ class PodpingHivewriter(AsyncContext):
         iri: str,
         medium: Medium = Medium.podcast,
         reason: Reason = Reason.update,
-    ) -> str:
+    ) -> None:
         payload = Podping(medium=medium, reason=reason, iris=[iri])
 
         hive_operation_id = HiveOperationId(self.operation_id, medium, reason)
 
-        tx_id = await self.send_notification(payload.dict(), hive_operation_id)
+        await self.send_notification(payload.dict(), hive_operation_id)
 
         self.total_iris_sent += 1
-
-        return tx_id
 
     async def send_notification_iris(
         self,
         iris: Set[str],
         medium: Medium = Medium.podcast,
         reason: Reason = Reason.update,
-    ) -> str:
+    ) -> None:
         num_iris = len(iris)
         payload = Podping(medium=medium, reason=reason, iris=list(iris))
 
         hive_operation_id = HiveOperationId(self.operation_id, medium, reason)
 
-        tx_id = await self.send_notification(payload.dict(), hive_operation_id)
+        await self.send_notification(payload.dict(), hive_operation_id)
 
         self.total_iris_sent += num_iris
-
-        return tx_id
 
     async def failure_retry(
         self,
         iri_set: Set[str],
         medium: Medium = Medium.podcast,
         reason: Reason = Reason.update,
-    ) -> Tuple[str, int]:
+    ) -> int:
         await self.wait_startup()
         failure_count = 0
 
@@ -465,14 +458,14 @@ class PodpingHivewriter(AsyncContext):
                 logging.info(f"Received {len(iri_set)} IRIs")
 
             try:
-                trx_id = await self.send_notification_iris(
+                await self.send_notification_iris(
                     iris=iri_set, medium=medium, reason=reason
                 )
                 if failure_count > 0:
                     logging.info(
                         f"FAILURE CLEARED after {failure_count} retries, {sleep_time}s"
                     )
-                return trx_id, failure_count
+                return failure_count
             except RPCNodeException as ex:
                 logging.warning(f"{ex}")
                 logging.warning(f"Failed to send {len(iri_set)} IRIs")
