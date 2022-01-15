@@ -19,10 +19,10 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(180)
+@pytest.mark.timeout(60 * 15)
 @pytest.mark.slow
 async def test_write_cli_single_simulcast():
-    """This test forces 11 separate posts to ensure we retry after exceeding the
+    """This test forces 6 separate posts to ensure we retry after exceeding the
     limit of posts per block (5)"""
     runner = CliRunner()
     start = timer()
@@ -61,7 +61,8 @@ async def test_write_cli_single_simulcast():
     python_version = pv()
     tasks = []
     test_iris = {
-        f"https://example.com?t=cli_simulcast_{n}&v={python_version}&s={session_uuid_str}"
+        f"https://example.com?t=cli_simulcast_{n}"
+        f"&v={python_version}&s={session_uuid_str}"
         for n in range(6)
     }
     for iri in test_iris:
