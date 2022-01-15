@@ -25,7 +25,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 def is_base58(sb: str) -> bool:
     try:
-        base58 = Base58(sb)
+        _ = Base58(sb)
         return True
 
     except Exception:
