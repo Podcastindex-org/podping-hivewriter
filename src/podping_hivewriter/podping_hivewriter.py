@@ -344,7 +344,7 @@ class PodpingHivewriter(AsyncContext):
     async def output_hive_status(self) -> None:
         """Output the name of the current hive node
         on a regular basis"""
-        up_time = timedelta(seconds=timer() - self.startup_time)
+        up_time = timedelta(seconds=int(timer() - self.startup_time))
         await self.automatic_node_selection()
         last_node = self.lighthive_client.current_node
         logging.info(
