@@ -348,10 +348,10 @@ class PodpingHivewriter(AsyncContext):
         await self.automatic_node_selection()
         last_node = self.lighthive_client.current_node
         logging.info(
-            f"Status - Uptime: {up_time} - "
-            f"IRIs Received: {self.total_iris_recv} - "
-            f"IRIs Deduped: {self.total_iris_recv_deduped} - "
-            f"IRIs Sent: {self.total_iris_sent} - "
+            f"Status - Uptime: {up_time} | "
+            f"IRIs Received: {self.total_iris_recv} | "
+            f"IRIs Deduped: {self.total_iris_recv_deduped} | "
+            f"IRIs Sent: {self.total_iris_sent} | "
             f"last_node: {last_node}"
         )
 
