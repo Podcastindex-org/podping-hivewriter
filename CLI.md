@@ -36,18 +36,19 @@ Example with default localhost:9999 settings:
 ```
 podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key> server
 
-2021-08-30T00:38:58-0500 | INFO | podping 1.0.0a0 starting up in server mode
-2021-08-30T00:39:00-0500 | INFO | Podping startup sequence initiated, please stand by, full bozo checks in operation...
-2021-08-30T00:39:01-0500 | INFO | Testing Account Resource Credits - before 24.88%
-2021-08-30T00:39:02-0500 | INFO | Transaction sent: 39c2a396784ba6ba498cee3055900442953bb13f - JSON size: 204
-2021-08-30T00:39:02-0500 | INFO | Testing Account Resource Credits.... 5s
-2021-08-30T00:39:17-0500 | INFO | Testing Account Resource Credits - after 24.52%
-2021-08-30T00:39:17-0500 | INFO | Capacity for further podpings : 68.5
-2021-08-30T00:39:19-0500 | INFO | Transaction sent: 39405eaf4a522deb2d965fc9bd8c6b92dca44786 - JSON size: 231
-2021-08-30T00:39:19-0500 | INFO | Startup of Podping status: SUCCESS! Hit the BOOST Button.
-2021-08-30T00:39:19-0500 | INFO | Hive account: @podping.test
-2021-08-30T00:39:19-0500 | INFO | Running ZeroMQ server on 127.0.0.1:9999
-2021-08-30T00:39:19-0500 | INFO | Status - Hive Node: <Hive node=https://api.deathwing.me, nobroadcast=False> - Uptime: 0:00:20.175997 - IRIs Received: 0 - IRIs Deduped: 0 - IRIs Sent: 0
+2022-01-17T13:16:43+0200 | INFO | podping 1.1.0a1 starting up in server mode
+2022-01-17T13:16:44+0200 | INFO | Podping startup sequence initiated, please stand by, full bozo checks in operation...
+2022-01-17T13:16:45+0200 | INFO | Testing Account Resource Credits - before 99.73%
+2022-01-17T13:16:48+0200 | INFO | Calculating Account Resource Credits for 100 pings: 8.55% | Capacity: 1,169
+2022-01-17T13:16:49+0200 | INFO | Configuration override from Podping Hive: hive_operation_period=30 max_url_list_bytes=8000 diagnostic_report_period=180 control_account='podping' control_account_check_period=180 test_nodes=('https://testnet.openhive.network',)
+2022-01-17T13:16:51+0200 | INFO | Lighthive Node: https://api.hive.blog
+2022-01-17T13:16:51+0200 | INFO | JSON size: 179
+2022-01-17T13:16:51+0200 | INFO | Startup of Podping status: SUCCESS! Hit the BOOST Button.
+2022-01-17T13:16:53+0200 | INFO | Lighthive Fastest: https://api.deathwing.me
+2022-01-17T13:16:53+0200 | INFO | Hive account: @podping.bol
+2022-01-17T13:16:53+0200 | INFO | Running ZeroMQ server on 127.0.0.1:9999
+2022-01-17T13:16:54+0200 | INFO | Lighthive Fastest: https://api.deathwing.me
+2022-01-17T13:16:54+0200 | INFO | Status - Uptime: 0:00:10 | IRIs Received: 0 | IRIs Deduped: 0 | IRIs Sent: 0 | last_node: https://api.deathwing.me
 ```
 
 **Usage**:
@@ -107,6 +108,6 @@ $ podping write [OPTIONS] IRI...
 
 **Options**:
 
-* `--medium TEXT`: The medium of the feed being updated. Must be one of the following: audiobook podcast newsletter video film blog music  [env var: PODPING_MEDIUM; default: podcast]
-* `--reason TEXT`: The reason the feed is being updated. Must be one of the following: live update  [env var: PODPING_REASON; default: update]
+* `--medium TEXT`: The medium of the feed being updated. Must be one of the following: audiobook music podcast video newsletter blog film  [env var: PODPING_MEDIUM; default: podcast]
+* `--reason TEXT`: The reason the feed is being updated. Must be one of the following: update live  [env var: PODPING_REASON; default: update]
 * `--help`: Show this message and exit.
