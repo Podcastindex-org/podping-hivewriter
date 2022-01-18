@@ -344,14 +344,14 @@ class PodpingHivewriter(AsyncContext):
     async def output_hive_status(self) -> None:
         """Output the name of the current hive node
         on a regular basis"""
-        up_time = timedelta(seconds=timer() - self.startup_time)
+        up_time = timedelta(seconds=int(timer() - self.startup_time))
         await self.automatic_node_selection()
         last_node = self.lighthive_client.current_node
         logging.info(
-            f"Status - Uptime: {up_time} - "
-            f"IRIs Received: {self.total_iris_recv} - "
-            f"IRIs Deduped: {self.total_iris_recv_deduped} - "
-            f"IRIs Sent: {self.total_iris_sent} - "
+            f"Status - Uptime: {up_time} | "
+            f"IRIs Received: {self.total_iris_recv} | "
+            f"IRIs Deduped: {self.total_iris_recv_deduped} | "
+            f"IRIs Sent: {self.total_iris_sent} | "
             f"last_node: {last_node}"
         )
 
