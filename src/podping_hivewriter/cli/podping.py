@@ -1,14 +1,50 @@
 import asyncio
 import logging
-from typing import Optional, List
+import sys
+from typing import List, Optional
 
 import rfc3987
 import typer
+from lighthive.broadcast.base58 import Base58
+from lighthive.broadcast.key_objects import PrivateKey
 
 from podping_hivewriter import __version__
-from podping_hivewriter.constants import LIVETEST_OPERATION_ID, PODPING_OPERATION_ID
+from podping_hivewriter.constants import (
+    LIVETEST_OPERATION_ID,
+    PODPING_OPERATION_ID,
+    STARTUP_FAILED_INVALID_ACCOUNT,
+    STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE,
+)
+from podping_hivewriter.hive import get_client
+from podping_hivewriter.models.medium import Medium, mediums, str_medium_map
+from podping_hivewriter.models.reason import Reason, reasons, str_reason_map
 from podping_hivewriter.podping_hivewriter import PodpingHivewriter
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
+
+
+def is_base58(sb: str) -> bool:
+    try:
+        _ = Base58(sb)
+        return True
+
+    except Exception:
+        return False
+
+
+def medium_callback(medium: str) -> str:
+    if medium not in mediums:
+        raise typer.BadParameter(
+            f"Medium be one of the following: {str(', '.join(mediums))}"
+        )
+    return medium
+
+
+def reason_callback(reason: str) -> str:
+    if reason not in reasons:
+        raise typer.BadParameter(
+            f"Reason must be one of the following: {str(', '.join(reasons))}"
+        )
+    return reason
 
 
 def iris_callback(iris: List[str]) -> List[str]:
@@ -52,6 +88,20 @@ def exit_cli(_):
 
 @app.command()
 def write(
+    medium: str = typer.Option(
+        str(Medium.podcast),
+        envvar=["PODPING_MEDIUM"],
+        callback=medium_callback,
+        autocompletion=lambda: list(mediums),
+        help=f"The medium of the feed being updated. Must be one of the following: {str(' '.join(mediums))}",
+    ),
+    reason: str = typer.Option(
+        str(Reason.update),
+        envvar=["PODPING_REASON"],
+        callback=reason_callback,
+        autocompletion=lambda: list(reasons),
+        help=f"The reason the feed is being updated. Must be one of the following: {str(' '.join(reasons))}",
+    ),
     iris: List[str] = typer.Argument(
         ...,
         metavar="IRI...",
@@ -75,6 +125,12 @@ def write(
     2021-08-30T00:14:37-0500 | INFO | Transaction sent: c9cbaace76ec365052c11ec4a3726e4ed3a7c54d - JSON size: 170
     ```
 
+    Adding a Medium and Reason:
+    ```
+    podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key> --no-dry-run --no-sanity-check write https://3speak.tv/rss/podping.xml --medium video --reason update
+    ```
+
+
     Or add `--dry-run` to test functionality without broadcasting:
     ```
     podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key> --dry-run --no-sanity-check write https://www.example.com/feed.xml
@@ -96,7 +152,9 @@ def write(
         daemon=False,
         dry_run=Config.dry_run,
     ) as podping_hivewriter:
-        coro = podping_hivewriter.failure_retry(set(iris))
+        coro = podping_hivewriter.failure_retry(
+            set(iris), medium=str_medium_map[medium], reason=str_reason_map[reason]
+        )
         try:
             # Try to get an existing loop in case of running from other program
             # Mostly used for pytest
@@ -138,18 +196,19 @@ def server(
     ```
     podping --hive-account <your-hive-account> --hive-posting-key <your-posting-key> server
 
-    2021-08-30T00:38:58-0500 | INFO | podping 1.0.0a0 starting up in server mode
-    2021-08-30T00:39:00-0500 | INFO | Podping startup sequence initiated, please stand by, full bozo checks in operation...
-    2021-08-30T00:39:01-0500 | INFO | Testing Account Resource Credits - before 24.88%
-    2021-08-30T00:39:02-0500 | INFO | Transaction sent: 39c2a396784ba6ba498cee3055900442953bb13f - JSON size: 204
-    2021-08-30T00:39:02-0500 | INFO | Testing Account Resource Credits.... 5s
-    2021-08-30T00:39:17-0500 | INFO | Testing Account Resource Credits - after 24.52%
-    2021-08-30T00:39:17-0500 | INFO | Capacity for further podpings : 68.5
-    2021-08-30T00:39:19-0500 | INFO | Transaction sent: 39405eaf4a522deb2d965fc9bd8c6b92dca44786 - JSON size: 231
-    2021-08-30T00:39:19-0500 | INFO | Startup of Podping status: SUCCESS! Hit the BOOST Button.
-    2021-08-30T00:39:19-0500 | INFO | Hive account: @podping.test
-    2021-08-30T00:39:19-0500 | INFO | Running ZeroMQ server on 127.0.0.1:9999
-    2021-08-30T00:39:19-0500 | INFO | Status - Hive Node: <Hive node=https://api.deathwing.me, nobroadcast=False> - Uptime: 0:00:20.175997 - IRIs Received: 0 - IRIs Deduped: 0 - IRIs Sent: 0
+    2022-01-17T13:16:43+0200 | INFO | podping 1.1.0a1 starting up in server mode
+    2022-01-17T13:16:44+0200 | INFO | Podping startup sequence initiated, please stand by, full bozo checks in operation...
+    2022-01-17T13:16:45+0200 | INFO | Testing Account Resource Credits - before 99.73%
+    2022-01-17T13:16:48+0200 | INFO | Calculating Account Resource Credits for 100 pings: 8.55% | Capacity: 1,169
+    2022-01-17T13:16:49+0200 | INFO | Configuration override from Podping Hive: hive_operation_period=30 max_url_list_bytes=8000 diagnostic_report_period=180 control_account='podping' control_account_check_period=180 test_nodes=('https://testnet.openhive.network',)
+    2022-01-17T13:16:51+0200 | INFO | Lighthive Node: https://api.hive.blog
+    2022-01-17T13:16:51+0200 | INFO | JSON size: 179
+    2022-01-17T13:16:51+0200 | INFO | Startup of Podping status: SUCCESS! Hit the BOOST Button.
+    2022-01-17T13:16:53+0200 | INFO | Lighthive Fastest: https://api.deathwing.me
+    2022-01-17T13:16:53+0200 | INFO | Hive account: @podping.bol
+    2022-01-17T13:16:53+0200 | INFO | Running ZeroMQ server on 127.0.0.1:9999
+    2022-01-17T13:16:54+0200 | INFO | Lighthive Fastest: https://api.deathwing.me
+    2022-01-17T13:16:54+0200 | INFO | Status - Uptime: 0:00:10 | IRIs Received: 0 | IRIs Deduped: 0 | IRIs Sent: 0 | last_node: https://api.deathwing.me
     ```
     """
 
@@ -284,6 +343,47 @@ def callback(
         Config.operation_id = LIVETEST_OPERATION_ID
     else:
         Config.operation_id = PODPING_OPERATION_ID
+
+    # Check the account exists
+    posting_keys = [hive_posting_key]
+    client = get_client(posting_keys=posting_keys)
+    account_exists = client.get_accounts([hive_account])
+    if not account_exists:
+        logging.error(
+            f"Hive account @{hive_account} does not exist, "
+            f"check ENV vars and try again"
+        )
+        logging.error("Exiting")
+        sys.exit(STARTUP_FAILED_INVALID_ACCOUNT)
+
+    if not is_base58(hive_posting_key):
+        logging.error("Startup of Podping status: FAILED!")
+        logging.error(
+            "Posting Key not valid Base58 - check ENV vars and try again",
+        )
+        logging.error("Exiting")
+        sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+
+    account = client.account(hive_account)
+    public_keys = [a[0] for a in account.raw_data["posting"]["key_auths"]]
+    try:
+        private_key = PrivateKey(hive_posting_key)
+        if not str(private_key.pubkey) in public_keys:
+            logging.error("Startup of Podping status: FAILED!")
+            logging.error(
+                f"Posting Key doesn't match @{hive_account} - "
+                f"check ENV vars and try again",
+            )
+            logging.error("Exiting")
+            sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+    except Exception:
+        logging.error("Startup of Podping status: FAILED!")
+        logging.error(
+            f"Some other error with keys for @{hive_account} - "
+            f"check ENV vars and try again",
+        )
+        logging.error("Exiting")
+        sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
 
 
 if __name__ == "__main__":

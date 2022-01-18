@@ -19,10 +19,10 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(180)
+@pytest.mark.timeout(900)
 @pytest.mark.slow
 async def test_write_cli_single_simulcast():
-    """This test forces 11 separate posts to ensure we retry after exceeding the
+    """This test forces 6 separate posts to ensure we retry after exceeding the
     limit of posts per block (5)"""
     runner = CliRunner()
     start = timer()
@@ -43,35 +43,36 @@ async def test_write_cli_single_simulcast():
         result = runner.invoke(_app, _args)
         return result
 
-    async def get_url_from_blockchain(start_block: int):
+    async def get_iri_from_blockchain(start_block: int):
         event_listener = EventListener(client, "head", start_block=start_block)
         _on = sync_to_async(event_listener.on, thread_sensitive=False)
         async for post in _on(
             "custom_json", filter_by={"id": default_hive_operation_id_str}
         ):
             data = json.loads(post["op"][1]["json"])
-            if "urls" in data and len(data["urls"]) == 1:
-                u = data["urls"][0]
-                # Only look for URLs from current session
-                if u.endswith(session_uuid_str):
-                    yield u
+            if "iris" in data and len(data["iris"]) == 1:
+                iri = data["iris"][0]
+                # Only look for IRIs from current session
+                if iri.endswith(session_uuid_str):
+                    yield iri
 
     # Ensure hive env vars are set from .env.test file or this will fail
 
     python_version = pv()
     tasks = []
-    test_urls = {
-        f"https://example.com?t=cli_simulcast_{n}&v={python_version}&s={session_uuid_str}"
+    test_iris = {
+        f"https://example.com?t=cli_simulcast_{n}"
+        f"&v={python_version}&s={session_uuid_str}"
         for n in range(6)
     }
-    for url in test_urls:
+    for iri in test_iris:
         args = [
             "--livetest",
             "--no-sanity-check",
             "--ignore-config-updates",
             "--debug",
             "write",
-            url,
+            iri,
         ]
         tasks.append(_run_cli_once(app, args))
 
@@ -87,15 +88,15 @@ async def test_write_cli_single_simulcast():
     # Sleep to catch up because beem isn't async and blocks
     await asyncio.sleep(op_period * 25)
 
-    answer_urls = set()
-    async for stream_url in get_url_from_blockchain(current_block - 5):
-        answer_urls.add(stream_url)
+    answer_iris = set()
+    async for stream_iri in get_iri_from_blockchain(current_block - 5):
+        answer_iris.add(stream_iri)
 
         # If we're done, end early
-        if len(answer_urls) == len(test_urls):
+        if len(answer_iris) == len(test_iris):
             break
 
-    assert answer_urls == test_urls
+    assert answer_iris == test_iris
 
 
 if __name__ == "__main__":

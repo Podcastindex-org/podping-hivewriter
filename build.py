@@ -7,7 +7,9 @@ class SetupKwargsProxy:
 
     @property
     def capnpy_options(self):
-        return {}
+        return {
+            "convert_case": False,  # do NOT convert camelCase to camel_case
+        }
 
     @property
     def ext_modules(self):

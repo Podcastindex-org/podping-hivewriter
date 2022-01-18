@@ -6,7 +6,6 @@ from lighthive.client import Client
 
 def get_client(
     posting_keys: Optional[List[str]] = None,
-    nobroadcast: Optional[bool] = False,
     nodes=None,
     connect_timeout=3,
     read_timeout=30,
@@ -35,7 +34,7 @@ def get_allowed_accounts(
     and only react to these accounts"""
 
     if not client:
-        client = Client()
+        client = get_client()
 
     master_account = client.account(account_name)
     return set(master_account.following())

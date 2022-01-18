@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "podping-hivewriter"
-version = "1.1.0-alpha.0"
+version = "1.1.0-beta.0"
 license = "MIT"
 authors = ["Alecks Gates <alecks@podping.org>", "Brian of London <brian@podping.org>"]
 maintainers = ["Alecks Gates <alecks@podping.org>", "Brian of London <brian@podping.org>"]
@@ -21,7 +21,7 @@ build = "build.py"
 include = ["src/podping_hivewriter/schema/*.py", "src/podping_hivewriter/schema/*.so"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 pyzmq = "^22.1.0"
 cffi = "^1.14.5"
 pydantic = "^1.9.0"
@@ -42,6 +42,7 @@ bandit = "^1.7.0"
 pytest-timeout = "^2.0.2"
 typer-cli = "^0.0.12"
 flake8 = "^4.0.1"
+mypy = "^0.931"
 
 [tool.poetry.extras]
 server = ["pyzmq"]
@@ -55,7 +56,7 @@ requires = ["poetry-core>=1.0.0", "capnpy"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.black]
-target-version = ['py37', 'py38', 'py39', 'py310']
+target-version = ['py38', 'py39', 'py310']
 
 [tool.isort]
 profile = "black"

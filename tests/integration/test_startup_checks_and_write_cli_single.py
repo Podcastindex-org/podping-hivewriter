@@ -1,7 +1,6 @@
 import asyncio
 import json
 import uuid
-from random import randint
 from platform import python_version as pv
 
 import pytest
@@ -11,7 +10,11 @@ from typer.testing import CliRunner
 
 from podping_hivewriter.async_wrapper import sync_to_async
 from podping_hivewriter.cli.podping import app
-from podping_hivewriter.constants import LIVETEST_OPERATION_ID
+from podping_hivewriter.constants import (
+    LIVETEST_OPERATION_ID,
+    STARTUP_FAILED_INVALID_ACCOUNT,
+    STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE,
+)
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.medium import Medium
 from podping_hivewriter.models.reason import Reason
@@ -21,7 +24,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 @pytest.mark.asyncio
 @pytest.mark.timeout(600)
 @pytest.mark.slow
-async def test_write_cli_multiple():
+async def test_startup_checks_and_write_cli_single():
     runner = CliRunner()
 
     settings_manager = PodpingSettingsManager(ignore_updates=True)
@@ -31,13 +34,8 @@ async def test_write_cli_multiple():
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)
 
-    num_iris = randint(2, 25)
-    test_name = "cli_multiple"
-    python_version = pv()
-    test_iris = {
-        f"https://example.com?t={test_name}&i={i}&v={python_version}&s={session_uuid_str}"
-        for i in range(num_iris)
-    }
+    test_name = "cli_single"
+    iri = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
 
     default_hive_operation_id = HiveOperationId(
         LIVETEST_OPERATION_ID, Medium.podcast, Reason.update
@@ -51,19 +49,10 @@ async def test_write_cli_multiple():
             "custom_json", filter_by={"id": default_hive_operation_id_str}
         ):
             data = json.loads(post["op"][1]["json"])
-            if "iris" in data:
-                for iri in data["iris"]:
-                    # Only look for IRIs from current session
-                    if iri.endswith(session_uuid_str):
-                        yield iri
+            if "iris" in data and len(data["iris"]) == 1:
+                yield data["iris"][0]
 
-    args = [
-        "--livetest",
-        "--no-sanity-check",
-        "--ignore-config-updates",
-        "write",
-        *test_iris,
-    ]
+    args = ["--livetest", "write", iri]
 
     current_block = client.get_dynamic_global_properties()["head_block_number"]
 
@@ -72,17 +61,38 @@ async def test_write_cli_multiple():
 
     assert result.exit_code == 0
 
-    op_period = settings_manager._settings.hive_operation_period
-
     # Sleep to catch up because beem isn't async and blocks
-    await asyncio.sleep(op_period * 30)
+    await asyncio.sleep(3 * 25)
 
-    answer_iris = set()
+    iri_found = False
+
     async for stream_iri in get_iri_from_blockchain(current_block - 5):
-        answer_iris.add(stream_iri)
-
-        # If we're done, end early
-        if len(answer_iris) == len(test_iris):
+        if stream_iri == iri:
+            iri_found = True
             break
 
-    assert answer_iris == test_iris
+    del settings_manager
+    assert iri_found
+
+
+@pytest.mark.asyncio
+async def test_startup_failures():
+    """Deliberately force failure in startup of cli"""
+    runner = CliRunner()
+
+    session_uuid = uuid.uuid4()
+    session_uuid_str = str(session_uuid)
+
+    test_name = "cli_fail"
+    iri = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
+
+    # This will fail, bad hive account name
+    args = ["--livetest", "--hive-account", "_podping", "write", iri]
+    result = runner.invoke(app, args)
+
+    assert result.exit_code == STARTUP_FAILED_INVALID_ACCOUNT
+
+    args = ["--livetest", "--hive-posting-key", "not_a_valid_key", "write", iri]
+    result = runner.invoke(app, args)
+
+    assert result.exit_code == STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE
