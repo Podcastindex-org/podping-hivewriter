@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build and publish to pypi
-        uses: agates/poetry-publish@v1.10-beta.0
+        uses: agates/poetry-publish@v1.10-beta.1
         with:
           ignore_dev_requirements: "yes"
           pypi_token: ${{ secrets.PYPI_TOKEN }}
