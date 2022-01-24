@@ -71,6 +71,8 @@ app = typer.Typer()
 class Config:
     hive_account: str
     hive_posting_key: str
+    medium: Medium
+    reason: Reason
     sanity_check: bool
     livetest: bool
     dry_run: bool
@@ -88,20 +90,6 @@ def exit_cli(_):
 
 @app.command()
 def write(
-    medium: str = typer.Option(
-        str(Medium.podcast),
-        envvar=["PODPING_MEDIUM"],
-        callback=medium_callback,
-        autocompletion=lambda: list(mediums),
-        help=f"The medium of the feed being updated. Must be one of the following: {str(' '.join(mediums))}",
-    ),
-    reason: str = typer.Option(
-        str(Reason.update),
-        envvar=["PODPING_REASON"],
-        callback=reason_callback,
-        autocompletion=lambda: list(reasons),
-        help=f"The reason the feed is being updated. Must be one of the following: {str(' '.join(reasons))}",
-    ),
     iris: List[str] = typer.Argument(
         ...,
         metavar="IRI...",
@@ -147,13 +135,15 @@ def write(
         Config.hive_account,
         [Config.hive_posting_key],
         settings_manager,
+        medium=Config.medium,
+        reason=Config.reason,
         operation_id=Config.operation_id,
         resource_test=Config.sanity_check,
         daemon=False,
         dry_run=Config.dry_run,
     ) as podping_hivewriter:
         coro = podping_hivewriter.failure_retry(
-            set(iris), medium=str_medium_map[medium], reason=str_reason_map[reason]
+            set(iris), medium=Config.medium, reason=Config.reason
         )
         try:
             # Try to get an existing loop in case of running from other program
@@ -238,6 +228,8 @@ def server(
         Config.hive_account,
         [Config.hive_posting_key],
         settings_manager,
+        medium=Config.medium,
+        reason=Config.reason,
         listen_ip=listen_ip,
         listen_port=listen_port,
         operation_id=Config.operation_id,
@@ -261,6 +253,22 @@ def server(
 
 @app.callback()
 def callback(
+    medium: str = typer.Option(
+        str(Medium.podcast),
+        envvar=["PODPING_MEDIUM"],
+        callback=medium_callback,
+        autocompletion=lambda: list(mediums),
+        help=f"The medium of the feed being updated. If used in combination with the 'server', this sets the default "
+        f"medium only. Must be one of the following: {str(' '.join(mediums))}",
+    ),
+    reason: str = typer.Option(
+        str(Reason.update),
+        envvar=["PODPING_REASON"],
+        callback=reason_callback,
+        autocompletion=lambda: list(reasons),
+        help=f"The reason the feed is being updated. If used in combination with the 'server', this sets the default "
+        f"reason only. Must be one of the following: {str(' '.join(reasons))}",
+    ),
     hive_account: str = typer.Option(
         ...,
         envvar=["PODPING_HIVE_ACCOUNT", "HIVE_ACCOUNT", "HIVE_SERVER_ACCOUNT"],
@@ -325,6 +333,8 @@ def callback(
 ):
     Config.hive_account = hive_account
     Config.hive_posting_key = hive_posting_key
+    Config.medium = str_medium_map[medium]
+    Config.reason = str_reason_map[reason]
     Config.sanity_check = sanity_check
     Config.livetest = livetest
     Config.dry_run = dry_run
