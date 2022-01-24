@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime, timedelta
 from itertools import cycle
 from timeit import default_timer as timer
-from typing import List, Set, Tuple, Union
+from typing import List, Set, Tuple, Union, Optional
 
 import rfc3987
 from lighthive.datastructures import Operation
@@ -42,6 +42,8 @@ class PodpingHivewriter(AsyncContext):
         server_account: str,
         posting_keys: List[str],
         settings_manager: PodpingSettingsManager,
+        medium: Medium = Medium.podcast,
+        reason: Reason = Reason.update,
         listen_ip: str = "127.0.0.1",
         listen_port: int = 9999,
         operation_id="pp",
@@ -55,6 +57,8 @@ class PodpingHivewriter(AsyncContext):
         self.server_account: str = server_account
         self.required_posting_auths = [self.server_account]
         self.settings_manager = settings_manager
+        self.medium = medium
+        self.reason = reason
         self.listen_ip = listen_ip
         self.listen_port = listen_port
         self.posting_keys: List[str] = posting_keys
@@ -222,7 +226,9 @@ class PodpingHivewriter(AsyncContext):
                 iri_batch = await self.iri_batch_queue.get()
 
                 start = timer()
-                failure_count = await self.failure_retry(iri_batch.iri_set)
+                failure_count = await self.failure_retry(
+                    iri_batch.iri_set, medium=self.medium, reason=self.reason
+                )
                 duration = timer() - start
 
                 self.iri_batch_queue.task_done()
@@ -413,10 +419,12 @@ class PodpingHivewriter(AsyncContext):
     async def send_notification_iri(
         self,
         iri: str,
-        medium: Medium = Medium.podcast,
-        reason: Reason = Reason.update,
+        medium: Optional[Medium],
+        reason: Optional[Reason],
     ) -> None:
-        payload = Podping(medium=medium, reason=reason, iris=[iri])
+        payload = Podping(
+            medium=medium or self.medium, reason=reason or self.reason, iris=[iri]
+        )
 
         hive_operation_id = HiveOperationId(self.operation_id, medium, reason)
 
@@ -427,11 +435,13 @@ class PodpingHivewriter(AsyncContext):
     async def send_notification_iris(
         self,
         iris: Set[str],
-        medium: Medium = Medium.podcast,
-        reason: Reason = Reason.update,
+        medium: Optional[Medium],
+        reason: Optional[Reason],
     ) -> None:
         num_iris = len(iris)
-        payload = Podping(medium=medium, reason=reason, iris=list(iris))
+        payload = Podping(
+            medium=medium or self.medium, reason=reason or self.reason, iris=list(iris)
+        )
 
         hive_operation_id = HiveOperationId(self.operation_id, medium, reason)
 
@@ -442,8 +452,8 @@ class PodpingHivewriter(AsyncContext):
     async def failure_retry(
         self,
         iri_set: Set[str],
-        medium: Medium = Medium.podcast,
-        reason: Reason = Reason.update,
+        medium: Optional[Medium],
+        reason: Optional[Reason],
     ) -> int:
         await self.wait_startup()
         failure_count = 0
@@ -462,7 +472,9 @@ class PodpingHivewriter(AsyncContext):
 
             try:
                 await self.send_notification_iris(
-                    iris=iri_set, medium=medium, reason=reason
+                    iris=iri_set,
+                    medium=medium or self.medium,
+                    reason=reason or self.reason,
                 )
                 if failure_count > 0:
                     logging.info(

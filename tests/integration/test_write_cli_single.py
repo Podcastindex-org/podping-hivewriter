@@ -1,5 +1,6 @@
 import asyncio
 import json
+import random
 import uuid
 from platform import python_version as pv
 
@@ -12,8 +13,8 @@ from podping_hivewriter.async_wrapper import sync_to_async
 from podping_hivewriter.cli.podping import app
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
-from podping_hivewriter.models.medium import Medium
-from podping_hivewriter.models.reason import Reason
+from podping_hivewriter.models.medium import Medium, str_medium_map, mediums
+from podping_hivewriter.models.reason import Reason, str_reason_map, reasons
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
@@ -33,9 +34,10 @@ async def test_write_cli_single():
     test_name = "cli_single"
     iri = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
 
-    default_hive_operation_id = HiveOperationId(
-        LIVETEST_OPERATION_ID, Medium.podcast, Reason.update
-    )
+    medium = str_medium_map[random.sample(mediums, 1)[0]]
+    reason = str_reason_map[random.sample(reasons, 1)[0]]
+
+    default_hive_operation_id = HiveOperationId(LIVETEST_OPERATION_ID, medium, reason)
     default_hive_operation_id_str = str(default_hive_operation_id)
 
     async def get_iri_from_blockchain(start_block: int):
@@ -46,9 +48,22 @@ async def test_write_cli_single():
         ):
             data = json.loads(post["op"][1]["json"])
             if "iris" in data and len(data["iris"]) == 1:
-                yield data["iris"][0]
+                iri = data["iris"][0]
+                # Only look for IRIs from current session
+                if iri.endswith(session_uuid_str):
+                    yield data["iris"][0]
 
-    args = ["--livetest", "--no-sanity-check", "--ignore-config-updates", "write", iri]
+    args = [
+        "--medium",
+        str(medium),
+        "--reason",
+        str(reason),
+        "--livetest",
+        "--no-sanity-check",
+        "--ignore-config-updates",
+        "write",
+        iri,
+    ]
 
     current_block = client.get_dynamic_global_properties()["head_block_number"]
 
