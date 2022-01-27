@@ -7,12 +7,13 @@ import uuid
 from datetime import datetime, timedelta
 from itertools import cycle
 from timeit import default_timer as timer
-from typing import List, Set, Tuple, Union, Optional
+from typing import List, Optional, Set, Tuple, Union
 
 import rfc3987
 from lighthive.datastructures import Operation
 from lighthive.exceptions import RPCNodeException
 from lighthive.node_picker import compare_nodes
+from pydantic import ValidationError
 
 from podping_hivewriter import __version__ as podping_hivewriter_version
 from podping_hivewriter.async_context import AsyncContext
@@ -395,10 +396,15 @@ class PodpingHivewriter(AsyncContext):
 
             # Use asynchronous broadcast but means we don't get back tx, kinder to
             # API servers
+            start = timer()
             await self._async_hive_broadcast(op=op, dry_run=self.dry_run)
-
-            logging.info(f"Lighthive Node: {self.lighthive_client.current_node}")
-            logging.info(f"JSON size: {size_of_json}")
+            if self.dry_run:
+                logging.info(f"Dry Run: nothing published to Hive")
+            logging.info(
+                f"Lighthive Node: {self.lighthive_client.current_node} | "
+                f"Time: {timer() - start:.2f} s | "
+                f"JSON size: {size_of_json}"
+            )
 
         except RPCNodeException as ex:
             logging.error(f"send_notification error: {ex}")
@@ -493,13 +499,22 @@ class PodpingHivewriter(AsyncContext):
                     )
                     sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
 
+            except ValidationError as ex:
+                logging.warning(f"Failed to send {len(iri_set)} IRIs")
+                logging.warning(f"{ex}")
+                return
+
             except Exception as ex:
                 logging.warning(f"Failed to send {len(iri_set)} IRIs")
                 logging.warning(f"{ex}")
-                if logging.DEBUG >= logging.root.level:
-                    for iri in iri_set:
-                        logging.debug(iri)
 
             finally:
                 self.lighthive_client.next_node()
                 failure_count += 1
+                if logging.DEBUG >= logging.root.level:
+                    logging.debug(
+                        f"Medium: {medium} | Reason: {reason} | "
+                        f"Default Medium: {self.medium} | Reason: {self.reason}"
+                    )
+                    for iri in iri_set:
+                        logging.debug(iri)
