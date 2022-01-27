@@ -1,12 +1,19 @@
 import asyncio
 import logging
+import sys
 from typing import List, Optional
 
 import rfc3987
 import typer
+from pydantic import ValidationError
 
 from podping_hivewriter import __version__
-from podping_hivewriter.constants import LIVETEST_OPERATION_ID, PODPING_OPERATION_ID
+from podping_hivewriter.constants import (
+    LIVETEST_OPERATION_ID,
+    PODPING_OPERATION_ID,
+    STARTUP_FAILED_UNKNOWN_EXIT_CODE,
+)
+from podping_hivewriter.exceptions import BadStartupData
 from podping_hivewriter.hive import validate_account_info
 from podping_hivewriter.models.medium import Medium, mediums, str_medium_map
 from podping_hivewriter.models.reason import Reason, reasons, str_reason_map
@@ -336,8 +343,14 @@ def callback(
         Config.operation_id = LIVETEST_OPERATION_ID
     else:
         Config.operation_id = PODPING_OPERATION_ID
-
-    validate_account_info(hive_account=hive_account, hive_posting_key=hive_posting_key)
+    try:
+        validate_account_info(
+            hive_account=hive_account, posting_keys=[hive_posting_key]
+        )
+    except BadStartupData as ex:
+        sys.exit(ex.args[0])
+    except Exception:
+        sys.exit(STARTUP_FAILED_UNKNOWN_EXIT_CODE)
 
 
 if __name__ == "__main__":
