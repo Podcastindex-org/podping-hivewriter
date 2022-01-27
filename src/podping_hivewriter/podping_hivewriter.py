@@ -399,7 +399,7 @@ class PodpingHivewriter(AsyncContext):
             start = timer()
             await self._async_hive_broadcast(op=op, dry_run=self.dry_run)
             if self.dry_run:
-                logging.info(f"Dry Run: nothing published to Hive")
+                logging.info("Dry Run: nothing published to Hive")
             logging.info(
                 f"Lighthive Node: {self.lighthive_client.current_node} | "
                 f"Time: {timer() - start:.2f} s | "
