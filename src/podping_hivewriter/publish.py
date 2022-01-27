@@ -25,6 +25,7 @@ def _get_operation_id(livetest: bool) -> str:
 def _validate(
     iris: List[str],
     server_account: str,
+    posting_keys: List[str],
     medium: Medium = Medium.podcast,
     reason: Reason = Reason.update,
 ) -> bool:
@@ -95,7 +96,7 @@ async def publish_async(
     resource_test: bool = False,
 ):
     """Take in a list of iris and send them (async)"""
-    _validate(iris, server_account, posting_keys, livetest, medium, reason)
+    _validate(iris, server_account, posting_keys, medium, reason)
     operation_id = _get_operation_id(livetest)
 
     with PodpingHivewriter(

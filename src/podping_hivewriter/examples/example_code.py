@@ -3,7 +3,6 @@ import os
 
 from podping_hivewriter.publish import publish
 
-
 EXAMPLE_DATA = [
     "https://3speak.tv/rss/brianoflondon.xml",
     "https://3speak.tv/rss/theycallmedan.xml",
@@ -26,5 +25,8 @@ if __name__ == "__main__":
         iris=EXAMPLE_DATA,
         server_account=server_account,
         posting_keys=posting_keys,
+        livetest=True,
+        medium="podcast",
+        reason="live",
         dry_run=True,
     )
