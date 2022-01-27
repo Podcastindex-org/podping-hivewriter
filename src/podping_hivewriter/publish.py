@@ -4,12 +4,13 @@ from typing import List
 
 from pydantic import ValidationError
 
+from podping_hivewriter.exceptions import BadStartupData
+from podping_hivewriter.hive import validate_account_info
 from podping_hivewriter.models.medium import Medium
 from podping_hivewriter.models.podping import Podping
 from podping_hivewriter.models.reason import Reason
 from podping_hivewriter.podping_hivewriter import PodpingHivewriter
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
-
 
 
 def _validate(
@@ -22,14 +23,19 @@ def _validate(
     """Validate incoming podping data returns True if all OK"""
     try:
         iri_set = set(iris)
-        payload = Podping(medium=medium, reason=reason, iris=list(iri_set))
+        _ = Podping(medium=medium, reason=reason, iris=list(iri_set))
+        validate_account_info(hive_account=server_account, posting_keys=posting_keys)
         return True
     except ValidationError as ex:
         logging.error(f"Failed to send {len(iri_set)} IRIs")
-        logging.error(f"{ex}")
+        logging.error(f"Validation Error: {ex}")
+        raise ValidationError(ex)
+    except BadStartupData as ex:
+        logging.error(f"Failed to send {len(iri_set)} IRIs")
+        logging.error(f"Bad Startup Data: {ex}")
+        raise BadStartupData(ex)
+    except Exception as ex:
         raise ex
-    except Exception:
-        raise
 
 
 def publish(
@@ -43,7 +49,6 @@ def publish(
 ):
     """Take in a list of iris, validate and send them"""
     _validate(iris, server_account, posting_keys, medium, reason)
-
 
     with PodpingHivewriter(
         server_account=server_account,
