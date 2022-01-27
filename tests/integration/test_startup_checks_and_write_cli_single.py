@@ -22,6 +22,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 from typer import BadParameter
 
+
 @pytest.mark.asyncio
 @pytest.mark.timeout(600)
 @pytest.mark.slow
