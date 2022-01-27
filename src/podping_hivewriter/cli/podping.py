@@ -354,6 +354,12 @@ def callback(
     else:
         Config.operation_id = PODPING_OPERATION_ID
 
+    validate_account_info(hive_account=hive_account, hive_posting_key=hive_posting_key)
+
+
+def validate_account_info(hive_account: str, hive_posting_key: str):
+    """Performs all the checks for a hive account and posting key"""
+
     # Check the account exists
     posting_keys = [hive_posting_key]
     client = get_client(posting_keys=posting_keys)
