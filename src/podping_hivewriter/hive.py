@@ -9,7 +9,9 @@ from lighthive.client import Client
 from podping_hivewriter.constants import (
     STARTUP_FAILED_INVALID_ACCOUNT,
     STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE,
+    STARTUP_FAILED_UNKNOWN_EXIT_CODE,
 )
+from podping_hivewriter.exceptions import BadStartupData
 
 
 def get_client(
@@ -57,11 +59,10 @@ def is_base58(sb: str) -> bool:
         return False
 
 
-def validate_account_info(hive_account: str, hive_posting_key: str):
+def validate_account_info(hive_account: str, posting_keys: List[str]):
     """Performs all the checks for a hive account and posting key"""
 
     # Check the account exists
-    posting_keys = [hive_posting_key]
     client = get_client(posting_keys=posting_keys)
     account_exists = client.get_accounts([hive_account])
     if not account_exists:
@@ -70,33 +71,35 @@ def validate_account_info(hive_account: str, hive_posting_key: str):
             f"check ENV vars and try again"
         )
         logging.error("Exiting")
+        raise BadStartupData(STARTUP_FAILED_INVALID_ACCOUNT)
         sys.exit(STARTUP_FAILED_INVALID_ACCOUNT)
-
-    if not is_base58(hive_posting_key):
-        logging.error("Startup of Podping status: FAILED!")
-        logging.error(
-            "Posting Key not valid Base58 - check ENV vars and try again",
-        )
-        logging.error("Exiting")
-        sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
-
-    account = client.account(hive_account)
-    public_keys = [a[0] for a in account.raw_data["posting"]["key_auths"]]
-    try:
-        private_key = PrivateKey(hive_posting_key)
-        if not str(private_key.pubkey) in public_keys:
+    for posting_key in posting_keys:
+        if not is_base58(posting_key):
             logging.error("Startup of Podping status: FAILED!")
             logging.error(
-                f"Posting Key doesn't match @{hive_account} - "
+                "Posting Key not valid Base58 - check ENV vars and try again",
+            )
+            logging.error("Exiting")
+            raise BadStartupData(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+
+        account = client.account(hive_account)
+        public_keys = [a[0] for a in account.raw_data["posting"]["key_auths"]]
+        try:
+            private_key = PrivateKey(posting_key)
+            if not str(private_key.pubkey) in public_keys:
+                logging.error("Startup of Podping status: FAILED!")
+                logging.error(
+                    f"Posting Key doesn't match @{hive_account} - "
+                    f"check ENV vars and try again",
+                )
+                logging.error("Exiting")
+                raise BadStartupData(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+
+        except Exception:
+            logging.error("Startup of Podping status: FAILED!")
+            logging.error(
+                f"Some other error with keys for @{hive_account} - "
                 f"check ENV vars and try again",
             )
             logging.error("Exiting")
-            sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
-    except Exception:
-        logging.error("Startup of Podping status: FAILED!")
-        logging.error(
-            f"Some other error with keys for @{hive_account} - "
-            f"check ENV vars and try again",
-        )
-        logging.error("Exiting")
-        sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+            raise BadStartupData(STARTUP_FAILED_UNKNOWN_EXIT_CODE)
