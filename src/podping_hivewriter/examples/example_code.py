@@ -9,6 +9,8 @@ EXAMPLE_DATA = [
     "https://3speak.tv/rss/theycallmedan.xml",
 ]
 
+# You can set a logging level appropriate for your code.
+# Set to .WARNING for fewer logging m
 
 logging.basicConfig(
     level=logging.INFO,
