@@ -4,3 +4,7 @@ class PodpingCustomJsonPayloadExceeded(RuntimeError):
 
 class TooManyCustomJsonsPerBlock(RuntimeError):
     """Raise when trying to write more than 5 custom_jsons in a single block"""
+
+
+class BadStartupData(RuntimeError):
+    """Raise when startup input data fails validation"""
