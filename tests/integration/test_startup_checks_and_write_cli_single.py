@@ -20,6 +20,7 @@ from podping_hivewriter.models.medium import Medium
 from podping_hivewriter.models.reason import Reason
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
+from typer import BadParameter
 
 @pytest.mark.asyncio
 @pytest.mark.timeout(600)
@@ -96,3 +97,8 @@ async def test_startup_failures():
     result = runner.invoke(app, args)
 
     assert result.exit_code == STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE
+
+    args = ["--livetest", "--debug", "--medium", "wrong_medium" "write", iri]
+    result = runner.invoke(app, args)
+
+    assert result.exit_code == BadParameter.exit_code
