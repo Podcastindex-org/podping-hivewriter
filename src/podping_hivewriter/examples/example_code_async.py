@@ -2,7 +2,7 @@ import asyncio
 import logging
 import os
 
-from podping_hivewriter.publish import publish_async
+from podping_hivewriter.publish import LoopPodpingHivewriter, publish_async
 
 
 EXAMPLE_DATA = [

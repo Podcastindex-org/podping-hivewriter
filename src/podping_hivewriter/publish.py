@@ -2,7 +2,7 @@ import asyncio
 import logging
 from typing import List
 
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID, PODPING_OPERATION_ID
 
 from podping_hivewriter.exceptions import BadStartupData
@@ -23,15 +23,17 @@ def _get_operation_id(livetest: bool) -> str:
 
 
 def _validate(
-    iris: List[str],
     server_account: str,
     posting_keys: List[str],
+    iris: List[str] = None,
     medium: Medium = Medium.podcast,
     reason: Reason = Reason.update,
 ) -> bool:
 
     """Validate incoming podping data returns True if all OK"""
     try:
+        if not iris:
+            iris = ["https://example.com/dummy.rss"]
         iri_set = set(iris)
         _ = Podping(medium=medium, reason=reason, iris=list(iri_set))
         validate_account_info(hive_account=server_account, posting_keys=posting_keys)
@@ -62,7 +64,7 @@ def publish(
 
     :param List[str] iris: List of of individual iri's
     """
-    _validate(iris, server_account, posting_keys, medium, reason)
+    _validate(server_account, posting_keys, iris, medium, reason)
     operation_id = _get_operation_id(livetest)
 
     with PodpingHivewriter(
@@ -96,7 +98,7 @@ async def publish_async(
     resource_test: bool = False,
 ):
     """Take in a list of iris and send them (async)"""
-    _validate(iris, server_account, posting_keys, medium, reason)
+    _validate(server_account, posting_keys, iris, medium, reason)
     operation_id = _get_operation_id(livetest)
 
     with PodpingHivewriter(
@@ -115,3 +117,61 @@ async def publish_async(
         )
 
     return
+
+
+class LoopPodpingHivewriter(PodpingHivewriter):
+    """Maintain a PodpingHivewriter object for easy re-use in a long running script"""
+
+    def __init__(
+        self,
+        server_account: str,
+        posting_keys: List[str],
+        ignore_updates: bool = False,
+        medium: Medium = ...,
+        reason: Reason = ...,
+        operation_id="pp",
+        livetest=True,
+        resource_test=True,
+        dry_run=False,
+        daemon=True,
+        status=True,
+    ):
+        settings_manager = PodpingSettingsManager(ignore_updates=ignore_updates)
+        _validate(server_account, posting_keys, medium=medium, reason=reason)
+        operation_id = _get_operation_id(livetest)
+        super().__init__(
+            server_account,
+            posting_keys,
+            settings_manager,
+            medium,
+            reason,
+            operation_id=operation_id,
+            resource_test=False,
+            dry_run=dry_run,
+            daemon=daemon,
+            status=status,
+        )
+
+
+# async def batch_publish_startup_async(
+#     server_account: str,
+#     posting_keys: List[str],
+#     livetest: bool = False,
+#     medium: Medium = Medium.podcast,
+#     reason: Reason = Reason.update,
+#     dry_run: bool = False,
+#     resource_test: bool = False,
+# ) -> PodpingHivewriter:
+#     iris = []
+#     _validate(iris, server_account, posting_keys, medium, reason)
+#     operation_id = _get_operation_id(livetest)
+#     pp =  PodpingHivewriter(
+#         server_account=server_account,
+#         posting_keys=posting_keys,
+#         settings_manager=PodpingSettingsManager(ignore_updates=True),
+#         dry_run=dry_run,
+#         resource_test=resource_test,
+#         operation_id=operation_id,
+#         daemon=True,
+#     )
+#     await pp.iri_queue.put()
