@@ -139,7 +139,7 @@ pytest --runslow
 
 ## Hive account
 
-If you need a Hive account, please download the [Hive Keychain extension for your browser](https://hive-keychain.com/) then use this link to get your account from [https://HiveOnboard.com?ref=podping](https://hiveonboard.com?ref=podping). You will need at least 20 Hive Power "powered up" to get started (worth around $10). Please contact [@brianoflondon](https://peakd.com/@brianoflondon) brian@podping.org if you need assistance getting set up.
+If you need a Hive account, please download the [Hive Keychain extension for your browser](https://hive-keychain.com/) then use this link to get your account from [https://HiveOnboard.com?ref=podping](https://hiveonboard.com?ref=podping). You will need around 20 Hive Power "powered up" to get started. Please contact [@brianoflondon](https://peakd.com/@brianoflondon) brian@podping.org if you need assistance getting set up.
 
 If you use the [Hiveonboard]((https://hiveonboard.com?ref=podping)) link `podping` will **delegate** enough Hive Power to get you started. If for any reason Hiveonboard is not giving out free accounts, please contact [@brianoflondon](https://peakd.com/@brianoflondon) either on [PodcastIndex Social](https://podcastindex.social/invite/U2m6FY3T) or [Telegram](https://t.me/brianoflondon).
 
