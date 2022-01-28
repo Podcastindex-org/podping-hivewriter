@@ -52,6 +52,7 @@ class PodpingHivewriter(AsyncContext):
         dry_run=False,
         daemon=True,
         status=True,
+        zero_mq=True
     ):
         super().__init__()
 
@@ -68,6 +69,7 @@ class PodpingHivewriter(AsyncContext):
         self.dry_run: bool = dry_run
         self.daemon: bool = daemon
         self.status: bool = status
+        self.zero_mq: bool = zero_mq
 
         self.lighthive_client = get_client(
             posting_keys=posting_keys, loglevel=logging.ERROR
@@ -118,7 +120,8 @@ class PodpingHivewriter(AsyncContext):
         logging.info(f"Hive account: @{self.server_account}")
 
         if self.daemon:
-            self._add_task(asyncio.create_task(self._zmq_response_loop()))
+            if self.zero_mq:
+                self._add_task(asyncio.create_task(self._zmq_response_loop()))
             self._add_task(asyncio.create_task(self._iri_batch_loop()))
             self._add_task(asyncio.create_task(self._iri_batch_handler_loop()))
             if self.status:

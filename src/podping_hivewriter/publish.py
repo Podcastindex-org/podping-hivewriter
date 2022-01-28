@@ -135,6 +135,7 @@ class LoopPodpingHivewriter(PodpingHivewriter):
         dry_run=False,
         daemon=True,
         status=True,
+        zero_mq=False
     ):
         settings_manager = PodpingSettingsManager(ignore_updates=ignore_updates)
         _validate(server_account, posting_keys, medium=medium, reason=reason)
@@ -146,10 +147,11 @@ class LoopPodpingHivewriter(PodpingHivewriter):
             medium,
             reason,
             operation_id=operation_id,
-            resource_test=False,
+            resource_test=resource_test,
             dry_run=dry_run,
             daemon=daemon,
             status=status,
+            zero_mq=zero_mq
         )
 
 
