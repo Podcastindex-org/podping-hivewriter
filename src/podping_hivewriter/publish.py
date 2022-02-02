@@ -135,7 +135,7 @@ class LoopPodpingHivewriter(PodpingHivewriter):
         dry_run=False,
         daemon=True,
         status=True,
-        zero_mq=False
+        zero_mq=False,
     ):
         settings_manager = PodpingSettingsManager(ignore_updates=ignore_updates)
         _validate(server_account, posting_keys, medium=medium, reason=reason)
@@ -151,29 +151,5 @@ class LoopPodpingHivewriter(PodpingHivewriter):
             dry_run=dry_run,
             daemon=daemon,
             status=status,
-            zero_mq=zero_mq
+            zero_mq=zero_mq,
         )
-
-
-# async def batch_publish_startup_async(
-#     server_account: str,
-#     posting_keys: List[str],
-#     livetest: bool = False,
-#     medium: Medium = Medium.podcast,
-#     reason: Reason = Reason.update,
-#     dry_run: bool = False,
-#     resource_test: bool = False,
-# ) -> PodpingHivewriter:
-#     iris = []
-#     _validate(iris, server_account, posting_keys, medium, reason)
-#     operation_id = _get_operation_id(livetest)
-#     pp =  PodpingHivewriter(
-#         server_account=server_account,
-#         posting_keys=posting_keys,
-#         settings_manager=PodpingSettingsManager(ignore_updates=True),
-#         dry_run=dry_run,
-#         resource_test=resource_test,
-#         operation_id=operation_id,
-#         daemon=True,
-#     )
-#     await pp.iri_queue.put()
