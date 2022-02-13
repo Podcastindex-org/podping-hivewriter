@@ -124,6 +124,7 @@ Podping accepts various different "reasons" for publishing updates to RSS feeds:
 
 * `update` -- A general indication that an RSS feed has been updated
 * `live` -- An indication that an RSS feed has been updated and a contained [`<podcast:liveItem>`](https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/1.0.md#live-item) tag's status attribute has been changed to live.
+* `liveEnd` -- An indication that an RSS feed has been updated and either the status attribute of an existing [`<podcast:liveItem>`](https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/1.0.md#live-item) has been changed from live to ended or a [`<podcast:liveItem>`](https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/1.0.md#live-item) that previously had a status attribute of live has been removed from the feed entirely.
 
 The canonical list of reasons within the scope of this project is [maintained in this schema](https://github.com/Podcastindex-org/podping-hivewriter/blob/main/src/podping_hivewriter/schema/reason.capnp).
 
