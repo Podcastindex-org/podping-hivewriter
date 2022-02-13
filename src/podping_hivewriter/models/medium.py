@@ -4,7 +4,7 @@ from capnpy.annotate import Options
 medium_module = capnpy.load_schema(
     "podping_hivewriter.schema.medium",
     # Make sure properties are imported as specified (camelCase)
-    options=Options(convert_case=False),
+    options=Options(convert_case=False, include_reflection_data=True),
 )
 
 Medium = medium_module.Medium
