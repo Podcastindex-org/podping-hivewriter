@@ -8,8 +8,8 @@ $ podping [OPTIONS] COMMAND [ARGS]...
 
 **Options**:
 
-* `--medium TEXT`: The medium of the feed being updated. If used in combination with the 'server', this sets the default medium only. Must be one of the following: newsletter film audiobook podcast music blog video  [env var: PODPING_MEDIUM; default: podcast]
-* `--reason TEXT`: The reason the feed is being updated. If used in combination with the 'server', this sets the default reason only. Must be one of the following: update live  [env var: PODPING_REASON; default: update]
+* `--medium TEXT`: The medium of the feed being updated. If used in combination with the 'server', this sets the default medium only. Must be one of the following: blog music audiobook newsletter video film podcast  [env var: PODPING_MEDIUM; default: podcast]
+* `--reason TEXT`: The reason the feed is being updated. If used in combination with the 'server', this sets the default reason only. Must be one of the following: update live liveEnd  [env var: PODPING_REASON; default: update]
 * `--hive-account TEXT`: Hive account used to post  [env var: PODPING_HIVE_ACCOUNT, HIVE_ACCOUNT, HIVE_SERVER_ACCOUNT; required]
 * `--hive-posting-key TEXT`: Hive account used to post  [env var: PODPING_HIVE_POSTING_KEY, HIVE_POSTING_KEY; required]
 * `--sanity-check / --no-sanity-check`: By default, podping will test for available resources and the ability to post to the Hive chain on the given hive account at startup by posting startup information. Disabling this will result in a faster startup, time, but may result in unexpected errors.  [env var: PODPING_SANITY_CHECK; default: True]
