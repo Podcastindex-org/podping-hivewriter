@@ -2,17 +2,25 @@ name: Test
 
 on:
   push:
+    branches:
+      - 'main'
+      - 'release/**'
+      - 'hotfix/**'
     paths-ignore:
       - '**.md'
       - '.gitignore'
       - 'LICENSE'
       - '.env*'
+      - 'Dockerfile*'
+      - '*.sh'
   pull_request:
     paths-ignore:
       - '**.md'
       - '.gitignore'
       - 'LICENSE'
       - '.env*'
+      - 'Dockerfile*'
+      - '*.sh'
 
 
 jobs:
