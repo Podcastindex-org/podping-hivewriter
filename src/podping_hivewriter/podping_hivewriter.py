@@ -69,7 +69,9 @@ class PodpingHivewriter(AsyncContext):
         self.status: bool = status
 
         self.lighthive_client = get_client(
-            posting_keys=posting_keys, loglevel=logging.ERROR
+            posting_keys=posting_keys,
+            loglevel=logging.ERROR,
+            automatic_node_selection=False,  # TODO: File upstream lighthive bug because it runs asyncio in a new loop
         )
 
         self._async_hive_broadcast = sync_to_async(

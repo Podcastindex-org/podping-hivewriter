@@ -1,4 +1,3 @@
-import asyncio
 import json
 import random
 import uuid
@@ -6,16 +5,14 @@ from platform import python_version as pv
 
 import pytest
 from lighthive.client import Client
-from lighthive.helpers.event_listener import EventListener
 from typer.testing import CliRunner
 
-from podping_hivewriter.async_wrapper import sync_to_async
 from podping_hivewriter.cli.podping import app
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
+from podping_hivewriter.hive import listen_for_custom_json_operations
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
-from podping_hivewriter.models.medium import Medium, str_medium_map, mediums
-from podping_hivewriter.models.reason import Reason, str_reason_map, reasons
-from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
+from podping_hivewriter.models.medium import str_medium_map, mediums
+from podping_hivewriter.models.reason import str_reason_map, reasons
 
 
 @pytest.mark.asyncio
@@ -23,9 +20,6 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 @pytest.mark.slow
 async def test_write_cli_single():
     runner = CliRunner()
-
-    settings_manager = PodpingSettingsManager(ignore_updates=True)
-
     client = Client()
 
     session_uuid = uuid.uuid4()
@@ -41,17 +35,14 @@ async def test_write_cli_single():
     default_hive_operation_id_str = str(default_hive_operation_id)
 
     async def get_iri_from_blockchain(start_block: int):
-        event_listener = EventListener(client, "head", start_block=start_block)
-        _on = sync_to_async(event_listener.on, thread_sensitive=False)
-        async for post in _on(
-            "custom_json", filter_by={"id": default_hive_operation_id_str}
-        ):
-            data = json.loads(post["op"][1]["json"])
-            if "iris" in data and len(data["iris"]) == 1:
-                iri = data["iris"][0]
-                # Only look for IRIs from current session
-                if iri.endswith(session_uuid_str):
-                    yield data["iris"][0]
+        async for post in listen_for_custom_json_operations(client, start_block):
+            if post["op"][1]["id"] == default_hive_operation_id_str:
+                data = json.loads(post["op"][1]["json"])
+                if "iris" in data and len(data["iris"]) == 1:
+                    iri = data["iris"][0]
+                    # Only look for IRIs from current session
+                    if iri.endswith(session_uuid_str):
+                        yield data["iris"][0]
 
     args = [
         "--medium",
@@ -71,15 +62,9 @@ async def test_write_cli_single():
     result = runner.invoke(app, args)
 
     assert result.exit_code == 0
-
-    op_period = settings_manager._settings.hive_operation_period
-
-    # Sleep to catch up because beem isn't async and blocks
-    await asyncio.sleep(op_period * 25)
-
     iri_found = False
 
-    async for stream_iri in get_iri_from_blockchain(current_block - 5):
+    async for stream_iri in get_iri_from_blockchain(current_block):
         if stream_iri == iri:
             iri_found = True
             break

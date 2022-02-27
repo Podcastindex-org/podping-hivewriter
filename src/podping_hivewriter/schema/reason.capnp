@@ -3,4 +3,5 @@
 enum Reason {
     update @0;
     live @1;
+    liveEnd @2;
 }
