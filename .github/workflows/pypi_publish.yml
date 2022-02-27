@@ -20,6 +20,7 @@ jobs:
         uses: JRubics/poetry-publish@v1.10
         with:
           python_version: "3.9.10"
+          build_format: wheel
           ignore_dev_requirements: "yes"
           pypi_token: ${{ secrets.PYPI_TOKEN }}
           extra_build_dependency_packages: "capnproto libzmq3-dev"
@@ -27,6 +28,7 @@ jobs:
         uses: JRubics/poetry-publish@v1.10
         with:
           python_version: "3.8.12"
+          build_format: wheel
           ignore_dev_requirements: "yes"
           pypi_token: ${{ secrets.PYPI_TOKEN }}
           extra_build_dependency_packages: "capnproto libzmq3-dev"
