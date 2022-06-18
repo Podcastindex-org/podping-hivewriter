@@ -486,14 +486,24 @@ class PodpingHivewriter(AsyncContext):
             except RPCNodeException as ex:
                 logging.warning(f"{ex}")
                 logging.warning(f"Failed to send {len(iri_set)} IRIs")
-                if ex.raw_body["error"]["data"]["name"] == "tx_missing_posting_auth":
-                    for iri in iri_set:
-                        logging.error(iri)
-                    logging.error(
-                        f"Terminating: exit code: "
-                        f"{STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE}"
-                    )
-                    sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+                try:
+                    if (
+                        ex.raw_body["error"]["data"]["name"]
+                        == "tx_missing_posting_auth"
+                    ):
+                        for iri in iri_set:
+                            logging.error(iri)
+                        logging.error(
+                            f"Terminating: exit code: "
+                            f"{STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE}"
+                        )
+                        sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+                except Exception as ex:
+                    logging.error(f"Current node: {self.lighthive_client.current_node}")
+                    logging.error(self.lighthive_client.nodes)
+                    logging.error("Unexpected condition in error text from Hive")
+                    logging.error(f"{ex}")
+                    sys.exit(STARTUP_FAILED_UNKNOWN_EXIT_CODE)
 
             except Exception as ex:
                 logging.warning(f"Failed to send {len(iri_set)} IRIs")
