@@ -404,8 +404,13 @@ class PodpingHivewriter(AsyncContext):
 
         except RPCNodeException as ex:
             logging.error(f"send_notification error: {ex}")
-            if re.match(
-                r"plugin exception.*custom json.*", ex.raw_body["error"]["message"]
+            if (
+                ex.raw_body
+                and "error" in ex.raw_body
+                and "message" in ex.raw_body["error"]
+                and re.match(
+                    r"plugin exception.*custom json.*", ex.raw_body["error"]["message"]
+                )
             ):
                 self.lighthive_client.next_node()
                 raise TooManyCustomJsonsPerBlock()
@@ -484,20 +489,28 @@ class PodpingHivewriter(AsyncContext):
                     )
                 return failure_count
             except RPCNodeException as ex:
-                logging.warning(f"{ex}")
-                logging.warning(f"Failed to send {len(iri_set)} IRIs")
-                if ex.raw_body["error"]["data"]["name"] == "tx_missing_posting_auth":
-                    for iri in iri_set:
-                        logging.error(iri)
-                    logging.error(
-                        f"Terminating: exit code: "
-                        f"{STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE}"
-                    )
-                    sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+                logging.exception(f"Failed to send {len(iri_set)} IRIs")
+                try:
+                    if (
+                        ex.raw_body["error"]["data"]["name"]
+                        == "tx_missing_posting_auth"
+                    ):
+                        if logging.DEBUG >= logging.root.level:
+                            for iri in iri_set:
+                                logging.debug(iri)
+                        logging.error(
+                            f"Terminating: exit code: "
+                            f"{STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE}"
+                        )
+                        sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+                except Exception:
+                    logging.info(f"Current node: {self.lighthive_client.current_node}")
+                    logging.info(self.lighthive_client.nodes)
+                    logging.exception("Unexpected condition in error text from Hive")
+                    sys.exit(STARTUP_FAILED_UNKNOWN_EXIT_CODE)
 
             except Exception as ex:
-                logging.warning(f"Failed to send {len(iri_set)} IRIs")
-                logging.warning(f"{ex}")
+                logging.exception(f"Failed to send {len(iri_set)} IRIs")
                 if logging.DEBUG >= logging.root.level:
                     for iri in iri_set:
                         logging.debug(iri)
