@@ -15,14 +15,15 @@ RUN apt-get update \
     && apt-get -y upgrade \
     # rustc, cargo for armhf "cryptography"
     # libzmq3-dev for armhf "pyzmq"
-    && apt-get -y install --no-install-recommends capnproto cargo libzmq3-dev rustc
+    && apt-get -y install --no-install-recommends capnproto cargo libzmq3-dev rustc build-essential libssl-dev libffi-dev
 
 USER podping
 WORKDIR /home/podping/app
 
 COPY pyproject.toml poetry.lock ./
 
-RUN pip install --user poetry \
+RUN pip install --upgrade pip \
+    && pip install --user poetry \
     && poetry config virtualenvs.in-project true \
     && poetry install --no-root --no-dev --no-interaction --no-ansi
 
@@ -49,7 +50,8 @@ WORKDIR /home/podping/app
 ENV PATH="/home/podping/.local/bin:${PATH}"
 
 COPY --chown=podping:podping . .
-RUN pip install poetry \
+RUN pip install --upgrade pip \
+    && pip install poetry \
     && poetry config virtualenvs.in-project true \
     && poetry install --no-dev --no-interaction --no-ansi
 
