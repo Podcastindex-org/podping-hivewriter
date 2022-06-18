@@ -374,27 +374,6 @@ def callback(
         logging.error("Exiting")
         sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
 
-    account = client.account(hive_account)
-    public_keys = [a[0] for a in account.raw_data["posting"]["key_auths"]]
-    try:
-        private_key = PrivateKey(hive_posting_key)
-        if not str(private_key.pubkey) in public_keys:
-            logging.error("Startup of Podping status: FAILED!")
-            logging.error(
-                f"Posting Key doesn't match @{hive_account} - "
-                f"check ENV vars and try again",
-            )
-            logging.error("Exiting")
-            sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
-    except Exception:
-        logging.error("Startup of Podping status: FAILED!")
-        logging.error(
-            f"Some other error with keys for @{hive_account} - "
-            f"check ENV vars and try again",
-        )
-        logging.error("Exiting")
-        sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
-
 
 if __name__ == "__main__":
     app()
