@@ -19,7 +19,7 @@ See the dedicated [CLI docs](CLI.md) for more information on configuration optio
 
 ### Container
 
-The container images are hosted on [Docker Hub](https://hub.docker.com/r/podcastindexorg/podping-hivewriter).  Images are currently based on Debian bullseye-based PyPy 3.8 with the following architectures: `amd64`, `i386`, `arm64`
+The container images are hosted on [Docker Hub](https://hub.docker.com/r/podcastindexorg/podping-hivewriter).  Images are currently based on Debian bullseye-based PyPy 3.8 with the following architectures: `amd64`
 
 These images can be run in either `write` or `server` mode and is likely the easiest option for users who do not have experience installing Python packages.
 
