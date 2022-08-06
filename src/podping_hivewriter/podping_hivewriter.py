@@ -491,25 +491,24 @@ class PodpingHivewriter(AsyncContext):
             except RPCNodeException as ex:
                 logging.exception(f"Failed to send {len(iri_set)} IRIs")
                 try:
-                    # Test if we have a well formed Hive error message
+                    # Test if we have a well-formed Hive error message
                     logging.exception(ex)
                     if (
-                        ex.raw_body.get("error")
-                        and ex.raw_body["error"].get("data")
-                        and ex.raw_body["error"]["data"].get("name")
+                        ex.raw_body["error"]["data"]["name"]
+                        == "tx_missing_posting_auth"
                     ):
-                        if (
-                            ex.raw_body["error"]["data"]["name"]
-                            == "tx_missing_posting_auth"
-                        ):
-                            if logging.DEBUG >= logging.root.level:
-                                for iri in iri_set:
-                                    logging.debug(iri)
-                            logging.error(
-                                f"Terminating: exit code: "
-                                f"{STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE}"
-                            )
-                            sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+                        if logging.DEBUG >= logging.root.level:
+                            for iri in iri_set:
+                                logging.debug(iri)
+                        logging.error(
+                            f"Terminating: exit code: "
+                            f"{STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE}"
+                        )
+                        sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+                except KeyError:
+                    logging.warning(
+                        f"Malformed error response from node: {self.lighthive_client.current_node}"
+                    )
                 except Exception:
                     logging.info(f"Current node: {self.lighthive_client.current_node}")
                     logging.info(self.lighthive_client.nodes)
