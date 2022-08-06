@@ -33,8 +33,8 @@ async def test_failure_retry_handles_invalid_error_response(event_loop, monkeypa
     test_name = "failure_retry_handles_invalid_error_response"
     iri = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
 
-    medium = str_medium_map[random.sample(mediums, 1)[0]]
-    reason = str_reason_map[random.sample(reasons, 1)[0]]
+    medium = str_medium_map[random.sample(sorted(mediums), 1)[0]]
+    reason = str_reason_map[random.sample(sorted(reasons), 1)[0]]
 
     host = "127.0.0.1"
     port = 9979
