@@ -39,8 +39,8 @@ async def test_write_zmq_multiple(event_loop):
         for i in range(num_iris)
     }
 
-    medium = str_medium_map[random.sample(mediums, 1)[0]]
-    reason = str_reason_map[random.sample(reasons, 1)[0]]
+    medium = str_medium_map[random.sample(sorted(mediums), 1)[0]]
+    reason = str_reason_map[random.sample(sorted(reasons), 1)[0]]
 
     default_hive_operation_id = HiveOperationId(LIVETEST_OPERATION_ID, medium, reason)
     default_hive_operation_id_str = str(default_hive_operation_id)

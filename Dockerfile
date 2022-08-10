@@ -1,4 +1,4 @@
-FROM docker.io/pypy:3.8-bullseye AS compile
+FROM docker.io/python:3.10-bullseye AS compile
 
 ENV PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random \
@@ -27,7 +27,7 @@ RUN pip install --upgrade pip \
     && poetry config virtualenvs.in-project true \
     && poetry install --no-root --no-dev --no-interaction --no-ansi
 
-FROM docker.io/pypy:3.8-slim-bullseye AS app
+FROM docker.io/python:3.10-slim-bullseye AS app
 
 ENV PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random \

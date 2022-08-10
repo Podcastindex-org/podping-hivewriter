@@ -53,8 +53,8 @@ async def test_write_cli_single_simulcast():
         for n in range(7)
     }
     for iri in test_iris:
-        medium = str_medium_map[random.sample(mediums, 1)[0]]
-        reason = str_reason_map[random.sample(reasons, 1)[0]]
+        medium = str_medium_map[random.sample(sorted(mediums), 1)[0]]
+        reason = str_reason_map[random.sample(sorted(reasons), 1)[0]]
         args = [
             "--medium",
             str(medium),

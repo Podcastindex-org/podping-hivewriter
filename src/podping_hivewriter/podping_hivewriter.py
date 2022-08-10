@@ -1,4 +1,5 @@
 import asyncio
+import itertools
 import json
 import logging
 import re
@@ -404,17 +405,17 @@ class PodpingHivewriter(AsyncContext):
 
         except RPCNodeException as ex:
             logging.error(f"send_notification error: {ex}")
-            if (
-                ex.raw_body
-                and "error" in ex.raw_body
-                and "message" in ex.raw_body["error"]
-                and re.match(
-                    r"plugin exception.*custom json.*", ex.raw_body["error"]["message"]
-                )
-            ):
-                self.lighthive_client.next_node()
-                raise TooManyCustomJsonsPerBlock()
-            raise ex
+            try:
+                if re.match(
+                    r"plugin exception.*custom json.*",
+                    ex.raw_body["error"]["message"],
+                ):
+                    self.lighthive_client.next_node()
+                    raise TooManyCustomJsonsPerBlock()
+                else:
+                    raise ex
+            except (KeyError, AttributeError):
+                raise ex
 
         except PodpingCustomJsonPayloadExceeded as ex:
             raise ex
@@ -465,7 +466,7 @@ class PodpingHivewriter(AsyncContext):
         await self.wait_startup()
         failure_count = 0
 
-        while True:
+        for _ in itertools.repeat(None):
             # Sleep a maximum of 5 minutes, 3 additional seconds for every retry
             sleep_time = min(failure_count * 3, 300)
             if failure_count > 0:
@@ -491,6 +492,8 @@ class PodpingHivewriter(AsyncContext):
             except RPCNodeException as ex:
                 logging.exception(f"Failed to send {len(iri_set)} IRIs")
                 try:
+                    # Test if we have a well-formed Hive error message
+                    logging.exception(ex)
                     if (
                         ex.raw_body["error"]["data"]["name"]
                         == "tx_missing_posting_auth"
@@ -503,6 +506,10 @@ class PodpingHivewriter(AsyncContext):
                             f"{STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE}"
                         )
                         sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+                except (KeyError, AttributeError):
+                    logging.warning(
+                        f"Malformed error response from node: {self.lighthive_client.current_node}"
+                    )
                 except Exception:
                     logging.info(f"Current node: {self.lighthive_client.current_node}")
                     logging.info(self.lighthive_client.nodes)
@@ -510,6 +517,7 @@ class PodpingHivewriter(AsyncContext):
                     sys.exit(STARTUP_FAILED_UNKNOWN_EXIT_CODE)
 
             except Exception as ex:
+                logging.exception(ex)
                 logging.exception(f"Failed to send {len(iri_set)} IRIs")
                 if logging.DEBUG >= logging.root.level:
                     for iri in iri_set:
@@ -518,3 +526,5 @@ class PodpingHivewriter(AsyncContext):
             finally:
                 self.lighthive_client.next_node()
                 failure_count += 1
+
+        return failure_count
