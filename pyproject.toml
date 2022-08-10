@@ -43,6 +43,8 @@ pytest-timeout = "^2.0.2"
 typer-cli = "^0.0.12"
 flake8 = "^4.0.1"
 mypy = "^0.950"
+patch-env = "^1.0.0"
+pytest-mock = "^3.8.2"
 
 [tool.poetry.extras]
 server = ["pyzmq"]
