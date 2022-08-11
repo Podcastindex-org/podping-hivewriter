@@ -495,9 +495,8 @@ class PodpingHivewriter(AsyncContext):
                     # Test if we have a well-formed Hive error message
                     logging.exception(ex)
                     if (
-                        ex.raw_body.get("error")
-                        and ex.raw_body["error"].get("data")
-                        and ex.raw_body["error"]["data"].get("name")
+                        ex.raw_body["error"]["data"]["name"]
+                        == "tx_missing_posting_auth"
                     ):
                         if logging.DEBUG >= logging.root.level:
                             for iri in iri_set:
