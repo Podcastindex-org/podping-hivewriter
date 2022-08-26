@@ -7,10 +7,10 @@ class PodpingSettings(BaseModel):
     """Dataclass for settings we will fetch from Hive"""
 
     hive_operation_period: int = 3
-    max_url_list_bytes: int = 7500
-    diagnostic_report_period: int = 60
+    max_url_list_bytes: int = 8000
+    diagnostic_report_period: int = 180
     control_account: str = "podping"
-    control_account_check_period: int = 60
+    control_account_check_period: int = 180
     test_nodes: Tuple[str, ...] = ("https://testnet.openhive.network",)
 
     @validator("hive_operation_period")
