@@ -3,12 +3,11 @@ import uuid
 from platform import python_version as pv
 
 import pytest
-from lighthive.client import Client
 from typer.testing import CliRunner
 
 from podping_hivewriter.cli.podping import app
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
-from podping_hivewriter.hive import listen_for_custom_json_operations
+from podping_hivewriter.hive import get_client, listen_for_custom_json_operations
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.medium import Medium
 from podping_hivewriter.models.reason import Reason
@@ -23,7 +22,7 @@ async def test_startup_checks_and_write_cli_single():
 
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
-    client = Client()
+    client = get_client()
 
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)

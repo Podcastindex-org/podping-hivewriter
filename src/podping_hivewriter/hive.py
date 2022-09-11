@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from timeit import default_timer as timer
 from typing import List, Optional, Set
 
@@ -19,6 +20,9 @@ def get_client(
     api_type="condenser_api",
 ) -> Client:
     try:
+        if os.getenv("PODPING_TESTNET"):
+            nodes = [os.getenv("PODPING_TESTNET_NODE")]
+            chain = {"chain_id": os.getenv("PODPING_TESTNET_CHAINID")}
         client = Client(
             keys=posting_keys,
             nodes=nodes,

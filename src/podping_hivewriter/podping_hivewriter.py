@@ -152,6 +152,7 @@ class PodpingHivewriter(AsyncContext):
                 f"Testing Account Resource Credits"
                 f' - before {manabar.get("last_mana_percent"):.2f}%'
             )
+            logging.warning("HF26 prevents checking of RC usage.")
             rc = self.lighthive_client.rc()
 
             custom_json = {
@@ -166,22 +167,25 @@ class PodpingHivewriter(AsyncContext):
             op, size_of_json = await self.construct_operation(
                 custom_json, startup_hive_operation_id
             )
-            rc_cost = rc.get_cost(op)
-            percent_after = (
-                100
-                * (manabar.get("last_mana") - (1e6 * rc_cost * 100))
-                / manabar["max_mana"]
-            )
-            percent_drop = manabar.get("last_mana_percent") - percent_after
-            capacity = (100 / percent_drop) * 100
-            logging.info(
-                f"Calculating Account Resource Credits "
-                f"for 100 pings: {percent_drop:.2f}% | "
-                f"Capacity: {capacity:,.0f}"
-            )
+            try:
+                rc_cost = rc.get_cost(op)
+                percent_after = (
+                    100
+                    * (manabar.get("last_mana") - (1e6 * rc_cost * 100))
+                    / manabar["max_mana"]
+                )
+                percent_drop = manabar.get("last_mana_percent") - percent_after
+                capacity = (100 / percent_drop) * 100
+                logging.info(
+                    f"Calculating Account Resource Credits "
+                    f"for 100 pings: {percent_drop:.2f}% | "
+                    f"Capacity: {capacity:,.0f}"
+                )
+            except Exception as ex:
+                logging.warning(f"Post HF26 error: {ex}")
 
             custom_json["v"] = podping_hivewriter_version
-            custom_json["capacity"] = f"{capacity:,.0f}"
+            # custom_json["capacity"] = f"{capacity:,.0f}"
             custom_json["message"] = "Podping startup complete"
             custom_json["hive"] = str(self.lighthive_client.current_node)
 

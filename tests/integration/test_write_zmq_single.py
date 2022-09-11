@@ -10,10 +10,10 @@ import zmq.asyncio
 from lighthive.client import Client
 
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
-from podping_hivewriter.hive import listen_for_custom_json_operations
+from podping_hivewriter.hive import get_client, listen_for_custom_json_operations
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
-from podping_hivewriter.models.medium import str_medium_map, mediums
-from podping_hivewriter.models.reason import str_reason_map, reasons
+from podping_hivewriter.models.medium import mediums, str_medium_map
+from podping_hivewriter.models.reason import reasons, str_reason_map
 from podping_hivewriter.podping_hivewriter import PodpingHivewriter
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
@@ -24,7 +24,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 async def test_write_zmq_single(event_loop):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
-    client = Client()
+    client = get_client()
 
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)

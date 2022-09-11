@@ -6,7 +6,6 @@ from typing import List, Optional
 import rfc3987
 import typer
 from lighthive.broadcast.base58 import Base58
-from lighthive.broadcast.key_objects import PrivateKey
 
 from podping_hivewriter import __version__
 from podping_hivewriter.constants import (
@@ -80,6 +79,9 @@ class Config:
     ignore_config_updates: bool
     i_know_what_im_doing: bool
     debug: bool
+    testnet: bool
+    testnet_node: str
+    testnet_chainid: str
 
     operation_id: str
 
