@@ -1,8 +1,9 @@
 import logging
+
 import pytest
 
-from podping_hivewriter.hive import get_allowed_accounts
-from podping_hivewriter.hive import get_client
+from podping_hivewriter.hive import get_allowed_accounts, get_client
+
 
 @pytest.mark.asyncio
 async def test_get_allowed_accounts():
