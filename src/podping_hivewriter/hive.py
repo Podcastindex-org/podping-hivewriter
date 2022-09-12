@@ -20,7 +20,11 @@ def get_client(
     api_type="condenser_api",
 ) -> Client:
     try:
-        if os.getenv("PODPING_TESTNET"):
+        if os.getenv("PODPING_TESTNET", "False").lower() in (
+            "true",
+            "1",
+            "t",
+        ):
             nodes = [os.getenv("PODPING_TESTNET_NODE")]
             chain = {"chain_id": os.getenv("PODPING_TESTNET_CHAINID")}
         client = Client(
