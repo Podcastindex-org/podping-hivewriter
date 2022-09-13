@@ -67,5 +67,5 @@ async def test_failure_retry_handles_invalid_error_response(
 
     logging_warning_stub.assert_called_once()
     lighthive_client_next_node_spy.assert_called_once()
-    assert logging_exception_stub.call_count == 2
+    assert logging_exception_stub.call_count == 0
     assert failure_count == 1

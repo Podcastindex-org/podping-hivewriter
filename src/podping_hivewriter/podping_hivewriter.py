@@ -427,6 +427,7 @@ class PodpingHivewriter(AsyncContext):
                 else:
                     raise ex
             except (KeyError, AttributeError):
+                logging.error("Unexpected error format from Hive")
                 raise ex
 
         except PodpingCustomJsonPayloadExceeded as ex:
