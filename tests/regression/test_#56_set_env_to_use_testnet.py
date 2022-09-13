@@ -43,7 +43,7 @@ async def test_use_testnet_startup_checks_and_write_cli_single():
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)
 
-    test_name = "cli_single"
+    test_name = "use_testnet_startup_checks_and_write_cli_single"
     iri = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
 
     default_hive_operation_id = HiveOperationId(
