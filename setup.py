@@ -16,14 +16,14 @@ install_requires = [
     "asgiref>=3.5,<4.0",
     "capnpy>=0.9.0,<0.10.0",
     "cffi>=1.14.5,<2.0.0",
-    "lighthive>=0.3.0,<0.4.0",
+    "lighthive>=0.4.0,<0.5.0",
     "pydantic>=1.9.0,<2.0.0",
     "rfc3987>=1.3.8,<2.0.0",
     "single-source>=0.3.0,<0.4.0",
     "typer[all]>=0.3.2,<0.4.0",
 ]
 
-extras_require = {"server": ["pyzmq>=22.1.0,<23.0.0"]}
+extras_require = {"server": ["pyzmq>=24.0.1,<25.0.0"]}
 
 entry_points = {"console_scripts": ["podping = podping_hivewriter.cli.podping:app"]}
 
