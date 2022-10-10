@@ -25,7 +25,7 @@ COPY pyproject.toml poetry.lock ./
 RUN pip install --upgrade pip \
     && pip install --user poetry \
     && poetry config virtualenvs.in-project true \
-    && poetry install --no-root --no-dev --no-interaction --no-ansi
+    && poetry install --no-root --only main --no-interaction --no-ansi
 
 FROM docker.io/python:3.10-slim-bullseye AS app
 
@@ -53,7 +53,7 @@ COPY --chown=podping:podping . .
 RUN pip install --upgrade pip \
     && pip install poetry \
     && poetry config virtualenvs.in-project true \
-    && poetry install --no-dev --no-interaction --no-ansi
+    && poetry install --only main --no-interaction --no-ansi
 
 # podping command installs here
 ENV PATH="/home/podping/app/.venv/bin:${PATH}"

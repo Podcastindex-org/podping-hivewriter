@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime, timedelta
 from itertools import cycle
 from timeit import default_timer as timer
-from typing import List, Set, Tuple, Union, Optional
+from typing import List, Optional, Set, Tuple, Union
 
 import rfc3987
 from lighthive.datastructures import Operation
@@ -25,6 +25,7 @@ from podping_hivewriter.constants import (
     STARTUP_OPERATION_ID,
 )
 from podping_hivewriter.exceptions import (
+    NotEnoughResourceCredits,
     PodpingCustomJsonPayloadExceeded,
     TooManyCustomJsonsPerBlock,
 )
@@ -72,7 +73,8 @@ class PodpingHivewriter(AsyncContext):
         self.lighthive_client = get_client(
             posting_keys=posting_keys,
             loglevel=logging.ERROR,
-            automatic_node_selection=False,  # TODO: File upstream lighthive bug because it runs asyncio in a new loop
+            automatic_node_selection=False,
+            # TODO: File upstream lighthive bug because it runs asyncio in a new loop
         )
 
         self._async_hive_broadcast = sync_to_async(
@@ -152,6 +154,7 @@ class PodpingHivewriter(AsyncContext):
                 f"Testing Account Resource Credits"
                 f' - before {manabar.get("last_mana_percent"):.2f}%'
             )
+            logging.warning("HF26 prevents checking of RC usage.")
             rc = self.lighthive_client.rc()
 
             custom_json = {
@@ -166,22 +169,25 @@ class PodpingHivewriter(AsyncContext):
             op, size_of_json = await self.construct_operation(
                 custom_json, startup_hive_operation_id
             )
-            rc_cost = rc.get_cost(op)
-            percent_after = (
-                100
-                * (manabar.get("last_mana") - (1e6 * rc_cost * 100))
-                / manabar["max_mana"]
-            )
-            percent_drop = manabar.get("last_mana_percent") - percent_after
-            capacity = (100 / percent_drop) * 100
-            logging.info(
-                f"Calculating Account Resource Credits "
-                f"for 100 pings: {percent_drop:.2f}% | "
-                f"Capacity: {capacity:,.0f}"
-            )
+            try:
+                rc_cost = rc.get_cost(op)
+                percent_after = (
+                    100
+                    * (manabar.get("last_mana") - (1e6 * rc_cost * 100))
+                    / manabar["max_mana"]
+                )
+                percent_drop = manabar.get("last_mana_percent") - percent_after
+                capacity = (100 / percent_drop) * 100
+                logging.info(
+                    f"Calculating Account Resource Credits "
+                    f"for 100 pings: {percent_drop:.2f}% | "
+                    f"Capacity: {capacity:,.0f}"
+                )
+            except Exception as ex:
+                logging.warning(f"Post HF26 error: {ex}")
 
             custom_json["v"] = podping_hivewriter_version
-            custom_json["capacity"] = f"{capacity:,.0f}"
+            # custom_json["capacity"] = f"{capacity:,.0f}"
             custom_json["message"] = "Podping startup complete"
             custom_json["hive"] = str(self.lighthive_client.current_node)
 
@@ -412,9 +418,16 @@ class PodpingHivewriter(AsyncContext):
                 ):
                     self.lighthive_client.next_node()
                     raise TooManyCustomJsonsPerBlock()
+                if re.match(
+                    r"payer has not enough RC mana.*",
+                    ex.raw_body["error"]["message"],
+                ):
+                    logging.error(ex.raw_body["error"]["message"])
+                    raise NotEnoughResourceCredits()
                 else:
                     raise ex
             except (KeyError, AttributeError):
+                logging.error("Unexpected error format from Hive")
                 raise ex
 
         except PodpingCustomJsonPayloadExceeded as ex:
@@ -490,10 +503,10 @@ class PodpingHivewriter(AsyncContext):
                     )
                 return failure_count
             except RPCNodeException as ex:
-                logging.exception(f"Failed to send {len(iri_set)} IRIs")
+                logging.error(f"Failed to send {len(iri_set)} IRIs")
                 try:
                     # Test if we have a well-formed Hive error message
-                    logging.exception(ex)
+                    logging.error(f"{ex}")
                     if (
                         ex.raw_body["error"]["data"]["name"]
                         == "tx_missing_posting_auth"
@@ -508,17 +521,19 @@ class PodpingHivewriter(AsyncContext):
                         sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
                 except (KeyError, AttributeError):
                     logging.warning(
-                        f"Malformed error response from node: {self.lighthive_client.current_node}"
+                        f"Malformed error response from node: "
+                        f"{self.lighthive_client.current_node}"
                     )
-                except Exception:
+                except Exception as ex:
                     logging.info(f"Current node: {self.lighthive_client.current_node}")
                     logging.info(self.lighthive_client.nodes)
-                    logging.exception("Unexpected condition in error text from Hive")
+                    logging.error(f"{ex}")
+                    logging.error("Unexpected condition in error text from Hive")
                     sys.exit(STARTUP_FAILED_UNKNOWN_EXIT_CODE)
 
             except Exception as ex:
-                logging.exception(ex)
-                logging.exception(f"Failed to send {len(iri_set)} IRIs")
+                logging.error(f"{ex}")
+                logging.error(f"Failed to send {len(iri_set)} IRIs")
                 if logging.DEBUG >= logging.root.level:
                     for iri in iri_set:
                         logging.debug(iri)
