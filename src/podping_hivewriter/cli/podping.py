@@ -77,6 +77,7 @@ class Config:
     dry_run: bool
     status: bool
     ignore_config_updates: bool
+    hive_operation_period: bool
     i_know_what_im_doing: bool
     debug: bool
     testnet: bool
