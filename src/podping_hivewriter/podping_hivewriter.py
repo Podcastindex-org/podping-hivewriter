@@ -6,14 +6,12 @@ import re
 import sys
 import uuid
 from datetime import datetime, timedelta
-from itertools import cycle
 from timeit import default_timer as timer
 from typing import List, Optional, Set, Tuple, Union
 
 import rfc3987
 from lighthive.datastructures import Operation
 from lighthive.exceptions import RPCNodeException
-from lighthive.node_picker import compare_nodes
 
 from podping_hivewriter import __version__ as podping_hivewriter_version
 from podping_hivewriter.async_context import AsyncContext
@@ -73,8 +71,6 @@ class PodpingHivewriter(AsyncContext):
         self.lighthive_client = get_client(
             posting_keys=posting_keys,
             loglevel=logging.ERROR,
-            automatic_node_selection=False,
-            # TODO: File upstream lighthive bug because it runs asyncio in a new loop
         )
 
         self._async_hive_broadcast = sync_to_async(
@@ -117,7 +113,6 @@ class PodpingHivewriter(AsyncContext):
 
         if self.resource_test and not self.dry_run:
             await self.test_hive_resources()
-            await self.automatic_node_selection()
 
         logging.info(f"Hive account: @{self.server_account}")
 
@@ -129,15 +124,6 @@ class PodpingHivewriter(AsyncContext):
                 self._add_task(asyncio.create_task(self._hive_status_loop()))
 
         self._startup_done = True
-
-    async def automatic_node_selection(self) -> None:
-        """Use the automatic async feature to find the fastest API"""
-        self.lighthive_client._node_list = await compare_nodes(
-            nodes=self.lighthive_client.nodes, logger=self.lighthive_client.logger
-        )
-        self.lighthive_client.node_list = cycle(self.lighthive_client._node_list)
-        self.lighthive_client.next_node()
-        logging.info(f"Lighthive Fastest: {self.lighthive_client.current_node}")
 
     async def test_hive_resources(self):
         logging.info(
@@ -360,7 +346,6 @@ class PodpingHivewriter(AsyncContext):
         """Output the name of the current hive node
         on a regular basis"""
         up_time = timedelta(seconds=int(timer() - self.startup_time))
-        await self.automatic_node_selection()
         last_node = self.lighthive_client.current_node
         logging.info(
             f"Status - Uptime: {up_time} | "
@@ -402,13 +387,10 @@ class PodpingHivewriter(AsyncContext):
             # in one block, uncomment this line.
             # op = [op] * 6
 
-            # Use asynchronous broadcast but means we don't get back tx, kinder to
-            # API servers
             await self._async_hive_broadcast(op=op, dry_run=self.dry_run)
 
             logging.info(f"Lighthive Node: {self.lighthive_client.current_node}")
             logging.info(f"JSON size: {size_of_json}")
-
         except RPCNodeException as ex:
             logging.error(f"send_notification error: {ex}")
             try:
@@ -416,7 +398,6 @@ class PodpingHivewriter(AsyncContext):
                     r"plugin exception.*custom json.*",
                     ex.raw_body["error"]["message"],
                 ):
-                    self.lighthive_client.next_node()
                     raise TooManyCustomJsonsPerBlock()
                 if re.match(
                     r"payer has not enough RC mana.*",
@@ -539,7 +520,6 @@ class PodpingHivewriter(AsyncContext):
                         logging.debug(iri)
 
             finally:
-                self.lighthive_client.next_node()
                 failure_count += 1
 
         return failure_count

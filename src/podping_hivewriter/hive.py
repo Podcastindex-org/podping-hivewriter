@@ -4,6 +4,7 @@ import os
 from timeit import default_timer as timer
 from typing import List, Optional, Set
 
+import backoff
 from lighthive.client import Client
 
 from podping_hivewriter.async_wrapper import sync_to_async
@@ -35,6 +36,10 @@ def get_client(
             loglevel=loglevel,
             chain=chain,
             automatic_node_selection=automatic_node_selection,
+            backoff_mode=backoff.fibo,
+            backoff_max_tries=3,
+            load_balance_nodes=True,
+            circuit_breaker=True,
         )
         return client(api_type)
     except Exception as ex:
