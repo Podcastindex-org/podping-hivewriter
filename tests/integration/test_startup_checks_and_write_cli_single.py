@@ -8,14 +8,13 @@ from typer.testing import CliRunner
 from podping_hivewriter.cli.podping import app
 from podping_hivewriter.constants import (
     LIVETEST_OPERATION_ID,
-    STARTUP_FAILED_INVALID_ACCOUNT,
-    STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE,
+    EXIT_CODE_INVALID_ACCOUNT,
+    EXIT_CODE_INVALID_POSTING_KEY,
 )
 from podping_hivewriter.hive import get_client, listen_for_custom_json_operations
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.medium import Medium
 from podping_hivewriter.models.reason import Reason
-from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 @pytest.mark.asyncio
@@ -23,8 +22,6 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 @pytest.mark.slow
 async def test_startup_checks_and_write_cli_single():
     runner = CliRunner()
-
-    settings_manager = PodpingSettingsManager(ignore_updates=True)
 
     client = get_client()
 
@@ -62,7 +59,6 @@ async def test_startup_checks_and_write_cli_single():
             iri_found = True
             break
 
-    del settings_manager
     assert iri_found
 
 
@@ -81,9 +77,9 @@ async def test_startup_failures():
     args = ["--livetest", "--hive-account", "_podping", "write", iri]
     result = runner.invoke(app, args)
 
-    assert result.exit_code == STARTUP_FAILED_INVALID_ACCOUNT
+    assert result.exit_code == EXIT_CODE_INVALID_ACCOUNT
 
     args = ["--livetest", "--hive-posting-key", "not_a_valid_key", "write", iri]
     result = runner.invoke(app, args)
 
-    assert result.exit_code == STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE
+    assert result.exit_code == EXIT_CODE_INVALID_POSTING_KEY

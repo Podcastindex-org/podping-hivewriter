@@ -28,8 +28,6 @@ async def test_use_testnet_startup_checks_and_write_cli_single():
         "PODPING_TESTNET_CHAINID"
     ] = "4200000000000000000000000000000000000000000000000000000000000000"
 
-    settings_manager = PodpingSettingsManager(ignore_updates=True)
-
     client = get_client()
     try:
         props = client.get_dynamic_global_properties()
@@ -74,5 +72,4 @@ async def test_use_testnet_startup_checks_and_write_cli_single():
             iri_found = True
             break
 
-    del settings_manager
     assert iri_found

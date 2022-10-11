@@ -11,7 +11,6 @@ from podping_hivewriter.hive import get_client, listen_for_custom_json_operation
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.medium import Medium
 from podping_hivewriter.models.reason import Reason
-from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 @pytest.mark.asyncio
@@ -19,8 +18,6 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 @pytest.mark.slow
 async def test_startup_checks_and_write_cli_single():
     runner = CliRunner()
-
-    settings_manager = PodpingSettingsManager(ignore_updates=True)
 
     client = get_client()
 
@@ -58,5 +55,4 @@ async def test_startup_checks_and_write_cli_single():
             iri_found = True
             break
 
-    del settings_manager
     assert iri_found

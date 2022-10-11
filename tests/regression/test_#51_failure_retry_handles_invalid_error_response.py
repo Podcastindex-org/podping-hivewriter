@@ -24,18 +24,16 @@ async def test_failure_retry_handles_invalid_error_response(
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
     logging_warning_stub = mocker.stub(name="logging_warning_stub")
-    logging_exception_stub = mocker.stub(name="logging_exception_stub")
+    logging_error_stub = mocker.stub(name="logging_error_stub")
 
     def mock_broadcast(*args, **kwargs):
         raise RPCNodeException(
             "mock_broadcast exception", code=42, raw_body={"foo": "bar"}
         )
 
-    mocker.patch.object(podping_hivewriter.itertools, "repeat", return_value=range(1))
     monkeypatch.setattr(podping_hivewriter.logging, "warning", logging_warning_stub)
-    monkeypatch.setattr(podping_hivewriter.logging, "exception", logging_exception_stub)
+    monkeypatch.setattr(podping_hivewriter.logging, "error", logging_error_stub)
     monkeypatch.setattr(lighthive.client.Client, "broadcast", mock_broadcast)
-    lighthive_client_next_node_spy = mocker.spy(lighthive.client.Client, "next_node")
 
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)
@@ -59,13 +57,13 @@ async def test_failure_retry_handles_invalid_error_response(
 
     await writer.wait_startup()
 
-    lighthive_client_next_node_spy.reset_mock()
+    mocker.patch.object(podping_hivewriter.itertools, "repeat", return_value=range(1))
+    logging_warning_stub.reset_mock()
 
     failure_count = await writer.failure_retry({iri}, medium, reason)
 
     writer.close()
 
-    logging_warning_stub.assert_called_once()
-    lighthive_client_next_node_spy.assert_called_once()
-    assert logging_exception_stub.call_count == 0
+    logging_warning_stub.assert_called_once_with("Malformed error response")
+    assert logging_error_stub.call_count == 4
     assert failure_count == 1

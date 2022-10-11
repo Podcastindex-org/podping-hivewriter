@@ -1,4 +1,5 @@
 import asyncio
+import itertools
 import logging
 import os
 from timeit import default_timer as timer
@@ -55,8 +56,12 @@ def get_allowed_accounts(
     if not client:
         client = get_client()
 
-    master_account = client.account(account_name)
-    return set(master_account.following())
+    for _ in itertools.repeat(None):
+        try:
+            master_account = client.account(account_name)
+            return set(master_account.following())
+        except Exception as e:
+            logging.warning(f"Unable to get account followers: {e} - retrying")
 
 
 async def listen_for_custom_json_operations(
@@ -74,30 +79,40 @@ async def listen_for_custom_json_operations(
     )
     while True:
         start_time = timer()
-        head_block = (await async_get_dynamic_global_properties())["head_block_number"]
-        while (head_block - current_block) > 0:
-            block = await async_get_block({"block_num": current_block})
-            for op in (
-                (trx_id, op)
-                for trx_id, transaction in enumerate(block["block"]["transactions"])
-                for op in transaction["operations"]
-            ):
-                if op[1]["type"] == "custom_json_operation":
-                    yield {
-                        "block": current_block,
-                        "timestamp": block["block"]["timestamp"],
-                        "trx_id": op[0],
-                        "op": [
-                            "custom_json",
-                            op[1]["value"],
-                        ],
-                    }
-            current_block += 1
+        try:
             head_block = (await async_get_dynamic_global_properties())[
                 "head_block_number"
             ]
+            while (head_block - current_block) > 0:
+                try:
+                    block = await async_get_block({"block_num": current_block})
+                    for op in (
+                        (trx_id, op)
+                        for trx_id, transaction in enumerate(
+                            block["block"]["transactions"]
+                        )
+                        for op in transaction["operations"]
+                    ):
+                        if op[1]["type"] == "custom_json_operation":
+                            yield {
+                                "block": current_block,
+                                "timestamp": block["block"]["timestamp"],
+                                "trx_id": op[0],
+                                "op": [
+                                    "custom_json",
+                                    op[1]["value"],
+                                ],
+                            }
+                    current_block += 1
+                    head_block = (await async_get_dynamic_global_properties())[
+                        "head_block_number"
+                    ]
+                except Exception:
+                    pass
 
-        end_time = timer()
-        sleep_time = 3 - (end_time - start_time)
-        if sleep_time > 0 and (head_block - current_block) <= 0:
-            await asyncio.sleep(sleep_time)
+            end_time = timer()
+            sleep_time = 3 - (end_time - start_time)
+            if sleep_time > 0 and (head_block - current_block) <= 0:
+                await asyncio.sleep(sleep_time)
+        except Exception:
+            pass

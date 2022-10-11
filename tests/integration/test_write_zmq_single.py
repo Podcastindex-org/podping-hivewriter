@@ -7,7 +7,6 @@ from platform import python_version as pv
 import pytest
 import zmq
 import zmq.asyncio
-from lighthive.client import Client
 
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
 from podping_hivewriter.hive import get_client, listen_for_custom_json_operations

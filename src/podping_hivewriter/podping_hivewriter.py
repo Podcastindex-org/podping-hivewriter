@@ -18,8 +18,8 @@ from podping_hivewriter.async_context import AsyncContext
 from podping_hivewriter.async_wrapper import sync_to_async
 from podping_hivewriter.constants import (
     HIVE_CUSTOM_OP_DATA_MAX_LENGTH,
-    STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE,
-    STARTUP_FAILED_UNKNOWN_EXIT_CODE,
+    EXIT_CODE_INVALID_POSTING_KEY,
+    EXIT_CODE_UNKNOWN,
     STARTUP_OPERATION_ID,
 )
 from podping_hivewriter.exceptions import (
@@ -108,7 +108,7 @@ class PodpingHivewriter(AsyncContext):
                 )
 
         except Exception as ex:
-            logging.error(f"Unknown error occurred: {ex}", exc_info=True)
+            logging.exception(f"Unknown error occurred in _startup", stack_info=True)
             raise ex
 
         if self.resource_test and not self.dry_run:
@@ -177,26 +177,28 @@ class PodpingHivewriter(AsyncContext):
             custom_json["message"] = "Podping startup complete"
             custom_json["hive"] = str(self.lighthive_client.current_node)
 
-            await self.send_notification(custom_json, startup_hive_operation_id)
+            while True:
+                try:
+                    await self.send_notification(custom_json, startup_hive_operation_id)
+                    break
+                except RPCNodeException as e:
+                    pass
 
             logging.info("Startup of Podping status: SUCCESS! Hit the BOOST Button.")
 
         except ValueError as ex:
             if str(ex) == "Error loading Base58 object":
-                logging.error(
-                    f"Startup of Podping status: FAILED!  {ex}",
-                    exc_info=True,
+                logging.exception(
+                    "Startup of Podping status: FAILED!",
+                    stack_info=True,
                 )
                 logging.error("Exiting")
-                sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+                sys.exit(EXIT_CODE_INVALID_POSTING_KEY)
 
-        except Exception as ex:
-            logging.error(
-                f"Startup of Podping status: FAILED!  {ex}",
-                exc_info=True,
-            )
+        except Exception as e:
+            logging.exception("Startup of Podping status: FAILED!", stack_info=True)
             logging.error("Exiting")
-            sys.exit(STARTUP_FAILED_UNKNOWN_EXIT_CODE)
+            sys.exit(EXIT_CODE_UNKNOWN)
 
     async def wait_startup(self):
         settings = await self.settings_manager.get_settings()
@@ -209,10 +211,10 @@ class PodpingHivewriter(AsyncContext):
                 await self.output_hive_status()
                 settings = await self.settings_manager.get_settings()
                 await asyncio.sleep(settings.diagnostic_report_period)
-            except Exception as ex:
-                logging.error(f"{ex} occurred", exc_info=True)
             except asyncio.CancelledError:
                 raise
+            except Exception:
+                logging.exception("Unknown in _hive_status_loop", stack_info=True)
 
     async def _iri_batch_handler_loop(self):
         """Opens and watches a queue and sends notifications to Hive one by one"""
@@ -239,8 +241,8 @@ class PodpingHivewriter(AsyncContext):
                 )
             except asyncio.CancelledError:
                 raise
-            except Exception as ex:
-                logging.error(f"{ex} occurred", exc_info=True)
+            except Exception:
+                logging.exception("Unknown in _iri_batch_handler_loop", stack_info=True)
                 raise
 
     async def _iri_batch_loop(self):
@@ -292,8 +294,11 @@ class PodpingHivewriter(AsyncContext):
                     pass
                 except asyncio.CancelledError:
                     raise
-                except Exception as ex:
-                    logging.error(f"{ex} occurred", exc_info=True)
+                except Exception:
+                    logging.exception(
+                        "Unknown error in _iri_batch_loop", stack_info=True
+                    )
+                    raise
                 finally:
                     # Always get the time of the loop
                     duration = timer() - start
@@ -308,8 +313,9 @@ class PodpingHivewriter(AsyncContext):
                     )
             except asyncio.CancelledError:
                 raise
-            except Exception as ex:
-                logging.error(f"{ex} occurred", exc_info=True)
+            except Exception:
+                logging.exception("Unknown error in _iri_batch_loop", stack_info=True)
+                raise
 
     async def _zmq_response_loop(self):
         import zmq.asyncio
@@ -335,8 +341,11 @@ class PodpingHivewriter(AsyncContext):
             except asyncio.CancelledError:
                 socket.close()
                 raise
-            except Exception as ex:
-                logging.error(f"{ex} occurred", exc_info=True)
+            except Exception:
+                logging.exception(
+                    "Unknown error in _zmq_response_loop", stack_info=True
+                )
+                raise
 
     async def num_operations_in_queue(self) -> int:
         async with self._iris_in_flight_lock:
@@ -410,13 +419,11 @@ class PodpingHivewriter(AsyncContext):
             except (KeyError, AttributeError):
                 logging.error("Unexpected error format from Hive")
                 raise ex
-
-        except PodpingCustomJsonPayloadExceeded as ex:
-            raise ex
-
-        except Exception as ex:
-            logging.error(f"{ex}")
-            raise ex
+        except PodpingCustomJsonPayloadExceeded:
+            raise
+        except Exception:
+            logging.exception("Unknown error in send_notification", stack_info=True)
+            raise
 
     async def send_notification_iri(
         self,
@@ -462,10 +469,7 @@ class PodpingHivewriter(AsyncContext):
 
         for _ in itertools.repeat(None):
             # Sleep a maximum of 5 minutes, 3 additional seconds for every retry
-            sleep_time = min(failure_count * 3, 300)
             if failure_count > 0:
-                logging.warning(f"Waiting {sleep_time}s before retry")
-                await asyncio.sleep(sleep_time)
                 logging.info(
                     f"FAILURE COUNT: {failure_count} - RETRYING {len(iri_set)} IRIs"
                 )
@@ -479,15 +483,13 @@ class PodpingHivewriter(AsyncContext):
                     reason=reason or self.reason,
                 )
                 if failure_count > 0:
-                    logging.info(
-                        f"FAILURE CLEARED after {failure_count} retries, {sleep_time}s"
-                    )
+                    logging.info(f"FAILURE CLEARED after {failure_count} retries")
                 return failure_count
             except RPCNodeException as ex:
                 logging.error(f"Failed to send {len(iri_set)} IRIs")
                 try:
                     # Test if we have a well-formed Hive error message
-                    logging.error(f"{ex}")
+                    logging.error(ex)
                     if (
                         ex.raw_body["error"]["data"]["name"]
                         == "tx_missing_posting_auth"
@@ -497,28 +499,20 @@ class PodpingHivewriter(AsyncContext):
                                 logging.debug(iri)
                         logging.error(
                             f"Terminating: exit code: "
-                            f"{STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE}"
+                            f"{EXIT_CODE_INVALID_POSTING_KEY}"
                         )
-                        sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+                        sys.exit(EXIT_CODE_INVALID_POSTING_KEY)
                 except (KeyError, AttributeError):
-                    logging.warning(
-                        f"Malformed error response from node: "
-                        f"{self.lighthive_client.current_node}"
-                    )
-                except Exception as ex:
-                    logging.info(f"Current node: {self.lighthive_client.current_node}")
-                    logging.info(self.lighthive_client.nodes)
-                    logging.error(f"{ex}")
-                    logging.error("Unexpected condition in error text from Hive")
-                    sys.exit(STARTUP_FAILED_UNKNOWN_EXIT_CODE)
-
-            except Exception as ex:
-                logging.error(f"{ex}")
+                    logging.warning("Malformed error response")
+            except Exception:
+                logging.info(f"Current node: {self.lighthive_client.current_node}")
+                logging.info(self.lighthive_client.nodes)
+                logging.exception("Unknown error in failure_retry", stack_info=True)
                 logging.error(f"Failed to send {len(iri_set)} IRIs")
                 if logging.DEBUG >= logging.root.level:
                     for iri in iri_set:
                         logging.debug(iri)
-
+                sys.exit(EXIT_CODE_UNKNOWN)
             finally:
                 failure_count += 1
 

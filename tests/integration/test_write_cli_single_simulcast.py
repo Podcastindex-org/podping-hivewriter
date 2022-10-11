@@ -6,7 +6,6 @@ from platform import python_version as pv
 from timeit import default_timer as timer
 
 import pytest
-from lighthive.client import Client
 from typer.testing import CliRunner
 
 from podping_hivewriter.cli.podping import app

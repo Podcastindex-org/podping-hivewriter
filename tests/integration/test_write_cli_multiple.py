@@ -5,7 +5,6 @@ from platform import python_version as pv
 from random import randint
 
 import pytest
-from lighthive.client import Client
 from typer.testing import CliRunner
 
 from podping_hivewriter.cli.podping import app

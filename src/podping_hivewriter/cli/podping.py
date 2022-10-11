@@ -11,8 +11,8 @@ from podping_hivewriter import __version__
 from podping_hivewriter.constants import (
     LIVETEST_OPERATION_ID,
     PODPING_OPERATION_ID,
-    STARTUP_FAILED_INVALID_ACCOUNT,
-    STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE,
+    EXIT_CODE_INVALID_ACCOUNT,
+    EXIT_CODE_INVALID_POSTING_KEY,
 )
 from podping_hivewriter.hive import get_client
 from podping_hivewriter.models.medium import Medium, mediums, str_medium_map
@@ -382,7 +382,7 @@ def callback(
             f"check ENV vars and try again"
         )
         logging.error("Exiting")
-        sys.exit(STARTUP_FAILED_INVALID_ACCOUNT)
+        sys.exit(EXIT_CODE_INVALID_ACCOUNT)
 
     if not is_base58(hive_posting_key):
         logging.error("Startup of Podping status: FAILED!")
@@ -390,7 +390,7 @@ def callback(
             "Posting Key not valid Base58 - check ENV vars and try again",
         )
         logging.error("Exiting")
-        sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+        sys.exit(EXIT_CODE_INVALID_POSTING_KEY)
 
 
 if __name__ == "__main__":
