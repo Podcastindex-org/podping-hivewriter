@@ -17,9 +17,9 @@ from podping_hivewriter import __version__ as podping_hivewriter_version
 from podping_hivewriter.async_context import AsyncContext
 from podping_hivewriter.async_wrapper import sync_to_async
 from podping_hivewriter.constants import (
-    HIVE_CUSTOM_OP_DATA_MAX_LENGTH,
     EXIT_CODE_INVALID_POSTING_KEY,
     EXIT_CODE_UNKNOWN,
+    HIVE_CUSTOM_OP_DATA_MAX_LENGTH,
     STARTUP_OPERATION_ID,
 )
 from podping_hivewriter.exceptions import (
@@ -409,7 +409,7 @@ class PodpingHivewriter(AsyncContext):
                 ):
                     raise TooManyCustomJsonsPerBlock()
                 if re.match(
-                    r"payer has not enough RC mana.*",
+                    r".*not enough RC mana.*",
                     ex.raw_body["error"]["message"],
                 ):
                     logging.error(ex.raw_body["error"]["message"])
@@ -485,7 +485,7 @@ class PodpingHivewriter(AsyncContext):
                 if failure_count > 0:
                     logging.info(f"FAILURE CLEARED after {failure_count} retries")
                 return failure_count
-            except RPCNodeException as ex:
+            except (RPCNodeException, NotEnoughResourceCredits) as ex:
                 logging.error(f"Failed to send {len(iri_set)} IRIs")
                 try:
                     # Test if we have a well-formed Hive error message
