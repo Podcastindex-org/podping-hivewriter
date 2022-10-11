@@ -7,6 +7,7 @@ from typing import List, Optional, Set
 
 import backoff
 from lighthive.client import Client
+from lighthive.exceptions import RPCNodeException
 
 from podping_hivewriter.async_wrapper import sync_to_async
 
@@ -107,12 +108,12 @@ async def listen_for_custom_json_operations(
                     head_block = (await async_get_dynamic_global_properties())[
                         "head_block_number"
                     ]
-                except Exception:
-                    pass
+                except RPCNodeException as e:
+                    logging.warning(f"Hive API error {e}")
 
             end_time = timer()
             sleep_time = 3 - (end_time - start_time)
             if sleep_time > 0 and (head_block - current_block) <= 0:
                 await asyncio.sleep(sleep_time)
-        except Exception:
-            pass
+        except RPCNodeException as e:
+            logging.warning(f"Hive API error {e}")
