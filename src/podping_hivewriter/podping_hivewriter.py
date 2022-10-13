@@ -133,15 +133,15 @@ class PodpingHivewriter(AsyncContext):
 
         # noinspection PyBroadException
         try:  # Now post two custom json to test.
-            account = self.lighthive_client.account(self.server_account)
-            manabar = account.get_resource_credit_info()
+            # account = self.lighthive_client.account(self.server_account)
+            # manabar = account.get_resource_credit_info()
 
-            logging.info(
-                f"Testing Account Resource Credits"
-                f' - before {manabar.get("last_mana_percent"):.2f}%'
-            )
-            logging.warning("HF26 prevents checking of RC usage.")
-            rc = self.lighthive_client.rc()
+            # logging.info(
+            #     f"Testing Account Resource Credits"
+            #     f' - before {manabar.get("last_mana_percent"):.2f}%'
+            # )
+            # logging.warning("HF26 prevents checking of RC usage.")
+            # rc = self.lighthive_client.rc()
 
             custom_json = {
                 "server_account": self.server_account,
@@ -155,22 +155,22 @@ class PodpingHivewriter(AsyncContext):
             op, size_of_json = await self.construct_operation(
                 custom_json, startup_hive_operation_id
             )
-            try:
-                rc_cost = rc.get_cost(op)
-                percent_after = (
-                    100
-                    * (manabar.get("last_mana") - (1e6 * rc_cost * 100))
-                    / manabar["max_mana"]
-                )
-                percent_drop = manabar.get("last_mana_percent") - percent_after
-                capacity = (100 / percent_drop) * 100
-                logging.info(
-                    f"Calculating Account Resource Credits "
-                    f"for 100 pings: {percent_drop:.2f}% | "
-                    f"Capacity: {capacity:,.0f}"
-                )
-            except Exception as ex:
-                logging.warning(f"Post HF26 error: {ex}")
+            # try:
+            #     rc_cost = rc.get_cost(op)
+            #     percent_after = (
+            #         100
+            #         * (manabar.get("last_mana") - (1e6 * rc_cost * 100))
+            #         / manabar["max_mana"]
+            #     )
+            #     percent_drop = manabar.get("last_mana_percent") - percent_after
+            #     capacity = (100 / percent_drop) * 100
+            #     logging.info(
+            #         f"Calculating Account Resource Credits "
+            #         f"for 100 pings: {percent_drop:.2f}% | "
+            #         f"Capacity: {capacity:,.0f}"
+            #     )
+            # except Exception as ex:
+            #     logging.warning(f"Post HF26 error: {ex}")
 
             custom_json["v"] = podping_hivewriter_version
             # custom_json["capacity"] = f"{capacity:,.0f}"
