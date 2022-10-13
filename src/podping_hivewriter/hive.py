@@ -30,6 +30,15 @@ def get_client(
         ):
             nodes = [os.getenv("PODPING_TESTNET_NODE")]
             chain = {"chain_id": os.getenv("PODPING_TESTNET_CHAINID")}
+        else:
+            nodes = [
+                "https://api.hive.blog",
+                "https://hived.emre.sh",
+                "https://api.deathwing.me",
+                "https://hive-api.arcange.eu",
+                "https://api.openhive.network",
+                "https://api.hive.blue",
+            ]
         client = Client(
             keys=posting_keys,
             nodes=nodes,
