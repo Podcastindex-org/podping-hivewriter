@@ -5,6 +5,7 @@ from platform import python_version as pv
 
 import lighthive
 import pytest
+from lighthive.client import Client
 from lighthive.exceptions import RPCNodeException
 
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
@@ -155,7 +156,7 @@ async def test_send_notification_raises_not_enough_resource_credits(
         raise RPCNodeException(
             "mock_broadcast exception",
             code=42,
-            raw_body={"error": {"message": "plugin exception not enough RC mana bizz"}},
+            raw_body={"error": {"message": "payer has not enough RC mana bizz"}},
         )
 
     monkeypatch.setattr(lighthive.client.Client, "broadcast", mock_broadcast)

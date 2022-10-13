@@ -108,7 +108,7 @@ class PodpingHivewriter(AsyncContext):
                 )
 
         except Exception as ex:
-            logging.exception(f"Unknown error occurred in _startup", stack_info=True)
+            logging.exception("Unknown error occurred in _startup", stack_info=True)
             raise ex
 
         if self.resource_test and not self.dry_run:
@@ -181,7 +181,7 @@ class PodpingHivewriter(AsyncContext):
                 try:
                     await self.send_notification(custom_json, startup_hive_operation_id)
                     break
-                except RPCNodeException as e:
+                except RPCNodeException:
                     pass
 
             logging.info("Startup of Podping status: SUCCESS! Hit the BOOST Button.")
@@ -197,6 +197,7 @@ class PodpingHivewriter(AsyncContext):
 
         except Exception as e:
             logging.exception("Startup of Podping status: FAILED!", stack_info=True)
+            logging.error(e)
             logging.error("Exiting")
             sys.exit(EXIT_CODE_UNKNOWN)
 
@@ -504,6 +505,13 @@ class PodpingHivewriter(AsyncContext):
                         sys.exit(EXIT_CODE_INVALID_POSTING_KEY)
                 except (KeyError, AttributeError):
                     logging.warning("Malformed error response")
+            except NotEnoughResourceCredits as ex:
+                logging.warning(ex)
+                # 10s + exponential back off: need time for RC delegation
+                # script to kick in
+                sleep_for = 10 * 2**failure_count
+                logging.warning(f"Sleeping for {sleep_for}s")
+                await asyncio.sleep(sleep_for)
             except Exception:
                 logging.info(f"Current node: {self.lighthive_client.current_node}")
                 logging.info(self.lighthive_client.nodes)
