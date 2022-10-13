@@ -3,7 +3,6 @@ import itertools
 import json
 import logging
 import re
-import secrets
 import sys
 import uuid
 from datetime import datetime, timedelta
@@ -507,11 +506,11 @@ class PodpingHivewriter(AsyncContext):
                 except (KeyError, AttributeError):
                     logging.warning("Malformed error response")
             except NotEnoughResourceCredits as ex:
-                logging.error(ex)
-                # 10s + exponential / random back off: need time for RC delegation
+                logging.warning(ex)
+                # 10s + exponential back off: need time for RC delegation
                 # script to kick in
-                sleep_for = 10 * 2**failure_count + secrets.randbelow(1)  # nosec
-                logging.error(f"Sleeping for {sleep_for:.4}s")
+                sleep_for = 10 * 2**failure_count
+                logging.warning(f"Sleeping for {sleep_for}s")
                 await asyncio.sleep(sleep_for)
             except Exception:
                 logging.info(f"Current node: {self.lighthive_client.current_node}")
