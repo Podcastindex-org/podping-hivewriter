@@ -2,8 +2,8 @@ import asyncio
 import itertools
 import json
 import logging
-import random
 import re
+import secrets
 import sys
 import uuid
 from datetime import datetime, timedelta
@@ -18,9 +18,9 @@ from podping_hivewriter import __version__ as podping_hivewriter_version
 from podping_hivewriter.async_context import AsyncContext
 from podping_hivewriter.async_wrapper import sync_to_async
 from podping_hivewriter.constants import (
-    HIVE_CUSTOM_OP_DATA_MAX_LENGTH,
     EXIT_CODE_INVALID_POSTING_KEY,
     EXIT_CODE_UNKNOWN,
+    HIVE_CUSTOM_OP_DATA_MAX_LENGTH,
     STARTUP_OPERATION_ID,
 )
 from podping_hivewriter.exceptions import (
@@ -109,7 +109,7 @@ class PodpingHivewriter(AsyncContext):
                 )
 
         except Exception as ex:
-            logging.exception(f"Unknown error occurred in _startup", stack_info=True)
+            logging.exception("Unknown error occurred in _startup", stack_info=True)
             raise ex
 
         if self.resource_test and not self.dry_run:
@@ -182,7 +182,7 @@ class PodpingHivewriter(AsyncContext):
                 try:
                     await self.send_notification(custom_json, startup_hive_operation_id)
                     break
-                except RPCNodeException as e:
+                except RPCNodeException:
                     pass
 
             logging.info("Startup of Podping status: SUCCESS! Hit the BOOST Button.")
@@ -198,6 +198,7 @@ class PodpingHivewriter(AsyncContext):
 
         except Exception as e:
             logging.exception("Startup of Podping status: FAILED!", stack_info=True)
+            logging.error(e)
             logging.error("Exiting")
             sys.exit(EXIT_CODE_UNKNOWN)
 
@@ -509,7 +510,7 @@ class PodpingHivewriter(AsyncContext):
                 logging.error(ex)
                 # 10s + exponential / random back off: need time for RC delegation
                 # script to kick in
-                sleep_for = 10 * 2**failure_count + random.uniform(0, 1)
+                sleep_for = 10 * 2**failure_count + secrets.randbelow(1)  # nosec
                 logging.error(f"Sleeping for {sleep_for:.4}s")
                 await asyncio.sleep(sleep_for)
             except Exception:
