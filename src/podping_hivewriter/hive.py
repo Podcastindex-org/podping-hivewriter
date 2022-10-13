@@ -33,7 +33,6 @@ def get_client(
         else:
             nodes = [
                 "https://api.hive.blog",
-                "https://hived.emre.sh",
                 "https://api.deathwing.me",
                 "https://hive-api.arcange.eu",
                 "https://api.openhive.network",
