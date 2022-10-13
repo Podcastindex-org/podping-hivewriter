@@ -486,7 +486,7 @@ class PodpingHivewriter(AsyncContext):
                 if failure_count > 0:
                     logging.info(f"FAILURE CLEARED after {failure_count} retries")
                 return failure_count
-            except (RPCNodeException, NotEnoughResourceCredits) as ex:
+            except RPCNodeException as ex:
                 logging.error(f"Failed to send {len(iri_set)} IRIs")
                 try:
                     # Test if we have a well-formed Hive error message
