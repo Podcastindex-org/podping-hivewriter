@@ -2,6 +2,7 @@ import asyncio
 import itertools
 import json
 import logging
+import random
 import re
 import sys
 import uuid
@@ -504,6 +505,13 @@ class PodpingHivewriter(AsyncContext):
                         sys.exit(EXIT_CODE_INVALID_POSTING_KEY)
                 except (KeyError, AttributeError):
                     logging.warning("Malformed error response")
+            except NotEnoughResourceCredits as ex:
+                logging.error(ex)
+                # 10s + exponential / random back off: need time for RC delegation
+                # script to kick in
+                sleep_for = 10 * 2**failure_count + random.uniform(0, 1)
+                logging.error(f"Sleeping for {sleep_for:.4}s")
+                await asyncio.sleep(sleep_for)
             except Exception:
                 logging.info(f"Current node: {self.lighthive_client.current_node}")
                 logging.info(self.lighthive_client.nodes)
