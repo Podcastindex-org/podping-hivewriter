@@ -57,6 +57,9 @@ async def test_send_notification_raises_rpcexception_invalid_body(
     with pytest.raises(RPCNodeException):
         await podping_hivewriter.send_notification_iri(iri, medium, reason)
 
+    with pytest.raises(RPCNodeException):
+        await podping_hivewriter.send_notification_iris({iri}, medium, reason)
+
     podping_hivewriter.close()
 
 
@@ -99,6 +102,9 @@ async def test_send_notification_raises_rpcexception_valid_body(
 
     with pytest.raises(RPCNodeException):
         await podping_hivewriter.send_notification_iri(iri, medium, reason)
+
+    with pytest.raises(RPCNodeException):
+        await podping_hivewriter.send_notification_iris({iri}, medium, reason)
 
     podping_hivewriter.close()
 
@@ -143,6 +149,9 @@ async def test_send_notification_raises_too_many_custom_jsons_per_block(
     with pytest.raises(TooManyCustomJsonsPerBlock):
         await podping_hivewriter.send_notification_iri(iri, medium, reason)
 
+    with pytest.raises(TooManyCustomJsonsPerBlock):
+        await podping_hivewriter.send_notification_iris({iri}, medium, reason)
+
     podping_hivewriter.close()
 
 
@@ -185,5 +194,8 @@ async def test_send_notification_raises_not_enough_resource_credits(
 
     with pytest.raises(NotEnoughResourceCredits):
         await podping_hivewriter.send_notification_iri(iri, medium, reason)
+
+    with pytest.raises(NotEnoughResourceCredits):
+        await podping_hivewriter.send_notification_iris({iri}, medium, reason)
 
     podping_hivewriter.close()
