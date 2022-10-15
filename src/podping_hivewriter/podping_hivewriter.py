@@ -512,7 +512,7 @@ class PodpingHivewriter(AsyncContext):
                         sys.exit(EXIT_CODE_INVALID_POSTING_KEY)
                 except (KeyError, AttributeError):
                     logging.warning("Malformed error response")
-            except NotEnoughResourceCredits as ex:
+            except (NotEnoughResourceCredits, TooManyCustomJsonsPerBlock) as ex:
                 logging.warning(ex)
                 # 10s + exponential back off: need time for RC delegation
                 # script to kick in
