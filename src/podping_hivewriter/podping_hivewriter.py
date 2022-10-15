@@ -512,11 +512,19 @@ class PodpingHivewriter(AsyncContext):
                         sys.exit(EXIT_CODE_INVALID_POSTING_KEY)
                 except (KeyError, AttributeError):
                     logging.warning("Malformed error response")
-            except (NotEnoughResourceCredits, TooManyCustomJsonsPerBlock) as ex:
+            except NotEnoughResourceCredits as ex:
                 logging.warning(ex)
                 # 10s + exponential back off: need time for RC delegation
                 # script to kick in
                 sleep_for = 10 * 2**failure_count
+                logging.warning(f"Sleeping for {sleep_for}s")
+                await asyncio.sleep(sleep_for)
+            except TooManyCustomJsonsPerBlock as ex:
+                logging.warning(ex)
+                # Wait for the next block to retry
+                sleep_for = (
+                    await self.settings_manager.get_settings()
+                ).hive_operation_period
                 logging.warning(f"Sleeping for {sleep_for}s")
                 await asyncio.sleep(sleep_for)
             except Exception:
