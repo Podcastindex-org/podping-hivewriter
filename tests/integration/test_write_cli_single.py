@@ -4,15 +4,14 @@ import uuid
 from platform import python_version as pv
 
 import pytest
-from lighthive.client import Client
 from typer.testing import CliRunner
 
 from podping_hivewriter.cli.podping import app
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
-from podping_hivewriter.hive import listen_for_custom_json_operations
+from podping_hivewriter.hive import get_client, listen_for_custom_json_operations
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
-from podping_hivewriter.models.medium import str_medium_map, mediums
-from podping_hivewriter.models.reason import str_reason_map, reasons
+from podping_hivewriter.models.medium import mediums, str_medium_map
+from podping_hivewriter.models.reason import reasons, str_reason_map
 
 
 @pytest.mark.asyncio
@@ -20,7 +19,7 @@ from podping_hivewriter.models.reason import str_reason_map, reasons
 @pytest.mark.slow
 async def test_write_cli_single():
     runner = CliRunner()
-    client = Client()
+    client = get_client()
 
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)
