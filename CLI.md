@@ -16,6 +16,7 @@ $ podping [OPTIONS] COMMAND [ARGS]...
 * `--livetest / --no-livetest`: Use live Hive chain but write with id=podping-livetest. Enable this if you want to validate posting to Hive without notifying podping watchers. Used internally for end-to-end tests.  [env var: PODPING_LIVETEST; default: False]
 * `--dry-run / --no-dry-run`: Run through all posting logic without posting to the chain.  [env var: PODPING_DRY_RUN; default: False]
 * `--status / --no-status`: Periodically prints a status message. Runs every diagnostic_report_period defined in podping_settings  [env var: PODPING_STATUS; default: True]
+* `--hive-operation-period INTEGER`: By default the Hivewriter will wait a few seconds gathering IRIs before sending the next batch. This balances resource usage against speed. If this is set here, the setting will override any settings sent by a config update.  [env var: PODPING_HIVE_OPERATION_PERIOD; default: 3]
 * `--ignore-config-updates / --no-ignore-config-updates`: By default, podping will periodically pull new settings from the configured Hive control account, allowing real time updates to adapt to changes in the Hive network. This lets you ignore these updates if needed.  [env var: PODPING_IGNORE_CONFIG_UPDATES; default: False]
 * `--i-know-what-im-doing`: Set this if you really want to listen on all interfaces.  [env var: PODPING_I_KNOW_WHAT_IM_DOING; default: False]
 * `--debug / --no-debug`: Print debug log messages  [env var: PODPING_DEBUG; default: False]

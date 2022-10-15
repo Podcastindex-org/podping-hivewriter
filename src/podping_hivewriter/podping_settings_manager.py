@@ -2,18 +2,22 @@ import asyncio
 import logging
 from timeit import default_timer as timer
 
+from pydantic import ValidationError
+
 from podping_hivewriter.async_context import AsyncContext
 from podping_hivewriter.models.podping_settings import PodpingSettings
 from podping_hivewriter.podping_settings import get_podping_settings
-from pydantic import ValidationError
 
 
 class PodpingSettingsManager(AsyncContext):
-    def __init__(self, ignore_updates=False):
+    def __init__(self, ignore_updates=False, hive_operation_period=None):
         super().__init__()
 
         self.ignore_updates = ignore_updates
-
+        if hive_operation_period:
+            self.override_hive_operation_period = hive_operation_period
+        else:
+            self.override_hive_operation_period = False
         self.last_update_time = float("-inf")
 
         self._settings = PodpingSettings()
@@ -53,6 +57,10 @@ class PodpingSettingsManager(AsyncContext):
                 )
                 async with self._settings_lock:
                     self._settings = podping_settings
+                    if self.override_hive_operation_period:
+                        self._settings.hive_operation_period = (
+                            self.override_hive_operation_period
+                        )
 
     async def get_settings(self) -> PodpingSettings:
         async with self._settings_lock:

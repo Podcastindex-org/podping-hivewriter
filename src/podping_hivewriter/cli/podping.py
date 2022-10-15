@@ -6,14 +6,13 @@ from typing import List, Optional
 import rfc3987
 import typer
 from lighthive.broadcast.base58 import Base58
-from lighthive.broadcast.key_objects import PrivateKey
 
 from podping_hivewriter import __version__
 from podping_hivewriter.constants import (
     LIVETEST_OPERATION_ID,
     PODPING_OPERATION_ID,
-    STARTUP_FAILED_INVALID_ACCOUNT,
-    STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE,
+    EXIT_CODE_INVALID_ACCOUNT,
+    EXIT_CODE_INVALID_POSTING_KEY,
 )
 from podping_hivewriter.hive import get_client
 from podping_hivewriter.models.medium import Medium, mediums, str_medium_map
@@ -78,8 +77,12 @@ class Config:
     dry_run: bool
     status: bool
     ignore_config_updates: bool
+    hive_operation_period: bool
     i_know_what_im_doing: bool
     debug: bool
+    testnet: bool
+    testnet_node: str
+    testnet_chainid: str
 
     operation_id: str
 
@@ -129,7 +132,10 @@ def write(
     2021-08-30T00:16:01-0500 | INFO | Transaction sent: 00eae43df4a202d94ef6cb797c05f39fbb50631b - JSON size: 97
     ```
     """
-    settings_manager = PodpingSettingsManager(Config.ignore_config_updates)
+    settings_manager = PodpingSettingsManager(
+        ignore_updates=Config.ignore_config_updates,
+        hive_operation_period=Config.hive_operation_period,
+    )
 
     with PodpingHivewriter(
         Config.hive_account,
@@ -222,7 +228,10 @@ def server(
         # ZMQ doesn't like the localhost string, force it to ipv4
         listen_ip = "127.0.0.1"
 
-    settings_manager = PodpingSettingsManager(Config.ignore_config_updates)
+    settings_manager = PodpingSettingsManager(
+        ignore_updates=Config.ignore_config_updates,
+        hive_operation_period=Config.hive_operation_period,
+    )
 
     _podping_hivewriter = PodpingHivewriter(
         Config.hive_account,
@@ -309,6 +318,14 @@ def callback(
         help="Periodically prints a status message. "
         "Runs every diagnostic_report_period defined in podping_settings",
     ),
+    hive_operation_period: Optional[int] = typer.Option(
+        3,
+        envvar="PODPING_HIVE_OPERATION_PERIOD",
+        help="By default the Hivewriter will wait a few seconds gathering IRIs "
+        "before sending the next batch. This balances resource usage against "
+        "speed. If this is set here, the setting will override any settings "
+        "sent by a config update.",
+    ),
     ignore_config_updates: Optional[bool] = typer.Option(
         False,
         envvar="PODPING_IGNORE_CONFIG_UPDATES",
@@ -340,6 +357,7 @@ def callback(
     Config.dry_run = dry_run
     Config.status = status
     Config.ignore_config_updates = ignore_config_updates
+    Config.hive_operation_period = hive_operation_period
     Config.i_know_what_im_doing = i_know_what_im_doing
     Config.debug = debug
 
@@ -364,7 +382,7 @@ def callback(
             f"check ENV vars and try again"
         )
         logging.error("Exiting")
-        sys.exit(STARTUP_FAILED_INVALID_ACCOUNT)
+        sys.exit(EXIT_CODE_INVALID_ACCOUNT)
 
     if not is_base58(hive_posting_key):
         logging.error("Startup of Podping status: FAILED!")
@@ -372,7 +390,7 @@ def callback(
             "Posting Key not valid Base58 - check ENV vars and try again",
         )
         logging.error("Exiting")
-        sys.exit(STARTUP_FAILED_INVALID_POSTING_KEY_EXIT_CODE)
+        sys.exit(EXIT_CODE_INVALID_POSTING_KEY)
 
 
 if __name__ == "__main__":
