@@ -54,7 +54,7 @@ server = ["pyzmq"]
 podping = "podping_hivewriter.cli.podping:app"
 
 [build-system]
-requires = ["poetry-core>=1.0.0", "capnpy"]
+requires = ["setuptools", "poetry-core>=1.0.0", "capnpy"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.black]
