@@ -148,9 +148,14 @@ def write(
         daemon=False,
         dry_run=Config.dry_run,
     ) as podping_hivewriter:
-        coro = podping_hivewriter.failure_retry(
-            set(iris), medium=Config.medium, reason=Config.reason
-        )
+
+        async def write_and_log():
+            failure_count, response = await podping_hivewriter.failure_retry(
+                set(iris), medium=Config.medium, reason=Config.reason
+            )
+            logging.info(f"Transaction sent: {response.hive_tx_id}")
+
+        coro = write_and_log()
         try:
             # Try to get an existing loop in case of running from other program
             # Mostly used for pytest
