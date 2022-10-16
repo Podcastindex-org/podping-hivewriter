@@ -32,7 +32,7 @@ async def test_failure_retry_handles_invalid_error_response(
 
     monkeypatch.setattr(podping_hivewriter.logging, "warning", logging_warning_stub)
     monkeypatch.setattr(podping_hivewriter.logging, "error", logging_error_stub)
-    monkeypatch.setattr(lighthive.client.Client, "broadcast", mock_broadcast)
+    monkeypatch.setattr(lighthive.client.Client, "broadcast_sync", mock_broadcast)
 
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)
@@ -59,13 +59,14 @@ async def test_failure_retry_handles_invalid_error_response(
     mocker.patch.object(podping_hivewriter.itertools, "repeat", return_value=range(1))
     logging_warning_stub.reset_mock()
 
-    failure_count = await writer.failure_retry({iri}, medium, reason)
+    failure_count, response = await writer.failure_retry({iri}, medium, reason)
 
     writer.close()
 
     logging_warning_stub.assert_called_once_with("Malformed error response")
     assert logging_error_stub.call_count == 4
     assert failure_count == 1
+    assert response is None
 
 
 @pytest.mark.asyncio
@@ -82,7 +83,7 @@ async def test_failure_retry_handles_not_enough_resource_credits(
 
     monkeypatch.setattr(podping_hivewriter.logging, "warning", logging_warning_stub)
     monkeypatch.setattr(podping_hivewriter.logging, "error", logging_error_stub)
-    monkeypatch.setattr(lighthive.client.Client, "broadcast", mock_broadcast)
+    monkeypatch.setattr(lighthive.client.Client, "broadcast_sync", mock_broadcast)
 
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)
@@ -109,7 +110,7 @@ async def test_failure_retry_handles_not_enough_resource_credits(
     mocker.patch.object(podping_hivewriter.itertools, "repeat", return_value=range(1))
     logging_warning_stub.reset_mock()
 
-    failure_count = await writer.failure_retry({iri}, medium, reason)
+    failure_count, response = await writer.failure_retry({iri}, medium, reason)
 
     writer.close()
 
@@ -117,3 +118,4 @@ async def test_failure_retry_handles_not_enough_resource_credits(
     assert logging_warning_stub.call_count == 2
     assert logging_error_stub.call_count == 1
     assert failure_count == 1
+    assert response is None
