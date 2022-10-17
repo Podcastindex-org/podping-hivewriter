@@ -69,6 +69,8 @@ def get_allowed_accounts(
         try:
             master_account = client.account(account_name)
             return set(master_account.following())
+        except KeyError:
+            logging.warning(f"Unable to get account followers - retrying")
         except Exception as e:
             logging.warning(f"Unable to get account followers: {e} - retrying")
 

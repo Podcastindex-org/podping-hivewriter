@@ -12,6 +12,8 @@ from typing import List, Optional, Set, Tuple, Union
 import rfc3987
 from lighthive.datastructures import Operation
 from lighthive.exceptions import RPCNodeException
+from plexo.ganglion.tcp_pair import GanglionZmqTcpPair
+from plexo.plexus import Plexus
 
 from podping_hivewriter import __version__ as podping_hivewriter_version
 from podping_hivewriter.async_context import AsyncContext
@@ -33,10 +35,24 @@ from podping_hivewriter.exceptions import (
 from podping_hivewriter.hive import get_allowed_accounts, get_client
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.iri_batch import IRIBatch
+from podping_hivewriter.models.lighthive_broadcast_response import (
+    LighthiveBroadcastResponse,
+)
 from podping_hivewriter.models.medium import Medium
 from podping_hivewriter.models.podping import Podping
 from podping_hivewriter.models.reason import Reason
+from podping_hivewriter.neuron import (
+    podping_hive_transaction_neuron,
+    podping_write_neuron,
+    podping_write_error_neuron,
+)
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
+from podping_hivewriter.schema.podping_hive_transaction import PodpingHiveTransaction
+from podping_hivewriter.schema.podping_write import PodpingWrite
+from podping_hivewriter.schema.podping_write_error import (
+    PodpingWriteError,
+    PodpingWriteErrorType,
+)
 
 
 class PodpingHivewriter(AsyncContext):
@@ -77,8 +93,10 @@ class PodpingHivewriter(AsyncContext):
         )
 
         self._async_hive_broadcast = sync_to_async(
-            self.lighthive_client.broadcast, thread_sensitive=False
+            self.lighthive_client.broadcast_sync, thread_sensitive=False
         )
+
+        self.plexus = Plexus()
 
         self.total_iris_recv = 0
         self.total_iris_sent = 0
@@ -120,7 +138,22 @@ class PodpingHivewriter(AsyncContext):
         logging.info(f"Hive account: @{self.server_account}")
 
         if self.daemon:
-            self._add_task(asyncio.create_task(self._zmq_response_loop()))
+            tcp_pair_ganglion = GanglionZmqTcpPair(
+                bind_interface=self.listen_ip,
+                port=self.listen_port,
+                relevant_neurons=(
+                    podping_hive_transaction_neuron,
+                    podping_write_neuron,
+                    podping_write_error_neuron,
+                ),
+            )
+            await self.plexus.infuse_ganglion(tcp_pair_ganglion)
+            await self.plexus.adapt(podping_hive_transaction_neuron)
+            await self.plexus.adapt(
+                podping_write_neuron, reactants=(self._podping_write_reactant,)
+            )
+            await self.plexus.adapt(podping_write_error_neuron)
+            # self._add_task(asyncio.create_task(self._zmq_response_loop()))
             self._add_task(asyncio.create_task(self._iri_batch_loop()))
             self._add_task(asyncio.create_task(self._iri_batch_handler_loop()))
             if self.status:
@@ -232,22 +265,36 @@ class PodpingHivewriter(AsyncContext):
                 iri_batch = await self.iri_batch_queue.get()
 
                 start = timer()
-                failure_count = await self.failure_retry(
+                failure_count, response = await self.failure_retry(
                     iri_batch.iri_set, medium=self.medium, reason=self.reason
                 )
                 duration = timer() - start
+
+                await self.plexus.transmit(
+                    PodpingHiveTransaction(
+                        medium=self.medium,
+                        reason=self.reason,
+                        iris=[iri for iri in iri_batch.iri_set],
+                        hiveTxId=response.hive_tx_id,
+                        hiveBlockNum=response.hive_block_num,
+                    )
+                )
 
                 self.iri_batch_queue.task_done()
                 async with self._iris_in_flight_lock:
                     self._iris_in_flight -= len(iri_batch.iri_set)
 
                 last_node = self.lighthive_client.current_node
-                logging.info(
-                    f"Batch send time: {duration:0.2f} | "
-                    f"Failures: {failure_count} - IRI batch_id {iri_batch.batch_id} | "
-                    f"IRIs in batch: {len(iri_batch.iri_set)} | "
-                    f"last_node: {last_node}"
-                )
+                if response:
+                    logging.info(
+                        f"Batch send time: {duration:0.2f} | "
+                        f"Failures: {failure_count} | "
+                        f"IRI batch_id {iri_batch.batch_id} | "
+                        f"IRIs in batch: {len(iri_batch.iri_set)} | "
+                        f"Hive txid: {response.hive_tx_id} | "
+                        f"Hive block num: {response.hive_block_num} | "
+                        f"last_node: {last_node}"
+                    )
             except asyncio.CancelledError:
                 raise
             except Exception:
@@ -326,6 +373,20 @@ class PodpingHivewriter(AsyncContext):
                 logging.exception("Unknown error in _iri_batch_loop", stack_info=True)
                 raise
 
+    async def _podping_write_reactant(self, podping_write: PodpingWrite, _, _2):
+        iri: str = podping_write.iri
+        if rfc3987.match(iri, "IRI"):
+            await self.iri_queue.put(iri)
+            async with self._iris_in_flight_lock:
+                self._iris_in_flight += 1
+            self.total_iris_recv += 1
+        else:
+            podping_write_error = PodpingWriteError(
+                podpingWrite=podping_write,
+                errorType=PodpingWriteErrorType.invalidIri,
+            )
+            await self.plexus.transmit(podping_write_error)
+
     async def _zmq_response_loop(self):
         import zmq.asyncio
 
@@ -395,7 +456,7 @@ class PodpingHivewriter(AsyncContext):
 
     async def send_notification(
         self, payload: dict, hive_operation_id: Union[HiveOperationId, str]
-    ) -> None:
+    ) -> LighthiveBroadcastResponse:
         """Build and send an operation to the blockchain"""
         try:
             op, size_of_json = self.construct_operation(payload, hive_operation_id)
@@ -403,10 +464,14 @@ class PodpingHivewriter(AsyncContext):
             # in one block, uncomment this line.
             # op = [op] * 6
 
-            await self._async_hive_broadcast(op=op, dry_run=self.dry_run)
+            broadcast_task = asyncio.create_task(
+                self._async_hive_broadcast(op=op, dry_run=self.dry_run)
+            )
 
             logging.info(f"Lighthive Node: {self.lighthive_client.current_node}")
             logging.info(f"JSON size: {size_of_json}")
+
+            return LighthiveBroadcastResponse(await broadcast_task)
         except RPCNodeException as ex:
             logging.error(f"send_notification error: {ex}")
             try:
@@ -437,23 +502,25 @@ class PodpingHivewriter(AsyncContext):
         iri: str,
         medium: Optional[Medium],
         reason: Optional[Reason],
-    ) -> None:
+    ) -> LighthiveBroadcastResponse:
         payload = Podping(
             medium=medium or self.medium, reason=reason or self.reason, iris=[iri]
         )
 
         hive_operation_id = HiveOperationId(self.operation_id, medium, reason)
 
-        await self.send_notification(payload.dict(), hive_operation_id)
+        response = await self.send_notification(payload.dict(), hive_operation_id)
 
         self.total_iris_sent += 1
+
+        return response
 
     async def send_notification_iris(
         self,
         iris: Set[str],
         medium: Optional[Medium],
         reason: Optional[Reason],
-    ) -> None:
+    ) -> LighthiveBroadcastResponse:
         num_iris = len(iris)
         payload = Podping(
             medium=medium or self.medium, reason=reason or self.reason, iris=list(iris)
@@ -461,21 +528,22 @@ class PodpingHivewriter(AsyncContext):
 
         hive_operation_id = HiveOperationId(self.operation_id, medium, reason)
 
-        await self.send_notification(payload.dict(), hive_operation_id)
+        response = await self.send_notification(payload.dict(), hive_operation_id)
 
         self.total_iris_sent += num_iris
+
+        return response
 
     async def failure_retry(
         self,
         iri_set: Set[str],
         medium: Optional[Medium],
         reason: Optional[Reason],
-    ) -> int:
+    ) -> Tuple[int, Optional[LighthiveBroadcastResponse]]:
         await self.wait_startup()
         failure_count = 0
 
         for _ in itertools.repeat(None):
-            # Sleep a maximum of 5 minutes, 3 additional seconds for every retry
             if failure_count > 0:
                 logging.info(
                     f"FAILURE COUNT: {failure_count} - RETRYING {len(iri_set)} IRIs"
@@ -485,14 +553,14 @@ class PodpingHivewriter(AsyncContext):
 
             # noinspection PyBroadException
             try:
-                await self.send_notification_iris(
+                response = await self.send_notification_iris(
                     iris=iri_set,
                     medium=medium or self.medium,
                     reason=reason or self.reason,
                 )
                 if failure_count > 0:
                     logging.info(f"FAILURE CLEARED after {failure_count} retries")
-                return failure_count
+                return failure_count, response
             except RPCNodeException as ex:
                 logging.error(f"Failed to send {len(iri_set)} IRIs")
                 try:
@@ -539,4 +607,4 @@ class PodpingHivewriter(AsyncContext):
             finally:
                 failure_count += 1
 
-        return failure_count
+        return failure_count, None

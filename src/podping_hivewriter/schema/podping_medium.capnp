@@ -1,6 +1,6 @@
 @0xedda8f1fc8b626fe;
 
-enum Medium {
+enum PodpingMedium {
     podcast @0;
     music @1;
     video @2;

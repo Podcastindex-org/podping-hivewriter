@@ -30,7 +30,7 @@ async def test_send_notification_raises_rpcexception_invalid_body(
             "mock_broadcast exception", code=42, raw_body={"foo": "bar"}
         )
 
-    monkeypatch.setattr(lighthive.client.Client, "broadcast", mock_broadcast)
+    monkeypatch.setattr(lighthive.client.Client, "broadcast_sync", mock_broadcast)
 
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)
@@ -76,7 +76,7 @@ async def test_send_notification_raises_rpcexception_valid_body(
             raw_body={"error": {"message": "nonsense"}},
         )
 
-    monkeypatch.setattr(lighthive.client.Client, "broadcast", mock_broadcast)
+    monkeypatch.setattr(lighthive.client.Client, "broadcast_sync", mock_broadcast)
 
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)
@@ -122,7 +122,7 @@ async def test_send_notification_raises_too_many_custom_jsons_per_block(
             raw_body={"error": {"message": "plugin exception foobar custom json bizz"}},
         )
 
-    monkeypatch.setattr(lighthive.client.Client, "broadcast", mock_broadcast)
+    monkeypatch.setattr(lighthive.client.Client, "broadcast_sync", mock_broadcast)
 
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)
@@ -168,7 +168,7 @@ async def test_send_notification_raises_not_enough_resource_credits(
             raw_body={"error": {"message": "payer has not enough RC mana bizz"}},
         )
 
-    monkeypatch.setattr(lighthive.client.Client, "broadcast", mock_broadcast)
+    monkeypatch.setattr(lighthive.client.Client, "broadcast_sync", mock_broadcast)
 
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)

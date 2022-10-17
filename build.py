@@ -8,7 +8,11 @@ class SetupKwargsProxy:
     @property
     def capnpy_options(self):
         return {
-            "convert_case": False,  # do NOT convert camelCase to camel_case
+            # do NOT convert camelCase to camel_case
+            "convert_case": False,
+            # prevents us from having to call .decode("UTF-8") on strings
+            # https://capnpy.readthedocs.io/en/latest/usage.html#text
+            "text_type": "unicode",
         }
 
     @property
@@ -24,8 +28,11 @@ class SetupKwargsProxy:
 
 
 schema_files = [
-    "src/podping_hivewriter/schema/medium.capnp",
-    "src/podping_hivewriter/schema/reason.capnp",
+    "src/podping_hivewriter/schema/podping_hive_transaction.capnp",
+    "src/podping_hivewriter/schema/podping_medium.capnp",
+    "src/podping_hivewriter/schema/podping_reason.capnp",
+    "src/podping_hivewriter/schema/podping_write.capnp",
+    "src/podping_hivewriter/schema/podping_write_error.capnp",
 ]
 
 
