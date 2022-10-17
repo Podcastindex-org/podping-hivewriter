@@ -518,7 +518,7 @@ description = "Opinionated, reactive, schema-driven, distributed message passing
 category = "main"
 optional = false
 python-versions = "^3.8"
-develop = true
+develop = false
 
 [package.dependencies]
 capnpy = "^0.9.0"
@@ -529,8 +529,10 @@ returns = "^0.19.0"
 typing_extensions = "^4.0"
 
 [package.source]
-type = "directory"
-url = "../../plexo/pyplexo"
+type = "git"
+url = "git@gitlab.com:agates/pyplexo.git"
+reference = "fda9071b59a01eb27bf467b84a46632b46d5046a"
+resolved_reference = "fda9071b59a01eb27bf467b84a46632b46d5046a"
 
 [[package]]
 name = "pluggy"
@@ -926,7 +928,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "115ced3ce21074f7aecca22fa20eff918483630dfdb677327b42c132e2ee44fd"
+content-hash = "3ac679cfc81fab66c0be970876c12576c38805242c1844ed1165b3d96010e005"
 
 [metadata.files]
 anyio = [
