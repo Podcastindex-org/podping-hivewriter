@@ -3,20 +3,27 @@ import json
 import os
 import random
 import uuid
+from ipaddress import IPv4Address
 from platform import python_version as pv
 from random import randint
 
 import pytest
-import zmq
-import zmq.asyncio
+from plexo.ganglion.tcp_pair import GanglionZmqTcpPair
+from plexo.plexus import Plexus
 
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
 from podping_hivewriter.hive import get_client, listen_for_custom_json_operations
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.medium import mediums, str_medium_map
 from podping_hivewriter.models.reason import reasons, str_reason_map
+from podping_hivewriter.neuron import (
+    podping_hive_transaction_neuron,
+    podping_write_neuron,
+)
 from podping_hivewriter.podping_hivewriter import PodpingHivewriter
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
+from podping_hivewriter.schema.podping_hive_transaction import PodpingHiveTransaction
+from podping_hivewriter.schema.podping_write import PodpingWrite
 
 
 @pytest.mark.asyncio
@@ -54,6 +61,13 @@ async def test_write_zmq_multiple(event_loop):
                         if iri.endswith(session_uuid_str):
                             yield iri
 
+    tx_queue: asyncio.Queue[PodpingHiveTransaction] = asyncio.Queue()
+
+    async def _podping_hive_transaction_reaction(
+        transaction: PodpingHiveTransaction, _, _2
+    ):
+        await tx_queue.put(transaction)
+
     host = "127.0.0.1"
     port = 9979
     podping_hivewriter = PodpingHivewriter(
@@ -68,18 +82,28 @@ async def test_write_zmq_multiple(event_loop):
         operation_id=LIVETEST_OPERATION_ID,
     )
     await podping_hivewriter.wait_startup()
-    context = zmq.asyncio.Context()
-    socket = context.socket(zmq.REQ, io_loop=event_loop)
-    socket.connect(f"tcp://{host}:{port}")
+
+    tcp_pair_ganglion = GanglionZmqTcpPair(
+        peer=(IPv4Address(host), port),
+        relevant_neurons=(
+            podping_hive_transaction_neuron,
+            podping_write_neuron,
+        ),
+    )
+    plexus = Plexus(ganglia=(tcp_pair_ganglion,))
+    # TODO: confirm we receive a valid transaction after success
+    await plexus.adapt(
+        podping_hive_transaction_neuron, reactants=(_podping_hive_transaction_reaction,)
+    )
+    await plexus.adapt(podping_write_neuron)
 
     op_period = settings_manager._settings.hive_operation_period
 
     current_block = client.get_dynamic_global_properties()["head_block_number"]
 
     for iri in test_iris:
-        await socket.send_string(iri)
-        response = await socket.recv_string()
-        assert response == "OK"
+        podping_write = PodpingWrite(medium=medium, reason=reason, iri=iri)
+        await plexus.transmit(podping_write)
 
     # Sleep until all items in the queue are done processing
     num_iris_processing = await podping_hivewriter.num_operations_in_queue()
@@ -97,3 +121,10 @@ async def test_write_zmq_multiple(event_loop):
 
     assert answer_iris == test_iris
     podping_hivewriter.close()
+
+    tx = await tx_queue.get()
+    assert tx.medium == medium
+    assert tx.reason == reason
+    assert test_iris == set(tx.iris)
+    assert tx.hiveTxId is not None
+    assert tx.hiveBlockNum is not None

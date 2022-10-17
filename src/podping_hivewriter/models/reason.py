@@ -2,12 +2,12 @@ import capnpy
 from capnpy.annotate import Options
 
 reason_module = capnpy.load_schema(
-    "podping_hivewriter.schema.reason",
+    "podping_hivewriter.schema.podping_reason",
     # Make sure properties are imported as specified (camelCase)
     options=Options(convert_case=False, include_reflection_data=True),
 )
 
-Reason = reason_module.Reason
+Reason = reason_module.PodpingReason
 
 reasons = frozenset(Reason.__members__)
 

@@ -12,6 +12,8 @@ from typing import List, Optional, Set, Tuple, Union
 import rfc3987
 from lighthive.datastructures import Operation
 from lighthive.exceptions import RPCNodeException
+from plexo.ganglion.tcp_pair import GanglionZmqTcpPair
+from plexo.plexus import Plexus
 
 from podping_hivewriter import __version__ as podping_hivewriter_version
 from podping_hivewriter.async_context import AsyncContext
@@ -39,7 +41,18 @@ from podping_hivewriter.models.lighthive_broadcast_response import (
 from podping_hivewriter.models.medium import Medium
 from podping_hivewriter.models.podping import Podping
 from podping_hivewriter.models.reason import Reason
+from podping_hivewriter.neuron import (
+    podping_hive_transaction_neuron,
+    podping_write_neuron,
+    podping_write_error_neuron,
+)
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
+from podping_hivewriter.schema.podping_hive_transaction import PodpingHiveTransaction
+from podping_hivewriter.schema.podping_write import PodpingWrite
+from podping_hivewriter.schema.podping_write_error import (
+    PodpingWriteError,
+    PodpingWriteErrorType,
+)
 
 
 class PodpingHivewriter(AsyncContext):
@@ -83,6 +96,8 @@ class PodpingHivewriter(AsyncContext):
             self.lighthive_client.broadcast_sync, thread_sensitive=False
         )
 
+        self.plexus = Plexus()
+
         self.total_iris_recv = 0
         self.total_iris_sent = 0
         self.total_iris_recv_deduped = 0
@@ -123,7 +138,22 @@ class PodpingHivewriter(AsyncContext):
         logging.info(f"Hive account: @{self.server_account}")
 
         if self.daemon:
-            self._add_task(asyncio.create_task(self._zmq_response_loop()))
+            tcp_pair_ganglion = GanglionZmqTcpPair(
+                bind_interface=self.listen_ip,
+                port=self.listen_port,
+                relevant_neurons=(
+                    podping_hive_transaction_neuron,
+                    podping_write_neuron,
+                    podping_write_error_neuron,
+                ),
+            )
+            await self.plexus.infuse_ganglion(tcp_pair_ganglion)
+            await self.plexus.adapt(podping_hive_transaction_neuron)
+            await self.plexus.adapt(
+                podping_write_neuron, reactants=(self._podping_write_reactant,)
+            )
+            await self.plexus.adapt(podping_write_error_neuron)
+            # self._add_task(asyncio.create_task(self._zmq_response_loop()))
             self._add_task(asyncio.create_task(self._iri_batch_loop()))
             self._add_task(asyncio.create_task(self._iri_batch_handler_loop()))
             if self.status:
@@ -240,6 +270,16 @@ class PodpingHivewriter(AsyncContext):
                 )
                 duration = timer() - start
 
+                await self.plexus.transmit(
+                    PodpingHiveTransaction(
+                        medium=self.medium,
+                        reason=self.reason,
+                        iris=[iri for iri in iri_batch.iri_set],
+                        hiveTxId=response.hive_tx_id,
+                        hiveBlockNum=response.hive_block_num,
+                    )
+                )
+
                 self.iri_batch_queue.task_done()
                 async with self._iris_in_flight_lock:
                     self._iris_in_flight -= len(iri_batch.iri_set)
@@ -332,6 +372,20 @@ class PodpingHivewriter(AsyncContext):
             except Exception:
                 logging.exception("Unknown error in _iri_batch_loop", stack_info=True)
                 raise
+
+    async def _podping_write_reactant(self, podping_write: PodpingWrite, _, _2):
+        iri: str = podping_write.iri
+        if rfc3987.match(iri, "IRI"):
+            await self.iri_queue.put(iri)
+            async with self._iris_in_flight_lock:
+                self._iris_in_flight += 1
+            self.total_iris_recv += 1
+        else:
+            podping_write_error = PodpingWriteError(
+                podpingWrite=podping_write,
+                errorType=PodpingWriteErrorType.invalidIri,
+            )
+            await self.plexus.transmit(podping_write_error)
 
     async def _zmq_response_loop(self):
         import zmq.asyncio
