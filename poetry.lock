@@ -513,26 +513,19 @@ test = ["appdirs (==1.4.4)", "pytest (>=6)", "pytest-cov (>=2.7)", "pytest-mock 
 
 [[package]]
 name = "plexo"
-version = "1.0.0"
+version = "1.0.0a0"
 description = "Opinionated, reactive, schema-driven, distributed message passing"
 category = "main"
 optional = false
-python-versions = "^3.8"
-develop = false
+python-versions = ">=3.8,<4.0"
 
 [package.dependencies]
-capnpy = "^0.9.0"
-pyrsistent = "^0.18.0"
-python-jsonschema-objects = "^0.4.1"
-pyzmq = "^24.0.0"
-returns = "^0.19.0"
-typing_extensions = "^4.0"
-
-[package.source]
-type = "git"
-url = "git@gitlab.com:agates/pyplexo.git"
-reference = "fda9071b59a01eb27bf467b84a46632b46d5046a"
-resolved_reference = "fda9071b59a01eb27bf467b84a46632b46d5046a"
+capnpy = ">=0.9.0,<0.10.0"
+pyrsistent = ">=0.18.0,<0.19.0"
+python-jsonschema-objects = ">=0.4.1,<0.5.0"
+pyzmq = ">=24.0.0,<25.0.0"
+returns = ">=0.19.0,<0.20.0"
+typing_extensions = ">=4.0,<5.0"
 
 [[package]]
 name = "pluggy"
@@ -928,7 +921,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "3ac679cfc81fab66c0be970876c12576c38805242c1844ed1165b3d96010e005"
+content-hash = "b0b9c42bcc254bbd8c856405112da4abaf00a8c34751c8d098506e6ae62c89dd"
 
 [metadata.files]
 anyio = [
@@ -1271,7 +1264,9 @@ platformdirs = [
     {file = "platformdirs-2.5.2-py3-none-any.whl", hash = "sha256:027d8e83a2d7de06bbac4e5ef7e023c02b863d7ea5d079477e722bb41ab25788"},
     {file = "platformdirs-2.5.2.tar.gz", hash = "sha256:58c8abb07dcb441e6ee4b11d8df0ac856038f944ab98b7be6b27b2a3c7feef19"},
 ]
-plexo = []
+plexo = [
+    {file = "plexo-1.0.0a0-cp310-cp310-manylinux_2_35_x86_64.whl", hash = "sha256:02e0d89fe1e655146d996d1b1905f74ab75b5e7b6f312daaa4f5b750fd22a49a"},
+]
 pluggy = [
     {file = "pluggy-1.0.0-py2.py3-none-any.whl", hash = "sha256:74134bbf457f031a36d68416e1509f34bd5ccc019f0bcc952c7b909d06b37bd3"},
     {file = "pluggy-1.0.0.tar.gz", hash = "sha256:4224373bacce55f955a878bf9cfa763c1e360858e330072059e10bad68531159"},

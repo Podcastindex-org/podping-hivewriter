@@ -31,7 +31,7 @@ asgiref = "^3.5"
 typer = {extras = ["all"], version = "^0.3.2"}
 capnpy = "^0.9.0"
 lighthive = "^0.4.0"
-plexo = {git = "git@gitlab.com:agates/pyplexo.git", rev = "fda9071b59a01eb27bf467b84a46632b46d5046a"}
+plexo = "^1.0.0a"
 
 [tool.poetry.group.dev.dependencies]
 black = "^21.5b2"
