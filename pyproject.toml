@@ -20,7 +20,7 @@ classifiers = [
 build = "build.py"
 include = [
     { path = "src/podping_hivewriter/schema/*.capnp", format = "sdist"},
-    { path = "src/podping_hivewriter/schema/*.py", format = "wheel"},
+    { path = "src/podping_hivewriter/schema/*.py", format = [ "sdist", "wheel" ] },
     { path = "src/podping_hivewriter/schema/*.so", format = "wheel"},
 ]
 
@@ -33,9 +33,9 @@ single-source = "^0.3.0"
 rfc3987 = "^1.3.8"
 asgiref = "^3.5"
 typer = {extras = ["all"], version = "^0.3.2"}
-capnpy = "^0.9.0"
+capnpy = { git = "https://github.com/agates/capnpy.git", rev="2fa5dcc5b718fe5e58df97382a0736b10bc7a816" }
 lighthive = "^0.4.0"
-plexo = {version = "1.0.0a1", allow-prereleases = true}
+plexo = {version = "1.0.0a3", allow-prereleases = true}
 
 
 [tool.poetry.group.dev.dependencies]

@@ -15,15 +15,18 @@ RUN apt-get update \
     && apt-get -y upgrade \
     # rustc, cargo for armhf "cryptography"
     # libzmq3-dev for armhf "pyzmq"
-    && apt-get -y install --no-install-recommends capnproto cargo libzmq3-dev rustc build-essential libssl-dev libffi-dev
+    && apt-get -y install --no-install-recommends capnproto cargo libzmq3-dev rustc build-essential libssl-dev libffi-dev cython3 libcapnp-dev libcapnp-0.7.0
 
 USER podping
 WORKDIR /home/podping/app
 
-COPY pyproject.toml poetry.lock ./
+COPY --chown=podping:podping pyproject.toml poetry.lock ./
 
 RUN pip install --user poetry \
     && poetry config virtualenvs.in-project true \
+    && poetry run pip install cython \
+    && poetry env list \
+    && poetry run pip freeze \
     && poetry install --no-root --only main --no-interaction --no-ansi
 
 FROM docker.io/python:3.10-slim-bullseye AS app

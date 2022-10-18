@@ -1,6 +1,6 @@
 @0xdfd31317d35f60d9;
 
-using import "/src/podping_hivewriter/schema/podping_write.capnp".PodpingWrite;
+using import "podping_write.capnp".PodpingWrite;
 
 enum PodpingWriteErrorType {
     invalidIri @0;
