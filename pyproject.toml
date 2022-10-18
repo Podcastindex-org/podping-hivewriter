@@ -18,7 +18,11 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 build = "build.py"
-include = ["src/podping_hivewriter/schema/*.py", "src/podping_hivewriter/schema/*.so"]
+include = [
+    { path = "src/podping_hivewriter/schema/*.capnp", format = "sdist"},
+    { path = "src/podping_hivewriter/schema/*.py", format = "wheel"},
+    { path = "src/podping_hivewriter/schema/*.so", format = "wheel"},
+]
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -31,7 +35,7 @@ asgiref = "^3.5"
 typer = {extras = ["all"], version = "^0.3.2"}
 capnpy = "^0.9.0"
 lighthive = "^0.4.0"
-plexo = {version = "^1.0.0a0", allow-prereleases = true}
+plexo = {version = "1.0.0a1", allow-prereleases = true}
 
 
 [tool.poetry.group.dev.dependencies]

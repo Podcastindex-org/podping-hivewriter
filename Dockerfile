@@ -9,7 +9,7 @@ ENV PYTHONFAULTHANDLER=1 \
     PIP_NO_CACHE_DIR=1 \
     PATH="/home/podping/.local/bin:${PATH}"
 
-RUN useradd --create-home podping && mkdir /home/podping/app && chown -R podping:podping /home/podping
+RUN useradd --create-home podping && mkdir /home/podping/app && mkdir /home/podping/.local && chown -R podping:podping /home/podping
 
 RUN apt-get update \
     && apt-get -y upgrade \
@@ -22,8 +22,7 @@ WORKDIR /home/podping/app
 
 COPY pyproject.toml poetry.lock ./
 
-RUN pip install --upgrade pip \
-    && pip install --user poetry \
+RUN pip install --user poetry \
     && poetry config virtualenvs.in-project true \
     && poetry install --no-root --only main --no-interaction --no-ansi
 
