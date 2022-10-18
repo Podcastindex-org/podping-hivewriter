@@ -36,7 +36,7 @@ ENV PYTHONFAULTHANDLER=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
 
-RUN useradd --create-home podping && mkdir /home/podping/app && chown -R podping:podping /home/podping
+RUN useradd --create-home podping && mkdir /home/podping/app && mkdir /home/podping/.config && chown -R podping:podping /home/podping
 
 COPY install-packages.sh .
 RUN ./install-packages.sh
@@ -49,8 +49,7 @@ WORKDIR /home/podping/app
 ENV PATH="/home/podping/.local/bin:${PATH}"
 
 COPY --chown=podping:podping . .
-RUN pip install --upgrade pip \
-    && pip install poetry \
+RUN pip install --user poetry \
     && poetry config virtualenvs.in-project true \
     && poetry install --only main --no-interaction --no-ansi
 
