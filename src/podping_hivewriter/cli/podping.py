@@ -33,7 +33,7 @@ def is_base58(sb: str) -> bool:
 def medium_callback(medium: str) -> str:
     if medium not in mediums:
         raise typer.BadParameter(
-            f"Medium be one of the following: {str(', '.join(mediums))}"
+            f"Medium be one of the following: {str(', '.join(sorted(mediums)))}"
         )
     return medium
 
@@ -41,7 +41,7 @@ def medium_callback(medium: str) -> str:
 def reason_callback(reason: str) -> str:
     if reason not in reasons:
         raise typer.BadParameter(
-            f"Reason must be one of the following: {str(', '.join(reasons))}"
+            f"Reason must be one of the following: {str(', '.join(sorted(reasons)))}"
         )
     return reason
 
@@ -271,7 +271,7 @@ def callback(
         str(Medium.podcast),
         envvar=["PODPING_MEDIUM"],
         callback=medium_callback,
-        autocompletion=lambda: list(mediums),
+        autocompletion=lambda: sorted(mediums),
         help=f"The medium of the feed being updated. If used in combination with the 'server', this sets the default "
         f"medium only. Must be one of the following: {str(' '.join(mediums))}",
     ),
@@ -279,7 +279,7 @@ def callback(
         str(Reason.update),
         envvar=["PODPING_REASON"],
         callback=reason_callback,
-        autocompletion=lambda: list(reasons),
+        autocompletion=lambda: sorted(reasons),
         help=f"The reason the feed is being updated. If used in combination with the 'server', this sets the default "
         f"reason only. Must be one of the following: {str(' '.join(reasons))}",
     ),
