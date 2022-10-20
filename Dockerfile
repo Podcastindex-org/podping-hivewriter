@@ -24,9 +24,6 @@ COPY --chown=podping:podping pyproject.toml poetry.lock ./
 
 RUN pip install --user poetry \
     && poetry config virtualenvs.in-project true \
-    && poetry run pip install cython \
-    && poetry env list \
-    && poetry run pip freeze \
     && poetry install --no-root --only main --no-interaction --no-ansi
 
 FROM docker.io/python:3.10-slim-bullseye AS app
@@ -54,7 +51,7 @@ ENV PATH="/home/podping/.local/bin:${PATH}"
 COPY --chown=podping:podping . .
 RUN pip install --user poetry \
     && poetry config virtualenvs.in-project true \
-    && poetry install --only main --no-interaction --no-ansi
+    && poetry install --only-root --no-interaction --no-ansi
 
 # podping command installs here
 ENV PATH="/home/podping/app/.venv/bin:${PATH}"
