@@ -21,7 +21,7 @@ ENV PATH="/home/podping/.local/bin:${PATH}"
 COPY --chown=podping:podping . .
 RUN pip install --user poetry \
     && poetry config virtualenvs.in-project true \
-    && poetry install --no-interaction --no-ansi
+    && poetry install --no-interaction --no-ansi --only main
 
 # podping command installs here
 ENV PATH="/home/podping/app/.venv/bin:${PATH}"
