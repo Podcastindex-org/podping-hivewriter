@@ -17,12 +17,6 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
-build = "build.py"
-include = [
-    { path = "src/podping_hivewriter/schema/*.capnp", format = "sdist"},
-    { path = "src/podping_hivewriter/schema/*.py", format = [ "sdist", "wheel" ] },
-    { path = "src/podping_hivewriter/schema/*.so", format = "wheel"},
-]
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -33,9 +27,10 @@ single-source = "^0.3.0"
 rfc3987 = "^1.3.8"
 asgiref = "^3.5"
 typer = {extras = ["all"], version = "^0.3.2"}
-capnpy = {url = "https://github.com/agates/capnpy/releases/download/0.9.1dev0/capnpy-0.9.1.dev0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl"}
+capnpy = "^0.9.0"
 lighthive = "^0.4.0"
 plexo = {version = "1.0.0dev4", allow-prereleases = true}
+podping-schemas = {version = "^0.1.0a9", allow-prereleases = true}
 
 
 [tool.poetry.group.dev.dependencies]
@@ -57,7 +52,7 @@ pytest-mock = "^3.8.2"
 podping = "podping_hivewriter.cli.podping:app"
 
 [build-system]
-requires = ["setuptools", "poetry-core>=1.0.0", "capnpy"]
+requires = ["setuptools", "poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.black]
