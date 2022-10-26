@@ -36,7 +36,6 @@ def get_client(
                 "https://api.deathwing.me",
                 "https://hive-api.arcange.eu",
                 "https://api.openhive.network",
-                "https://api.hive.blue",
             ]
         client = Client(
             keys=posting_keys,
@@ -108,7 +107,8 @@ async def listen_for_custom_json_operations(
                             yield {
                                 "block": current_block,
                                 "timestamp": block["block"]["timestamp"],
-                                "trx_id": op[0],
+                                "trx_num": op[0],
+                                "trx_id": block['block']['transaction_ids'][op[0]],
                                 "op": [
                                     "custom_json",
                                     op[1]["value"],
