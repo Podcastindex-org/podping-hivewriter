@@ -21,8 +21,12 @@ from podping_hivewriter.neuron import (
 )
 from podping_hivewriter.podping_hivewriter import PodpingHivewriter
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
-from podping_hivewriter.schema.podping_hive_transaction import PodpingHiveTransaction
-from podping_hivewriter.schema.podping_write import PodpingWrite
+from podping_schemas.org.podcastindex.podping.hivewriter.podping_hive_transaction import (
+    PodpingHiveTransaction,
+)
+from podping_schemas.org.podcastindex.podping.hivewriter.podping_write import (
+    PodpingWrite,
+)
 
 
 @pytest.mark.asyncio

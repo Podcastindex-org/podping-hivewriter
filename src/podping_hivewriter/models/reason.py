@@ -1,13 +1,8 @@
 import capnpy
-from capnpy.annotate import Options
-
-reason_module = capnpy.load_schema(
-    "podping_hivewriter.schema.podping_reason",
-    # Make sure properties are imported as specified (camelCase)
-    options=Options(convert_case=False, include_reflection_data=True),
+from podping_schemas.org.podcastindex.podping.hivewriter import podping_reason
+from podping_schemas.org.podcastindex.podping.hivewriter.podping_reason import (
+    PodpingReason as Reason,
 )
-
-Reason = reason_module.PodpingReason
 
 reasons = frozenset(Reason.__members__)
 
@@ -16,7 +11,7 @@ get_reason_by_num = Reason._new_hack if hasattr(Reason, "_new_hack") else Reason
 
 str_reason_map = {
     enumerant.name.decode("UTF-8"): get_reason_by_num(enumerant.codeOrder)
-    for enumerant in capnpy.get_reflection_data(reason_module)
+    for enumerant in capnpy.get_reflection_data(podping_reason)
     .get_node(Reason)
     .get_enum_enumerants()
 }

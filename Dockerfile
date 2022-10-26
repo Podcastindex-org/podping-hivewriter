@@ -1,32 +1,4 @@
-FROM docker.io/python:3.10-bullseye AS compile
-
-ENV PYTHONFAULTHANDLER=1 \
-    PYTHONHASHSEED=random \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_DEFAULT_TIMEOUT=100 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PATH="/home/podping/.local/bin:${PATH}"
-
-RUN useradd --create-home podping && mkdir /home/podping/app && mkdir /home/podping/.local && chown -R podping:podping /home/podping
-
-RUN apt-get update \
-    && apt-get -y upgrade \
-    # rustc, cargo for armhf "cryptography"
-    # libzmq3-dev for armhf "pyzmq"
-    && apt-get -y install --no-install-recommends capnproto cargo libzmq3-dev rustc build-essential libssl-dev libffi-dev cython3 libcapnp-dev libcapnp-0.7.0
-
-USER podping
-WORKDIR /home/podping/app
-
-COPY --chown=podping:podping pyproject.toml poetry.lock ./
-
-RUN pip install --user poetry \
-    && poetry config virtualenvs.in-project true \
-    && poetry install --no-root --only main --no-interaction --no-ansi
-
-FROM docker.io/python:3.10-slim-bullseye AS app
+FROM docker.io/python:3.10-slim-bullseye
 
 ENV PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random \
@@ -41,8 +13,6 @@ RUN useradd --create-home podping && mkdir /home/podping/app && mkdir /home/podp
 COPY install-packages.sh .
 RUN ./install-packages.sh
 
-COPY --from=compile --chown=podping:podping /home/podping/.local /home/podping/.local
-COPY --from=compile --chown=podping:podping /home/podping/app/.venv /home/podping/app/.venv
 USER podping
 WORKDIR /home/podping/app
 # poetry command installs here from pip
@@ -51,7 +21,7 @@ ENV PATH="/home/podping/.local/bin:${PATH}"
 COPY --chown=podping:podping . .
 RUN pip install --user poetry \
     && poetry config virtualenvs.in-project true \
-    && poetry install --only-root --no-interaction --no-ansi
+    && poetry install --no-interaction --no-ansi --only main
 
 # podping command installs here
 ENV PATH="/home/podping/app/.venv/bin:${PATH}"
