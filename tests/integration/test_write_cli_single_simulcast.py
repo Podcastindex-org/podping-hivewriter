@@ -1,5 +1,4 @@
 import asyncio
-import json
 import random
 import uuid
 from platform import python_version as pv
@@ -9,7 +8,7 @@ import pytest
 from typer.testing import CliRunner
 
 from podping_hivewriter.cli.podping import app
-from podping_hivewriter.hive import get_client, listen_for_custom_json_operations
+from podping_hivewriter.hive import get_relevant_transactions_from_blockchain
 from podping_hivewriter.models.medium import mediums, str_medium_map
 from podping_hivewriter.models.reason import reasons, str_reason_map
 
@@ -17,13 +16,11 @@ from podping_hivewriter.models.reason import reasons, str_reason_map
 @pytest.mark.asyncio
 @pytest.mark.timeout(900)
 @pytest.mark.slow
-async def test_write_cli_single_simulcast():
+async def test_write_cli_single_simulcast(lighthive_client):
     """This test forces 7 separate posts to ensure we retry after exceeding the
     limit of posts per block (5)"""
     runner = CliRunner()
     start = timer()
-
-    client = get_client()
 
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)
@@ -32,15 +29,6 @@ async def test_write_cli_single_simulcast():
         print(f"Timer: {timer()-start}")
         result = runner.invoke(_app, _args)
         return result
-
-    async def get_iri_from_blockchain(start_block: int):
-        async for post in listen_for_custom_json_operations(client, start_block):
-            data = json.loads(post["op"][1]["json"])
-            if "iris" in data and len(data["iris"]) == 1:
-                iri = data["iris"][0]
-                # Only look for IRIs from current session
-                if iri.endswith(session_uuid_str):
-                    yield iri
 
     # Ensure hive env vars are set from .env.test file or this will fail
 
@@ -68,7 +56,9 @@ async def test_write_cli_single_simulcast():
         ]
         tasks.append(_run_cli_once(app, args))
 
-    current_block = client.get_dynamic_global_properties()["head_block_number"]
+    current_block = lighthive_client.get_dynamic_global_properties()[
+        "head_block_number"
+    ]
 
     results = await asyncio.gather(*tasks)
 
@@ -76,10 +66,13 @@ async def test_write_cli_single_simulcast():
     assert all_ok
 
     answer_iris = set()
-    async for stream_iri in get_iri_from_blockchain(current_block):
-        answer_iris.add(stream_iri)
+    async for tx in get_relevant_transactions_from_blockchain(
+        lighthive_client, current_block
+    ):
+        for iri in tx.iris:
+            if iri.endswith(session_uuid_str):
+                answer_iris.add(iri)
 
-        # If we're done, end early
         if len(answer_iris) == len(test_iris):
             break
 

@@ -1,5 +1,4 @@
 import asyncio
-import json
 import os
 import random
 import uuid
@@ -12,7 +11,7 @@ from plexo.ganglion.tcp_pair import GanglionZmqTcpPair
 from plexo.plexus import Plexus
 
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
-from podping_hivewriter.hive import get_client, listen_for_custom_json_operations
+from podping_hivewriter.hive import get_relevant_transactions_from_blockchain
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.medium import mediums, str_medium_map
 from podping_hivewriter.models.reason import reasons, str_reason_map
@@ -33,10 +32,8 @@ from podping_schemas.org.podcastindex.podping.hivewriter.podping_write import (
 @pytest.mark.asyncio
 @pytest.mark.timeout(600)
 @pytest.mark.slow
-async def test_write_zmq_multiple(event_loop):
+async def test_write_zmq_multiple(lighthive_client):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
-
-    client = get_client()
 
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)
@@ -55,16 +52,6 @@ async def test_write_zmq_multiple(event_loop):
     default_hive_operation_id = HiveOperationId(LIVETEST_OPERATION_ID, medium, reason)
     default_hive_operation_id_str = str(default_hive_operation_id)
 
-    async def get_iri_from_blockchain(start_block: int):
-        async for post in listen_for_custom_json_operations(client, start_block):
-            if post["op"][1]["id"] == default_hive_operation_id_str:
-                data = json.loads(post["op"][1]["json"])
-                if "iris" in data:
-                    for iri in data["iris"]:
-                        # Only look for IRIs from current session
-                        if iri.endswith(session_uuid_str):
-                            yield iri
-
     tx_queue: asyncio.Queue[PodpingHiveTransaction] = asyncio.Queue()
 
     async def _podping_hive_transaction_reaction(
@@ -74,7 +61,7 @@ async def test_write_zmq_multiple(event_loop):
 
     host = "127.0.0.1"
     port = 9979
-    podping_hivewriter = PodpingHivewriter(
+    with PodpingHivewriter(
         os.environ["PODPING_HIVE_ACCOUNT"],
         [os.environ["PODPING_HIVE_POSTING_KEY"]],
         settings_manager,
@@ -84,49 +71,58 @@ async def test_write_zmq_multiple(event_loop):
         listen_port=port,
         resource_test=False,
         operation_id=LIVETEST_OPERATION_ID,
-    )
-    await podping_hivewriter.wait_startup()
+    ) as podping_hivewriter:
+        await podping_hivewriter.wait_startup()
 
-    tcp_pair_ganglion = GanglionZmqTcpPair(
-        peer=(IPv4Address(host), port),
-        relevant_neurons=(
+        tcp_pair_ganglion = GanglionZmqTcpPair(
+            peer=(IPv4Address(host), port),
+            relevant_neurons=(
+                podping_hive_transaction_neuron,
+                podping_write_neuron,
+            ),
+        )
+        plexus = Plexus(ganglia=(tcp_pair_ganglion,))
+        await plexus.adapt(
             podping_hive_transaction_neuron,
-            podping_write_neuron,
-        ),
-    )
-    plexus = Plexus(ganglia=(tcp_pair_ganglion,))
-    # TODO: confirm we receive a valid transaction after success
-    await plexus.adapt(
-        podping_hive_transaction_neuron, reactants=(_podping_hive_transaction_reaction,)
-    )
-    await plexus.adapt(podping_write_neuron)
+            reactants=(_podping_hive_transaction_reaction,),
+        )
+        await plexus.adapt(podping_write_neuron)
 
-    op_period = settings_manager._settings.hive_operation_period
+        op_period = settings_manager._settings.hive_operation_period
 
-    current_block = client.get_dynamic_global_properties()["head_block_number"]
+        current_block = lighthive_client.get_dynamic_global_properties()[
+            "head_block_number"
+        ]
 
-    for iri in test_iris:
-        podping_write = PodpingWrite(medium=medium, reason=reason, iri=iri)
-        await plexus.transmit(podping_write)
+        for iri in test_iris:
+            podping_write = PodpingWrite(medium=medium, reason=reason, iri=iri)
+            await plexus.transmit(podping_write)
 
-    # Sleep until all items in the queue are done processing
-    num_iris_processing = await podping_hivewriter.num_operations_in_queue()
-    while num_iris_processing > 0:
-        await asyncio.sleep(op_period)
+        # Sleep until all items in the queue are done processing
         num_iris_processing = await podping_hivewriter.num_operations_in_queue()
+        while num_iris_processing > 0:
+            await asyncio.sleep(op_period)
+            num_iris_processing = await podping_hivewriter.num_operations_in_queue()
 
     answer_iris = set()
-    async for stream_iri in get_iri_from_blockchain(current_block):
-        answer_iris.add(stream_iri)
+    async for tx in get_relevant_transactions_from_blockchain(
+        lighthive_client, current_block, {"id": default_hive_operation_id_str}
+    ):
+        assert tx.medium == medium
+        assert tx.reason == reason
 
-        # If we're done, end early
+        for iri in tx.iris:
+            if iri.endswith(session_uuid_str):
+                answer_iris.add(iri)
+
         if len(answer_iris) == len(test_iris):
             break
 
     assert answer_iris == test_iris
-    podping_hivewriter.close()
 
     tx = await tx_queue.get()
+    plexus.close()
+
     assert tx.medium == medium
     assert tx.reason == reason
     assert test_iris == set(tx.iris)
