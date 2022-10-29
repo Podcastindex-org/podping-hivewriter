@@ -10,6 +10,7 @@ from timeit import default_timer as timer
 from typing import List, Optional, Set, Tuple, Union
 
 import rfc3987
+from lighthive.client import Client
 from lighthive.datastructures import Operation
 from lighthive.exceptions import RPCNodeException
 from plexo.ganglion.tcp_pair import GanglionZmqTcpPair
@@ -74,6 +75,7 @@ class PodpingHivewriter(AsyncContext):
         dry_run=False,
         daemon=True,
         status=True,
+        client: Client = None,
     ):
         super().__init__()
 
@@ -91,7 +93,7 @@ class PodpingHivewriter(AsyncContext):
         self.daemon: bool = daemon
         self.status: bool = status
 
-        self.lighthive_client = get_client(
+        self.lighthive_client = client or get_client(
             posting_keys=posting_keys,
             loglevel=logging.ERROR,
         )
@@ -117,6 +119,10 @@ class PodpingHivewriter(AsyncContext):
 
         self._startup_done = False
         asyncio.ensure_future(self._startup())
+
+    def close(self):
+        super().close()
+        self.plexus.close()
 
     async def _startup(self):
 
@@ -584,6 +590,15 @@ class PodpingHivewriter(AsyncContext):
                         sys.exit(EXIT_CODE_INVALID_POSTING_KEY)
                 except (KeyError, AttributeError):
                     logging.warning("Malformed error response")
+                    self.lighthive_client.circuit_breaker_cache[
+                        self.lighthive_client.current_node
+                    ] = True
+                    logging.warning(
+                        "Ignoring node %s for %d seconds",
+                        self.lighthive_client.current_node,
+                        self.lighthive_client.circuit_breaker_ttl,
+                    )
+                    self.lighthive_client.next_node()
             except NotEnoughResourceCredits as ex:
                 logging.warning(ex)
                 # 10s + exponential back off: need time for RC delegation

@@ -6,6 +6,7 @@ from typing import List, Optional
 import rfc3987
 import typer
 from lighthive.broadcast.base58 import Base58
+from lighthive.client import Client
 
 from podping_hivewriter import __version__
 from podping_hivewriter.constants import (
@@ -83,8 +84,8 @@ class Config:
     testnet: bool
     testnet_node: str
     testnet_chainid: str
-
     operation_id: str
+    lighthive_client: Client
 
 
 def exit_cli(_):
@@ -236,6 +237,7 @@ def server(
     settings_manager = PodpingSettingsManager(
         ignore_updates=Config.ignore_config_updates,
         hive_operation_period=Config.hive_operation_period,
+        client=Config.lighthive_client,
     )
 
     _podping_hivewriter = PodpingHivewriter(
@@ -251,6 +253,7 @@ def server(
         dry_run=Config.dry_run,
         daemon=True,
         status=Config.status,
+        client=Config.lighthive_client,
     )
 
     try:
@@ -379,7 +382,11 @@ def callback(
 
     # Check the account exists
     posting_keys = [hive_posting_key]
-    client = get_client(posting_keys=posting_keys)
+    client = get_client(
+        posting_keys=posting_keys,
+        loglevel=logging.ERROR,
+    )
+    Config.lighthive_client = client
     account_exists = client.get_accounts([hive_account])
     if not account_exists:
         logging.error(
