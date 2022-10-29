@@ -20,9 +20,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 @pytest.mark.asyncio
-async def test_send_notification_raises_rpcexception_invalid_body(
-    event_loop, monkeypatch
-):
+async def test_send_notification_raises_rpcexception_invalid_body(monkeypatch):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
     def mock_broadcast(*args, **kwargs):
@@ -64,9 +62,7 @@ async def test_send_notification_raises_rpcexception_invalid_body(
 
 
 @pytest.mark.asyncio
-async def test_send_notification_raises_rpcexception_valid_body(
-    event_loop, monkeypatch
-):
+async def test_send_notification_raises_rpcexception_valid_body(monkeypatch):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
     def mock_broadcast(*args, **kwargs):
@@ -110,9 +106,7 @@ async def test_send_notification_raises_rpcexception_valid_body(
 
 
 @pytest.mark.asyncio
-async def test_send_notification_raises_too_many_custom_jsons_per_block(
-    event_loop, monkeypatch
-):
+async def test_send_notification_raises_too_many_custom_jsons_per_block(monkeypatch):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
     def mock_broadcast(*args, **kwargs):
@@ -156,9 +150,7 @@ async def test_send_notification_raises_too_many_custom_jsons_per_block(
 
 
 @pytest.mark.asyncio
-async def test_send_notification_raises_not_enough_resource_credits(
-    event_loop, monkeypatch
-):
+async def test_send_notification_raises_not_enough_resource_credits(monkeypatch):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
     def mock_broadcast(*args, **kwargs):

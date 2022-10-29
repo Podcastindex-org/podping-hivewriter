@@ -17,9 +17,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 @pytest.mark.asyncio
-async def test_failure_retry_handles_invalid_error_response(
-    event_loop, mocker, monkeypatch
-):
+async def test_failure_retry_handles_invalid_error_response(mocker, monkeypatch):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
     logging_warning_stub = mocker.stub(name="logging_warning_stub")
@@ -70,9 +68,7 @@ async def test_failure_retry_handles_invalid_error_response(
 
 
 @pytest.mark.asyncio
-async def test_failure_retry_handles_not_enough_resource_credits(
-    event_loop, mocker, monkeypatch
-):
+async def test_failure_retry_handles_not_enough_resource_credits(mocker, monkeypatch):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
     logging_warning_stub = mocker.stub(name="logging_warning_stub")
