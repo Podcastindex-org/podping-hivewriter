@@ -77,9 +77,3 @@ async def test_write_cli_single_simulcast(lighthive_client):
             break
 
     assert answer_iris == test_iris
-
-
-if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    coro = test_write_cli_single_simulcast()
-    loop.run_until_complete(coro)
