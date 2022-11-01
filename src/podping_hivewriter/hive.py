@@ -71,6 +71,13 @@ def get_allowed_accounts(
             return set(master_account.following())
         except Exception as e:
             logging.warning(f"Unable to get account followers: {e} - retrying")
+            client.circuit_breaker_cache[client.current_node] = True
+            logging.warning(
+                "Ignoring node %s for %d seconds",
+                client.current_node,
+                client.circuit_breaker_ttl,
+            )
+            client.next_node()
 
 
 async def listen_for_custom_json_operations(
