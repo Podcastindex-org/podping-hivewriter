@@ -2,6 +2,7 @@ import asyncio
 import itertools
 import logging
 import os
+from random import shuffle
 from timeit import default_timer as timer
 from typing import List, Optional, Set
 
@@ -38,6 +39,7 @@ def get_client(
                 "https://api.openhive.network",
                 "https://api.hive.blue",
             ]
+            shuffle(nodes)
         client = Client(
             keys=posting_keys,
             nodes=nodes,
@@ -73,6 +75,13 @@ def get_allowed_accounts(
             logging.warning(f"Unable to get account followers - retrying")
         except Exception as e:
             logging.warning(f"Unable to get account followers: {e} - retrying")
+            client.circuit_breaker_cache[client.current_node] = True
+            logging.warning(
+                "Ignoring node %s for %d seconds",
+                client.current_node,
+                client.circuit_breaker_ttl,
+            )
+            client.next_node()
 
 
 async def listen_for_custom_json_operations(

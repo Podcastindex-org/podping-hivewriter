@@ -63,7 +63,7 @@ async def test_failure_retry_handles_invalid_error_response(
 
     writer.close()
 
-    logging_warning_stub.assert_called_once_with("Malformed error response")
+    assert logging_warning_stub.call_count == 2
     assert logging_error_stub.call_count == 4
     assert failure_count == 1
     assert response is None

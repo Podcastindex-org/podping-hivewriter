@@ -2,6 +2,7 @@ import asyncio
 import logging
 from timeit import default_timer as timer
 
+from lighthive.client import Client
 from pydantic import ValidationError
 
 from podping_hivewriter.async_context import AsyncContext
@@ -10,8 +11,12 @@ from podping_hivewriter.podping_settings import get_podping_settings
 
 
 class PodpingSettingsManager(AsyncContext):
-    def __init__(self, ignore_updates=False, hive_operation_period=None):
+    def __init__(
+        self, ignore_updates=False, hive_operation_period=None, client: Client = None
+    ):
         super().__init__()
+
+        self.client = client
 
         self.ignore_updates = ignore_updates
         if hive_operation_period:
@@ -45,7 +50,7 @@ class PodpingSettingsManager(AsyncContext):
     async def update_podping_settings(self) -> None:
         try:
             podping_settings = await get_podping_settings(
-                self._settings.control_account
+                self._settings.control_account, self.client
             )
             self.last_update_time = timer()
         except ValidationError as e:
