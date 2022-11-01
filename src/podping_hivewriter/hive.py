@@ -2,6 +2,7 @@ import asyncio
 import itertools
 import logging
 import os
+from random import shuffle
 from timeit import default_timer as timer
 from typing import List, Optional, Set
 
@@ -31,13 +32,14 @@ def get_client(
             nodes = [os.getenv("PODPING_TESTNET_NODE")]
             chain = {"chain_id": os.getenv("PODPING_TESTNET_CHAINID")}
         else:
-            """nodes = [
+            nodes = [
                 "https://api.hive.blog",
                 "https://api.deathwing.me",
                 "https://hive-api.arcange.eu",
                 "https://api.openhive.network",
                 "https://api.hive.blue",
-            ]"""
+            ]
+            shuffle(nodes)
         client = Client(
             keys=posting_keys,
             nodes=nodes,
