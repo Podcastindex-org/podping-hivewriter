@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "podping-hivewriter"
-version = "1.2.7"
+version = "1.2.8"
 license = "MIT"
 authors = ["Alecks Gates <alecks@podping.org>", "Brian of London <brian@podping.org>"]
 maintainers = ["Alecks Gates <alecks@podping.org>", "Brian of London <brian@podping.org>"]
@@ -35,9 +35,9 @@ lighthive = "^0.4.0"
 [tool.poetry.dev-dependencies]
 black = "^21.5b2"
 isort = "^5.8.0"
-pytest = "^7.1.2"
+pytest = "^7.2.0"
 pytest-cov = "^4.0.0"
-pytest-asyncio = "^0.19.0"
+pytest-asyncio = "^0.20.0"
 bandit = "^1.7.4"
 pytest-timeout = "^2.0.2"
 typer-cli = "^0.0.12"
