@@ -146,12 +146,12 @@ def write(
         reason=Config.reason,
         operation_id=Config.operation_id,
         resource_test=Config.sanity_check,
-        daemon=False,
+        zmq_service=False,
         dry_run=Config.dry_run,
     ) as podping_hivewriter:
 
         async def write_and_log():
-            failure_count, response = await podping_hivewriter.failure_retry(
+            failure_count, response = await podping_hivewriter.broadcast_iris_retry(
                 set(iris), medium=Config.medium, reason=Config.reason
             )
             logging.info(f"Transaction sent: {response.hive_tx_id}")
@@ -251,7 +251,7 @@ def server(
         operation_id=Config.operation_id,
         resource_test=Config.sanity_check,
         dry_run=Config.dry_run,
-        daemon=True,
+        zmq_service=True,
         status=Config.status,
         client=Config.lighthive_client,
     )
