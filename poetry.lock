@@ -381,7 +381,7 @@ requirements-deprecated-finder = ["pip-api", "pipreqs"]
 
 [[package]]
 name = "jsonschema"
-version = "4.16.0"
+version = "4.17.0"
 description = "An implementation of JSON Schema validation for Python"
 category = "main"
 optional = false
@@ -552,7 +552,7 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "podping-schemas"
-version = "0.1.0a9"
+version = "0.1.0a10"
 description = ""
 category = "main"
 optional = false
@@ -739,7 +739,7 @@ six = ">=1.5.2"
 
 [[package]]
 name = "pytz"
-version = "2022.5"
+version = "2022.6"
 description = "World timezone definitions, modern and historical"
 category = "main"
 optional = false
@@ -943,7 +943,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8,<3.11"
-content-hash = "b6567b76a18816362073f7af84905ef6637ac65d256f790b16781aa04f2bb37a"
+content-hash = "6db1253c06f5b1f55072049d265e588f68eb775c003e3308fa5fc54fa33e10d4"
 
 [metadata.files]
 anyio = [
@@ -1222,8 +1222,8 @@ isort = [
     {file = "isort-5.10.1.tar.gz", hash = "sha256:e8443a5e7a020e9d7f97f1d7d9cd17c88bcb3bc7e218bf9cf5095fe550be2951"},
 ]
 jsonschema = [
-    {file = "jsonschema-4.16.0-py3-none-any.whl", hash = "sha256:9e74b8f9738d6a946d70705dc692b74b5429cd0960d58e79ffecfc43b2221eb9"},
-    {file = "jsonschema-4.16.0.tar.gz", hash = "sha256:165059f076eff6971bae5b742fc029a7b4ef3f9bcf04c14e4776a7605de14b23"},
+    {file = "jsonschema-4.17.0-py3-none-any.whl", hash = "sha256:f660066c3966db7d6daeaea8a75e0b68237a48e51cf49882087757bb59916248"},
+    {file = "jsonschema-4.17.0.tar.gz", hash = "sha256:5bfcf2bca16a087ade17e02b282d34af7ccd749ef76241e7f9bd7c0cb8a9424d"},
 ]
 lighthive = [
     {file = "lighthive-0.4.0.tar.gz", hash = "sha256:2043a0728605459292fe13c526c32eaa85860e56338277193cb6979dc5cc7d93"},
@@ -1299,11 +1299,11 @@ pluggy = [
     {file = "pluggy-1.0.0.tar.gz", hash = "sha256:4224373bacce55f955a878bf9cfa763c1e360858e330072059e10bad68531159"},
 ]
 podping-schemas = [
-    {file = "podping_schemas-0.1.0a9-cp310-cp310-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0bab7d27bc7945e6102a3317885b86bb36faffc8670e4edb50aaf3bfc7f69ec9"},
-    {file = "podping_schemas-0.1.0a9-cp38-cp38-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3a61170976ef087af39391866080a91d01fc11fffa8a4d2a389f718969156d8b"},
-    {file = "podping_schemas-0.1.0a9-cp39-cp39-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1305bc459fb2f17b5eac69e5935f2dff4d4b78853026775010632aca56b77341"},
-    {file = "podping_schemas-0.1.0a9-py3-none-any.whl", hash = "sha256:a7a7da6811031fdc6ebe6d0c750d08be2b3bf7a1e14bd57a4fba542aa229ba88"},
-    {file = "podping_schemas-0.1.0a9.tar.gz", hash = "sha256:10ebf7af6098cb110da753979683815a99b5095e2a607b0b6a092df865db1600"},
+    {file = "podping_schemas-0.1.0a10-cp310-cp310-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2b04c5515bec5536662b25abb9caf627c6efc33262b1d44ed6c0f8e6dedfd011"},
+    {file = "podping_schemas-0.1.0a10-cp38-cp38-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f9bb3f4a4d03b24eea25cf21b35eb1fc409d5b5344de46f7fdffff761c95dbb8"},
+    {file = "podping_schemas-0.1.0a10-cp39-cp39-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:48d1ecc2f6e3b8fc6d8f4913dce32a3d8be0d5725bab5308cce81980654f7bf7"},
+    {file = "podping_schemas-0.1.0a10-py3-none-any.whl", hash = "sha256:1627376fd4ea0ba9437f063fefed01faf86d79cfb8d136ff4bb65524fdd4489b"},
+    {file = "podping_schemas-0.1.0a10.tar.gz", hash = "sha256:ee34fafbbb5129895e41e6f7d46d341d9a3a33ec2559a38ca1b3df3a66b51755"},
 ]
 py = [
     {file = "py-1.11.0-py2.py3-none-any.whl", hash = "sha256:607c53218732647dff4acdfcd50cb62615cedf612e72d1724fb1a0cc6405b378"},
@@ -1418,8 +1418,8 @@ python-jsonschema-objects = [
     {file = "python_jsonschema_objects-0.4.1.tar.gz", hash = "sha256:1d01286ad6f39c6e2b9df4f61a4260e65a7c61cce8394ee03412ecc0d47ef623"},
 ]
 pytz = [
-    {file = "pytz-2022.5-py2.py3-none-any.whl", hash = "sha256:335ab46900b1465e714b4fda4963d87363264eb662aab5e65da039c25f1f5b22"},
-    {file = "pytz-2022.5.tar.gz", hash = "sha256:c4d88f472f54d615e9cd582a5004d1e5f624854a6a27a6211591c251f22a6914"},
+    {file = "pytz-2022.6-py2.py3-none-any.whl", hash = "sha256:222439474e9c98fced559f1709d89e6c9cbf8d79c794ff3eb9f8800064291427"},
+    {file = "pytz-2022.6.tar.gz", hash = "sha256:e89512406b793ca39f5971bc999cc538ce125c0e51c27941bef4568b460095e2"},
 ]
 pyyaml = [
     {file = "PyYAML-6.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:d4db7c7aef085872ef65a8fd7d6d09a14ae91f691dec3e87ee5ee0539d516f53"},
