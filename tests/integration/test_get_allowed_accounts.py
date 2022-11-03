@@ -4,6 +4,7 @@ from podping_hivewriter.hive import get_allowed_accounts
 
 
 @pytest.mark.asyncio
+@pytest.mark.skip
 async def test_get_allowed_accounts(lighthive_client):
     # Checks the allowed accounts checkup
     allowed_accounts = get_allowed_accounts(lighthive_client)
