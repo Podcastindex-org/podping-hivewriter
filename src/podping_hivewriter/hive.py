@@ -89,17 +89,64 @@ def get_allowed_accounts(
 
 
 async def get_relevant_transactions_from_blockchain(
-    client: Client, start_block: int, filter_by: dict = None
+    condenser_api_client: Client, start_block: int, operation_id: str = None
 ):
-    event_listener = EventListener(client, "head", start_block=start_block)
-    _on = sync_to_async(event_listener.on, thread_sensitive=False)
-    async for post in _on("custom_json", filter_by=filter_by):
-        data = json.loads(post["op"][1]["json"])
-        if "iris" in data:
-            yield PodpingHiveTransaction(
-                medium=str_medium_map[data["medium"]],
-                reason=str_reason_map[data["reason"]],
-                iris=data["iris"],
-                hiveTxId=post["trx_id"],
-                hiveBlockNum=post["block"],
-            )
+    current_block = start_block
+    if not current_block:
+        current_block = condenser_api_client.get_dynamic_global_properties()[
+            "head_block_number"
+        ]
+    block_client = get_client(automatic_node_selection=False, api_type="block_api")
+    async_get_block = sync_to_async(block_client.get_block, thread_sensitive=False)
+    async_get_dynamic_global_properties = sync_to_async(
+        condenser_api_client.get_dynamic_global_properties, thread_sensitive=False
+    )
+    while True:
+        start_time = timer()
+        try:
+            head_block = (await async_get_dynamic_global_properties())[
+                "head_block_number"
+            ]
+            while (head_block - current_block) > 0:
+                try:
+                    while True:
+                        try:
+                            block = await async_get_block({"block_num": current_block})
+                            for op in (
+                                (trx_num, op)
+                                for trx_num, transaction in enumerate(
+                                    block["block"]["transactions"]
+                                )
+                                for op in transaction["operations"]
+                            ):
+                                if op[1]["type"] == "custom_json_operation" and (
+                                    not operation_id
+                                    or op[1]["value"]["id"] == operation_id
+                                ):
+                                    data = json.loads(op[1]["value"]["json"])
+                                    if "iris" in data:
+                                        yield PodpingHiveTransaction(
+                                            medium=str_medium_map[data["medium"]],
+                                            reason=str_reason_map[data["reason"]],
+                                            iris=data["iris"],
+                                            hiveTxId=block["block"]["transaction_ids"][
+                                                op[0]
+                                            ],
+                                            hiveBlockNum=current_block,
+                                        )
+                            break
+                        except KeyError:
+                            pass
+                    current_block += 1
+                    head_block = (await async_get_dynamic_global_properties())[
+                        "head_block_number"
+                    ]
+                except RPCNodeException as e:
+                    logging.warning(f"Hive API error {e}")
+
+            end_time = timer()
+            sleep_time = 3 - (end_time - start_time)
+            if sleep_time > 0 and (head_block - current_block) <= 0:
+                await asyncio.sleep(sleep_time)
+        except RPCNodeException as e:
+            logging.warning(f"Hive API error {e}")

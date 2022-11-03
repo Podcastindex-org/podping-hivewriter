@@ -86,7 +86,7 @@ async def test_write_plexus_single_external(lighthive_client):
         iri_found = False
 
         async for tx in get_relevant_transactions_from_blockchain(
-            lighthive_client, current_block, {"id": default_hive_operation_id_str}
+            lighthive_client, current_block, default_hive_operation_id_str
         ):
             if iri in tx.iris:
                 iri_found = True
@@ -163,7 +163,7 @@ async def test_write_plexus_single_internal(lighthive_client):
         iri_found = False
 
         async for tx in get_relevant_transactions_from_blockchain(
-            lighthive_client, current_block, {"id": default_hive_operation_id_str}
+            lighthive_client, current_block, default_hive_operation_id_str
         ):
             if iri in tx.iris:
                 iri_found = True

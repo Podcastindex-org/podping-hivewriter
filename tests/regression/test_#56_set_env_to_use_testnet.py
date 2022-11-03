@@ -65,7 +65,7 @@ async def test_use_testnet_startup_checks_and_write_cli_single():
     iri_found = False
 
     async for tx in get_relevant_transactions_from_blockchain(
-        lighthive_client, current_block, {"id": default_hive_operation_id_str}
+        lighthive_client, current_block, default_hive_operation_id_str
     ):
         if iri in tx.iris:
             iri_found = True

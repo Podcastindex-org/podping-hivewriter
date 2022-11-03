@@ -97,7 +97,7 @@ async def test_write_send_podping_multiple(lighthive_client):
 
         answer_iris = set()
         async for tx in get_relevant_transactions_from_blockchain(
-            lighthive_client, current_block, {"id": default_hive_operation_id_str}
+            lighthive_client, current_block, default_hive_operation_id_str
         ):
             assert tx.medium == medium
             assert tx.reason == reason
