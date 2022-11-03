@@ -86,6 +86,13 @@ def get_allowed_accounts(
             logging.warning(f"Unable to get account followers - retrying")
         except Exception as e:
             logging.warning(f"Unable to get account followers: {e} - retrying")
+            client.circuit_breaker_cache[client.current_node] = True
+            logging.warning(
+                "Ignoring node %s for %d seconds",
+                client.current_node,
+                client.circuit_breaker_ttl,
+            )
+            client.next_node()
 
 
 async def get_relevant_transactions_from_blockchain(
