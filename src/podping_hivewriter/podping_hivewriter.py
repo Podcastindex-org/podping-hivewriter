@@ -31,7 +31,7 @@ from podping_hivewriter.exceptions import (
     PodpingCustomJsonPayloadExceeded,
     TooManyCustomJsonsPerBlock,
 )
-from podping_hivewriter.hive import get_allowed_accounts, get_client
+from podping_hivewriter.hive import get_client
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.iri_batch import IRIBatch
 from podping_hivewriter.models.lighthive_broadcast_response import (
@@ -102,23 +102,6 @@ class PodpingHivewriter(AsyncContext):
         asyncio.ensure_future(self._startup())
 
     async def _startup(self):
-
-        try:
-            settings = await self.settings_manager.get_settings()
-            allowed = get_allowed_accounts(
-                self.lighthive_client, settings.control_account
-            )
-            # TODO: Should we periodically check if the account is allowed
-            #  and shut down if not?
-            if self.server_account not in allowed:
-                logging.error(
-                    f"Account @{self.server_account} not authorised to send Podpings"
-                )
-
-        except Exception as ex:
-            logging.exception("Unknown error occurred in _startup", stack_info=True)
-            raise ex
-
         if self.resource_test and not self.dry_run:
             await self.test_hive_resources()
 
