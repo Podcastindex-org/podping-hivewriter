@@ -34,7 +34,7 @@ def is_base58(sb: str) -> bool:
 def medium_callback(medium: str) -> str:
     if medium not in mediums:
         raise typer.BadParameter(
-            f"Medium be one of the following: {str(', '.join(mediums))}"
+            f"Medium be one of the following: {str(', '.join(sorted(mediums)))}"
         )
     return medium
 
@@ -42,7 +42,7 @@ def medium_callback(medium: str) -> str:
 def reason_callback(reason: str) -> str:
     if reason not in reasons:
         raise typer.BadParameter(
-            f"Reason must be one of the following: {str(', '.join(reasons))}"
+            f"Reason must be one of the following: {str(', '.join(sorted(reasons)))}"
         )
     return reason
 
@@ -146,12 +146,12 @@ def write(
         reason=Config.reason,
         operation_id=Config.operation_id,
         resource_test=Config.sanity_check,
-        daemon=False,
+        zmq_service=False,
         dry_run=Config.dry_run,
     ) as podping_hivewriter:
 
         async def write_and_log():
-            failure_count, response = await podping_hivewriter.failure_retry(
+            failure_count, response = await podping_hivewriter.broadcast_iris_retry(
                 set(iris), medium=Config.medium, reason=Config.reason
             )
             logging.info(f"Transaction sent: {response.hive_tx_id}")
@@ -251,7 +251,7 @@ def server(
         operation_id=Config.operation_id,
         resource_test=Config.sanity_check,
         dry_run=Config.dry_run,
-        daemon=True,
+        zmq_service=True,
         status=Config.status,
         client=Config.lighthive_client,
     )
@@ -274,7 +274,7 @@ def callback(
         str(Medium.podcast),
         envvar=["PODPING_MEDIUM"],
         callback=medium_callback,
-        autocompletion=lambda: list(mediums),
+        autocompletion=lambda: sorted(mediums),
         help=f"The medium of the feed being updated. If used in combination with the 'server', this sets the default "
         f"medium only. Must be one of the following: {str(' '.join(mediums))}",
     ),
@@ -282,7 +282,7 @@ def callback(
         str(Reason.update),
         envvar=["PODPING_REASON"],
         callback=reason_callback,
-        autocompletion=lambda: list(reasons),
+        autocompletion=lambda: sorted(reasons),
         help=f"The reason the feed is being updated. If used in combination with the 'server', this sets the default "
         f"reason only. Must be one of the following: {str(' '.join(reasons))}",
     ),

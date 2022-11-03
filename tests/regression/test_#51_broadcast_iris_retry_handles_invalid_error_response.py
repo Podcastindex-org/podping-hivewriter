@@ -17,9 +17,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 @pytest.mark.asyncio
-async def test_failure_retry_handles_invalid_error_response(
-    event_loop, mocker, monkeypatch
-):
+async def test_broadcast_iris_retry_handles_invalid_error_response(mocker, monkeypatch):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
     logging_warning_stub = mocker.stub(name="logging_warning_stub")
@@ -49,7 +47,7 @@ async def test_failure_retry_handles_invalid_error_response(
         settings_manager,
         medium=medium,
         reason=reason,
-        daemon=False,
+        zmq_service=False,
         resource_test=False,
         operation_id=LIVETEST_OPERATION_ID,
     )
@@ -59,7 +57,7 @@ async def test_failure_retry_handles_invalid_error_response(
     mocker.patch.object(podping_hivewriter.itertools, "repeat", return_value=range(1))
     logging_warning_stub.reset_mock()
 
-    failure_count, response = await writer.failure_retry({iri}, medium, reason)
+    failure_count, response = await writer.broadcast_iris_retry({iri}, medium, reason)
 
     writer.close()
 
@@ -70,8 +68,8 @@ async def test_failure_retry_handles_invalid_error_response(
 
 
 @pytest.mark.asyncio
-async def test_failure_retry_handles_not_enough_resource_credits(
-    event_loop, mocker, monkeypatch
+async def test_broadcast_iris_retry_handles_not_enough_resource_credits(
+    mocker, monkeypatch
 ):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
@@ -100,7 +98,7 @@ async def test_failure_retry_handles_not_enough_resource_credits(
         settings_manager,
         medium=medium,
         reason=reason,
-        daemon=False,
+        zmq_service=False,
         resource_test=False,
         operation_id=LIVETEST_OPERATION_ID,
     )
@@ -110,7 +108,7 @@ async def test_failure_retry_handles_not_enough_resource_credits(
     mocker.patch.object(podping_hivewriter.itertools, "repeat", return_value=range(1))
     logging_warning_stub.reset_mock()
 
-    failure_count, response = await writer.failure_retry({iri}, medium, reason)
+    failure_count, response = await writer.broadcast_iris_retry({iri}, medium, reason)
 
     writer.close()
 

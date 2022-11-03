@@ -1,13 +1,8 @@
 import capnpy
-from capnpy.annotate import Options
-
-medium_module = capnpy.load_schema(
-    "podping_hivewriter.schema.medium",
-    # Make sure properties are imported as specified (camelCase)
-    options=Options(convert_case=False, include_reflection_data=True),
+from podping_schemas.org.podcastindex.podping.hivewriter import podping_medium
+from podping_schemas.org.podcastindex.podping.hivewriter.podping_medium import (
+    PodpingMedium as Medium,
 )
-
-Medium = medium_module.Medium
 
 mediums = frozenset(Medium.__members__)
 
@@ -16,7 +11,7 @@ get_medium_by_num = Medium._new_hack if hasattr(Medium, "_new_hack") else Medium
 
 str_medium_map = {
     enumerant.name.decode("UTF-8"): get_medium_by_num(enumerant.codeOrder)
-    for enumerant in capnpy.get_reflection_data(medium_module)
+    for enumerant in capnpy.get_reflection_data(podping_medium)
     .get_node(Medium)
     .get_enum_enumerants()
 }

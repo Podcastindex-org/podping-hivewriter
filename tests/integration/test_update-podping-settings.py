@@ -31,7 +31,7 @@ async def test_update_podping_settings():
 
 @pytest.mark.asyncio
 @pytest.mark.slow
-async def test_update_podping_settings_loop():
+async def test_update_podping_settings_loop(lighthive_client):
     # See if we can fetch data from podping
     # Must not use Testnet when looking for config data
 
@@ -42,7 +42,9 @@ async def test_update_podping_settings_loop():
         "control_account_check_period"
     ].default = check_period
 
-    with PodpingSettingsManager(ignore_updates=False) as settings_manager:
+    with PodpingSettingsManager(
+        ignore_updates=False, client=lighthive_client
+    ) as settings_manager:
         await asyncio.sleep(3)
 
         # Check last update time

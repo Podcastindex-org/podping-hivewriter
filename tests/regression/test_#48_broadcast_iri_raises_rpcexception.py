@@ -20,9 +20,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 @pytest.mark.asyncio
-async def test_send_notification_raises_rpcexception_invalid_body(
-    event_loop, monkeypatch
-):
+async def test_broadcast_iri_raises_rpcexception_invalid_body(monkeypatch):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
     def mock_broadcast(*args, **kwargs):
@@ -47,7 +45,7 @@ async def test_send_notification_raises_rpcexception_invalid_body(
         settings_manager,
         medium=medium,
         reason=reason,
-        daemon=False,
+        zmq_service=False,
         resource_test=False,
         operation_id=LIVETEST_OPERATION_ID,
     )
@@ -55,18 +53,16 @@ async def test_send_notification_raises_rpcexception_invalid_body(
     await podping_hivewriter.wait_startup()
 
     with pytest.raises(RPCNodeException):
-        await podping_hivewriter.send_notification_iri(iri, medium, reason)
+        await podping_hivewriter.broadcast_iri(iri, medium, reason)
 
     with pytest.raises(RPCNodeException):
-        await podping_hivewriter.send_notification_iris({iri}, medium, reason)
+        await podping_hivewriter.broadcast_iris({iri}, medium, reason)
 
     podping_hivewriter.close()
 
 
 @pytest.mark.asyncio
-async def test_send_notification_raises_rpcexception_valid_body(
-    event_loop, monkeypatch
-):
+async def test_broadcast_iri_raises_rpcexception_valid_body(monkeypatch):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
     def mock_broadcast(*args, **kwargs):
@@ -93,7 +89,7 @@ async def test_send_notification_raises_rpcexception_valid_body(
         settings_manager,
         medium=medium,
         reason=reason,
-        daemon=False,
+        zmq_service=False,
         resource_test=False,
         operation_id=LIVETEST_OPERATION_ID,
     )
@@ -101,18 +97,16 @@ async def test_send_notification_raises_rpcexception_valid_body(
     await podping_hivewriter.wait_startup()
 
     with pytest.raises(RPCNodeException):
-        await podping_hivewriter.send_notification_iri(iri, medium, reason)
+        await podping_hivewriter.broadcast_iri(iri, medium, reason)
 
     with pytest.raises(RPCNodeException):
-        await podping_hivewriter.send_notification_iris({iri}, medium, reason)
+        await podping_hivewriter.broadcast_iris({iri}, medium, reason)
 
     podping_hivewriter.close()
 
 
 @pytest.mark.asyncio
-async def test_send_notification_raises_too_many_custom_jsons_per_block(
-    event_loop, monkeypatch
-):
+async def test_broadcast_iri_raises_too_many_custom_jsons_per_block(monkeypatch):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
     def mock_broadcast(*args, **kwargs):
@@ -139,7 +133,7 @@ async def test_send_notification_raises_too_many_custom_jsons_per_block(
         settings_manager,
         medium=medium,
         reason=reason,
-        daemon=False,
+        zmq_service=False,
         resource_test=False,
         operation_id=LIVETEST_OPERATION_ID,
     )
@@ -147,18 +141,16 @@ async def test_send_notification_raises_too_many_custom_jsons_per_block(
     await podping_hivewriter.wait_startup()
 
     with pytest.raises(TooManyCustomJsonsPerBlock):
-        await podping_hivewriter.send_notification_iri(iri, medium, reason)
+        await podping_hivewriter.broadcast_iri(iri, medium, reason)
 
     with pytest.raises(TooManyCustomJsonsPerBlock):
-        await podping_hivewriter.send_notification_iris({iri}, medium, reason)
+        await podping_hivewriter.broadcast_iris({iri}, medium, reason)
 
     podping_hivewriter.close()
 
 
 @pytest.mark.asyncio
-async def test_send_notification_raises_not_enough_resource_credits(
-    event_loop, monkeypatch
-):
+async def test_broadcast_iri_raises_not_enough_resource_credits(monkeypatch):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
     def mock_broadcast(*args, **kwargs):
@@ -185,7 +177,7 @@ async def test_send_notification_raises_not_enough_resource_credits(
         settings_manager,
         medium=medium,
         reason=reason,
-        daemon=False,
+        zmq_service=False,
         resource_test=False,
         operation_id=LIVETEST_OPERATION_ID,
     )
@@ -193,9 +185,9 @@ async def test_send_notification_raises_not_enough_resource_credits(
     await podping_hivewriter.wait_startup()
 
     with pytest.raises(NotEnoughResourceCredits):
-        await podping_hivewriter.send_notification_iri(iri, medium, reason)
+        await podping_hivewriter.broadcast_iri(iri, medium, reason)
 
     with pytest.raises(NotEnoughResourceCredits):
-        await podping_hivewriter.send_notification_iris({iri}, medium, reason)
+        await podping_hivewriter.broadcast_iris({iri}, medium, reason)
 
     podping_hivewriter.close()

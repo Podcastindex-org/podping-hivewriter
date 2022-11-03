@@ -1,5 +1,6 @@
 import asyncio
 import itertools
+import json
 import logging
 import os
 from random import shuffle
@@ -9,8 +10,14 @@ from typing import List, Optional, Set
 import backoff
 from lighthive.client import Client
 from lighthive.exceptions import RPCNodeException
+from lighthive.helpers.event_listener import EventListener
+from podping_schemas.org.podcastindex.podping.hivewriter.podping_hive_transaction import (
+    PodpingHiveTransaction,
+)
 
 from podping_hivewriter.async_wrapper import sync_to_async
+from podping_hivewriter.models.medium import str_medium_map
+from podping_hivewriter.models.reason import str_reason_map
 
 
 def get_client(
@@ -88,8 +95,8 @@ def get_allowed_accounts(
             client.next_node()
 
 
-async def listen_for_custom_json_operations(
-    condenser_api_client: Client, start_block: int
+async def get_relevant_transactions_from_blockchain(
+    condenser_api_client: Client, start_block: int, operation_id: str = None
 ):
     current_block = start_block
     if not current_block:
@@ -109,24 +116,34 @@ async def listen_for_custom_json_operations(
             ]
             while (head_block - current_block) > 0:
                 try:
-                    block = await async_get_block({"block_num": current_block})
-                    for op in (
-                        (trx_id, op)
-                        for trx_id, transaction in enumerate(
-                            block["block"]["transactions"]
-                        )
-                        for op in transaction["operations"]
-                    ):
-                        if op[1]["type"] == "custom_json_operation":
-                            yield {
-                                "block": current_block,
-                                "timestamp": block["block"]["timestamp"],
-                                "trx_id": op[0],
-                                "op": [
-                                    "custom_json",
-                                    op[1]["value"],
-                                ],
-                            }
+                    while True:
+                        try:
+                            block = await async_get_block({"block_num": current_block})
+                            for op in (
+                                (trx_num, op)
+                                for trx_num, transaction in enumerate(
+                                    block["block"]["transactions"]
+                                )
+                                for op in transaction["operations"]
+                            ):
+                                if op[1]["type"] == "custom_json_operation" and (
+                                    not operation_id
+                                    or op[1]["value"]["id"] == operation_id
+                                ):
+                                    data = json.loads(op[1]["value"]["json"])
+                                    if "iris" in data:
+                                        yield PodpingHiveTransaction(
+                                            medium=str_medium_map[data["medium"]],
+                                            reason=str_reason_map[data["reason"]],
+                                            iris=data["iris"],
+                                            hiveTxId=block["block"]["transaction_ids"][
+                                                op[0]
+                                            ],
+                                            hiveBlockNum=current_block,
+                                        )
+                            break
+                        except KeyError:
+                            pass
                     current_block += 1
                     head_block = (await async_get_dynamic_global_properties())[
                         "head_block_number"
