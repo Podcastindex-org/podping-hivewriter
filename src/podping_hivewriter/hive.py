@@ -10,7 +10,6 @@ from typing import List, Optional, Set
 import backoff
 from lighthive.client import Client
 from lighthive.exceptions import RPCNodeException
-from lighthive.helpers.event_listener import EventListener
 from podping_schemas.org.podcastindex.podping.hivewriter.podping_hive_transaction import (
     PodpingHiveTransaction,
 )
@@ -22,7 +21,6 @@ from podping_hivewriter.models.reason import str_reason_map
 
 def get_client(
     posting_keys: Optional[List[str]] = None,
-    nodes=None,
     connect_timeout=3,
     read_timeout=30,
     loglevel=logging.ERROR,

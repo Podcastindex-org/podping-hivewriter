@@ -2,30 +2,32 @@ from typing import List, Literal
 
 from pydantic import BaseModel, validator
 
-from podping_hivewriter.models.medium import mediums
-from podping_hivewriter.models.reason import reasons
+from podping_hivewriter.models.medium import medium_strings
+from podping_hivewriter.models.reason import reason_strings
 
 
-class Podping(BaseModel):
+class InternalPodping(BaseModel):
     """Dataclass for on-chain podping schema"""
 
-    version: Literal["1.0"] = "1.0"
+    version: Literal["1.1"] = "1.1"
     medium: str
     reason: str
     iris: List[str]
+    timestampNs: int
+    sessionId: int
 
     @validator("medium")
     def medium_exists(cls, v):
         """Make sure the given medium matches what's available"""
-        if v not in mediums:
-            raise ValueError(f"medium must be one of {str(', '.join(mediums))}")
+        if v not in medium_strings:
+            raise ValueError(f"medium must be one of {str(', '.join(medium_strings))}")
         return v
 
     @validator("reason")
     def reason_exists(cls, v):
         """Make sure the given reason matches what's available"""
-        if v not in reasons:
-            raise ValueError(f"reason must be one of {str(', '.join(reasons))}")
+        if v not in reason_strings:
+            raise ValueError(f"reason must be one of {str(', '.join(reason_strings))}")
         return v
 
     @validator("iris")

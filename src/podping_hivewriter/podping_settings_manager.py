@@ -67,6 +67,5 @@ class PodpingSettingsManager(AsyncContext):
                             self.override_hive_operation_period
                         )
 
-    async def get_settings(self) -> PodpingSettings:
-        async with self._settings_lock:
-            return self._settings
+    def get_settings(self) -> PodpingSettings:
+        return self._settings

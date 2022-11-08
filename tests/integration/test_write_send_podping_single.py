@@ -5,12 +5,18 @@ import uuid
 from platform import python_version as pv
 
 import pytest
+from podping_schemas.org.podcastindex.podping.hivewriter.podping_medium import (
+    PodpingMedium,
+)
+from podping_schemas.org.podcastindex.podping.hivewriter.podping_reason import (
+    PodpingReason,
+)
 
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
 from podping_hivewriter.hive import get_relevant_transactions_from_blockchain
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
-from podping_hivewriter.models.medium import mediums, str_medium_map
-from podping_hivewriter.models.reason import reasons, str_reason_map
+from podping_hivewriter.models.medium import mediums
+from podping_hivewriter.models.reason import reasons
 from podping_hivewriter.neuron import podping_hive_transaction_neuron
 from podping_hivewriter.podping_hivewriter import PodpingHivewriter
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
@@ -31,8 +37,8 @@ async def test_write_send_podping_single(lighthive_client):
     test_name = "send_podping_single"
     iri = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
 
-    medium = str_medium_map[random.sample(sorted(mediums), 1)[0]]
-    reason = str_reason_map[random.sample(sorted(reasons), 1)[0]]
+    medium: PodpingMedium = random.sample(sorted(mediums), 1)[0]
+    reason: PodpingReason = random.sample(sorted(reasons), 1)[0]
 
     default_hive_operation_id = HiveOperationId(LIVETEST_OPERATION_ID, medium, reason)
     default_hive_operation_id_str = str(default_hive_operation_id)
@@ -55,6 +61,7 @@ async def test_write_send_podping_single(lighthive_client):
         listen_ip=host,
         listen_port=port,
         resource_test=False,
+        status=False,
         operation_id=LIVETEST_OPERATION_ID,
         zmq_service=False,
     ) as podping_hivewriter:

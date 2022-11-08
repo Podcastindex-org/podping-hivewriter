@@ -1,9 +1,14 @@
-import json
 import os
 import uuid
 from platform import python_version as pv
 
 import pytest
+from podping_schemas.org.podcastindex.podping.hivewriter.podping_medium import (
+    PodpingMedium,
+)
+from podping_schemas.org.podcastindex.podping.hivewriter.podping_reason import (
+    PodpingReason,
+)
 from typer.testing import CliRunner
 
 from podping_hivewriter.cli.podping import app
@@ -13,8 +18,6 @@ from podping_hivewriter.hive import (
     get_relevant_transactions_from_blockchain,
 )
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
-from podping_hivewriter.models.medium import Medium
-from podping_hivewriter.models.reason import Reason
 
 
 @pytest.mark.asyncio
@@ -47,7 +50,7 @@ async def test_use_testnet_startup_checks_and_write_cli_single():
     iri = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
 
     default_hive_operation_id = HiveOperationId(
-        LIVETEST_OPERATION_ID, Medium.podcast, Reason.update
+        LIVETEST_OPERATION_ID, PodpingMedium.podcast, PodpingReason.update
     )
     default_hive_operation_id_str = str(default_hive_operation_id)
 

@@ -2,30 +2,29 @@ import asyncio
 import os
 import random
 import uuid
-from ipaddress import IPv4Address
 from platform import python_version as pv
 from random import randint
 
 import pytest
-from plexo.ganglion.tcp_pair import GanglionZmqTcpPair
-from plexo.plexus import Plexus
+from podping_schemas.org.podcastindex.podping.hivewriter.podping_medium import (
+    PodpingMedium,
+)
+from podping_schemas.org.podcastindex.podping.hivewriter.podping_reason import (
+    PodpingReason,
+)
 
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
 from podping_hivewriter.hive import get_relevant_transactions_from_blockchain
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
-from podping_hivewriter.models.medium import mediums, str_medium_map
-from podping_hivewriter.models.reason import reasons, str_reason_map
+from podping_hivewriter.models.medium import mediums
+from podping_hivewriter.models.reason import reasons
 from podping_hivewriter.neuron import (
     podping_hive_transaction_neuron,
-    podping_write_neuron,
 )
 from podping_hivewriter.podping_hivewriter import PodpingHivewriter
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 from podping_schemas.org.podcastindex.podping.hivewriter.podping_hive_transaction import (
     PodpingHiveTransaction,
-)
-from podping_schemas.org.podcastindex.podping.hivewriter.podping_write import (
-    PodpingWrite,
 )
 
 
@@ -46,8 +45,8 @@ async def test_write_send_podping_multiple(lighthive_client):
         for i in range(num_iris)
     }
 
-    medium = str_medium_map[random.sample(sorted(mediums), 1)[0]]
-    reason = str_reason_map[random.sample(sorted(reasons), 1)[0]]
+    medium: PodpingMedium = random.sample(sorted(mediums), 1)[0]
+    reason: PodpingReason = random.sample(sorted(reasons), 1)[0]
 
     default_hive_operation_id = HiveOperationId(LIVETEST_OPERATION_ID, medium, reason)
     default_hive_operation_id_str = str(default_hive_operation_id)
@@ -70,6 +69,7 @@ async def test_write_send_podping_multiple(lighthive_client):
         listen_ip=host,
         listen_port=port,
         resource_test=False,
+        status=False,
         operation_id=LIVETEST_OPERATION_ID,
         zmq_service=False,
     ) as podping_hivewriter:

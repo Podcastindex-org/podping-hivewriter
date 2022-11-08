@@ -1,17 +1,21 @@
-from podping_hivewriter.models.medium import Medium
-from podping_hivewriter.models.reason import Reason
+from podping_schemas.org.podcastindex.podping.hivewriter.podping_medium import (
+    PodpingMedium,
+)
+from podping_schemas.org.podcastindex.podping.hivewriter.podping_reason import (
+    PodpingReason,
+)
 
 
 class HiveOperationId:
     def __init__(
         self,
         podping: str,
-        medium: Medium = Medium.podcast,
-        reason: Reason = Reason.update,
+        medium: PodpingMedium = PodpingMedium.podcast,
+        reason: PodpingReason = PodpingReason.update,
     ):
         self.podping: str = podping
-        self.medium: Medium = medium
-        self.reason: Reason = reason
+        self.medium: PodpingMedium = medium
+        self.reason: PodpingReason = reason
 
     def __eq__(self, other):
         return str(self) == str(other)
