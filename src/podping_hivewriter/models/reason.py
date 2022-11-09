@@ -1,8 +1,8 @@
 from typing import FrozenSet
 
 import capnpy
-from podping_schemas.org.podcastindex.podping.hivewriter import podping_reason
-from podping_schemas.org.podcastindex.podping.hivewriter.podping_reason import (
+from podping_schemas.org.podcastindex.podping import podping_reason
+from podping_schemas.org.podcastindex.podping.podping_reason import (
     PodpingReason,
 )
 

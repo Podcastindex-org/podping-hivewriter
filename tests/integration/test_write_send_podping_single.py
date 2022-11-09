@@ -5,10 +5,10 @@ import uuid
 from platform import python_version as pv
 
 import pytest
-from podping_schemas.org.podcastindex.podping.hivewriter.podping_medium import (
+from podping_schemas.org.podcastindex.podping.podping_medium import (
     PodpingMedium,
 )
-from podping_schemas.org.podcastindex.podping.hivewriter.podping_reason import (
+from podping_schemas.org.podcastindex.podping.podping_reason import (
     PodpingReason,
 )
 
@@ -72,29 +72,28 @@ async def test_write_send_podping_single(lighthive_client):
             reactants=(_podping_hive_transaction_reaction,),
         )
 
-        current_block = lighthive_client.get_dynamic_global_properties()[
-            "head_block_number"
-        ]
-
         await podping_hivewriter.send_podping(medium=medium, reason=reason, iri=iri)
 
         iri_found = False
 
+        tx = await tx_queue.get()
+
+        assert len(tx.podpings) == 1
+        assert tx.podpings[0].medium == medium
+        assert tx.podpings[0].reason == reason
+        assert iri in tx.podpings[0].iris
+        assert tx.hiveTxId is not None
+        assert tx.hiveBlockNum is not None
+
         async for tx in get_relevant_transactions_from_blockchain(
-            lighthive_client, current_block, default_hive_operation_id_str
+            lighthive_client, tx.hiveBlockNum, default_hive_operation_id_str
         ):
-            if iri in tx.iris:
+            assert len(tx.podpings) == 1
+
+            if iri in tx.podpings[0].iris:
                 iri_found = True
-                assert tx.medium == medium
-                assert tx.reason == reason
+                assert tx.podpings[0].medium == medium
+                assert tx.podpings[0].reason == reason
                 break
 
     assert iri_found
-
-    tx = await tx_queue.get()
-
-    assert tx.medium == medium
-    assert tx.reason == reason
-    assert iri in tx.iris
-    assert tx.hiveTxId is not None
-    assert tx.hiveBlockNum is not None

@@ -15,10 +15,11 @@ from lighthive.datastructures import Operation
 from lighthive.exceptions import RPCNodeException
 from plexo.ganglion.tcp_pair import GanglionZmqTcpPair
 from plexo.plexus import Plexus
-from podping_schemas.org.podcastindex.podping.hivewriter.podping_medium import (
+from podping_schemas.org.podcastindex.podping.podping import Podping
+from podping_schemas.org.podcastindex.podping.podping_medium import (
     PodpingMedium,
 )
-from podping_schemas.org.podcastindex.podping.hivewriter.podping_reason import (
+from podping_schemas.org.podcastindex.podping.podping_reason import (
     PodpingReason,
 )
 
@@ -57,10 +58,10 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 from podping_schemas.org.podcastindex.podping.hivewriter.podping_hive_transaction import (
     PodpingHiveTransaction,
 )
-from podping_schemas.org.podcastindex.podping.hivewriter.podping_write import (
+from podping_schemas.org.podcastindex.podping.podping_write import (
     PodpingWrite,
 )
-from podping_schemas.org.podcastindex.podping.hivewriter.podping_write_error import (
+from podping_schemas.org.podcastindex.podping.podping_write_error import (
     PodpingWriteError,
     PodpingWriteErrorType,
 )
@@ -314,22 +315,25 @@ class PodpingHivewriter(AsyncContext):
                     )
                     broadcast_duration = timer() - broadcast_start_time
 
-                    """podpings = [
-                        Podping(medium=iri_batch.medium, reason=iri_batch.reason,
-                                iris=list(iri_batch.iri_set),
-                                timestampNs=iri_batch.timestampNs,
-                                sessionId=self.session_id
-                                )
+                    iri_lists = [list(iri_batch.iri_set) for iri_batch in batches]
+                    podpings = [
+                        Podping(
+                            medium=iri_batch.medium,
+                            reason=iri_batch.reason,
+                            iris=list(iri_batch.iri_set),
+                            timestampNs=iri_batch.timestampNs,
+                            sessionId=self.session_id,
+                        )
                         for iri_batch in batches
                     ]
 
                     await self.plexus.transmit(
-                       PodpingHiveTransaction(
-                           podpings=podpings,
-                           hiveTxId=response.hive_tx_id,
-                           hiveBlockNum=response.hive_block_num,
-                       )
-                    )"""
+                        PodpingHiveTransaction(
+                            podpings=podpings,
+                            hiveTxId=response.hive_tx_id,
+                            hiveBlockNum=response.hive_block_num,
+                        )
+                    )
 
                     num_iris = sum(len(iri_batch.iri_set) for iri_batch in batches)
                     async with self._iris_in_flight_lock:

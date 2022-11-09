@@ -6,10 +6,10 @@ from platform import python_version as pv
 from random import randint
 
 import pytest
-from podping_schemas.org.podcastindex.podping.hivewriter.podping_medium import (
+from podping_schemas.org.podcastindex.podping.podping_medium import (
     PodpingMedium,
 )
-from podping_schemas.org.podcastindex.podping.hivewriter.podping_reason import (
+from podping_schemas.org.podcastindex.podping.podping_reason import (
     PodpingReason,
 )
 
@@ -82,10 +82,6 @@ async def test_write_send_podping_multiple(lighthive_client):
 
         op_period = settings_manager._settings.hive_operation_period
 
-        current_block = lighthive_client.get_dynamic_global_properties()[
-            "head_block_number"
-        ]
-
         for iri in test_iris:
             await podping_hivewriter.send_podping(medium=medium, reason=reason, iri=iri)
 
@@ -95,26 +91,28 @@ async def test_write_send_podping_multiple(lighthive_client):
             await asyncio.sleep(op_period)
             num_iris_processing = await podping_hivewriter.num_operations_in_queue()
 
+        txs = []
+        while not tx_queue.empty():
+            txs.append(await tx_queue.get())
+
+        assert test_iris == set(
+            iri for tx in txs for podping in tx.podpings for iri in podping.iris
+        )
+        start_block = min(tx.hiveBlockNum for tx in txs)
+
         answer_iris = set()
         async for tx in get_relevant_transactions_from_blockchain(
-            lighthive_client, current_block, default_hive_operation_id_str
+            lighthive_client, start_block, default_hive_operation_id_str
         ):
-            assert tx.medium == medium
-            assert tx.reason == reason
+            for podping in tx.podpings:
+                assert podping.medium == medium
+                assert podping.reason == reason
 
-            for iri in tx.iris:
-                if iri.endswith(session_uuid_str):
-                    answer_iris.add(iri)
+                for iri in podping.iris:
+                    if iri.endswith(session_uuid_str):
+                        answer_iris.add(iri)
 
-            if len(answer_iris) == len(test_iris):
+            if len(test_iris) == len(answer_iris):
                 break
 
-    assert answer_iris == test_iris
-
-    tx = await tx_queue.get()
-
-    assert tx.medium == medium
-    assert tx.reason == reason
-    assert test_iris == set(tx.iris)
-    assert tx.hiveTxId is not None
-    assert tx.hiveBlockNum is not None
+    assert test_iris == answer_iris

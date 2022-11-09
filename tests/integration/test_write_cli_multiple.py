@@ -69,7 +69,7 @@ async def test_write_cli_multiple(lighthive_client):
             if iri.endswith(session_uuid_str):
                 answer_iris.add(iri)
 
-        if len(answer_iris) == len(test_iris):
+        if len(test_iris) == len(answer_iris):
             break
 
     assert answer_iris == test_iris

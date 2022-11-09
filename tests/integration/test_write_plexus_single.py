@@ -6,10 +6,10 @@ from platform import python_version as pv
 
 import pytest
 from plexo.plexus import Plexus
-from podping_schemas.org.podcastindex.podping.hivewriter.podping_medium import (
+from podping_schemas.org.podcastindex.podping.podping_medium import (
     PodpingMedium,
 )
-from podping_schemas.org.podcastindex.podping.hivewriter.podping_reason import (
+from podping_schemas.org.podcastindex.podping.podping_reason import (
     PodpingReason,
 )
 
@@ -27,7 +27,7 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 from podping_schemas.org.podcastindex.podping.hivewriter.podping_hive_transaction import (
     PodpingHiveTransaction,
 )
-from podping_schemas.org.podcastindex.podping.hivewriter.podping_write import (
+from podping_schemas.org.podcastindex.podping.podping_write import (
     PodpingWrite,
 )
 
@@ -84,33 +84,33 @@ async def test_write_plexus_single_external(lighthive_client):
 
         podping_write = PodpingWrite(medium=medium, reason=reason, iri=iri)
 
-        current_block = lighthive_client.get_dynamic_global_properties()[
-            "head_block_number"
-        ]
-
         await plexus.transmit(podping_write)
 
         iri_found = False
 
+        tx = await tx_queue.get()
+
+        assert len(tx.podpings) == 1
+        assert tx.podpings[0].medium == medium
+        assert tx.podpings[0].reason == reason
+        assert iri in tx.podpings[0].iris
+        assert tx.hiveTxId is not None
+        assert tx.hiveBlockNum is not None
+
         async for tx in get_relevant_transactions_from_blockchain(
-            lighthive_client, current_block, default_hive_operation_id_str
+            lighthive_client, tx.hiveBlockNum, default_hive_operation_id_str
         ):
-            if iri in tx.iris:
+            assert len(tx.podpings) == 1
+
+            if iri in tx.podpings[0].iris:
                 iri_found = True
-                assert tx.medium == medium
-                assert tx.reason == reason
+                assert tx.podpings[0].medium == medium
+                assert tx.podpings[0].reason == reason
                 break
 
     assert iri_found
 
-    tx = await tx_queue.get()
     plexus.close()
-
-    assert tx.medium == medium
-    assert tx.reason == reason
-    assert iri in tx.iris
-    assert tx.hiveTxId is not None
-    assert tx.hiveBlockNum is not None
 
 
 @pytest.mark.asyncio
@@ -162,29 +162,28 @@ async def test_write_plexus_single_internal(lighthive_client):
 
         podping_write = PodpingWrite(medium=medium, reason=reason, iri=iri)
 
-        current_block = lighthive_client.get_dynamic_global_properties()[
-            "head_block_number"
-        ]
-
         await podping_hivewriter.plexus.transmit(podping_write)
 
         iri_found = False
 
+        tx = await tx_queue.get()
+
+        assert len(tx.podpings) == 1
+        assert tx.podpings[0].medium == medium
+        assert tx.podpings[0].reason == reason
+        assert iri in tx.podpings[0].iris
+        assert tx.hiveTxId is not None
+        assert tx.hiveBlockNum is not None
+
         async for tx in get_relevant_transactions_from_blockchain(
-            lighthive_client, current_block, default_hive_operation_id_str
+            lighthive_client, tx.hiveBlockNum, default_hive_operation_id_str
         ):
-            if iri in tx.iris:
+            assert len(tx.podpings) == 1
+
+            if iri in tx.podpings[0].iris:
                 iri_found = True
-                assert tx.medium == medium
-                assert tx.reason == reason
+                assert tx.podpings[0].medium == medium
+                assert tx.podpings[0].reason == reason
                 break
 
     assert iri_found
-
-    tx = await tx_queue.get()
-
-    assert tx.medium == medium
-    assert tx.reason == reason
-    assert iri in tx.iris
-    assert tx.hiveTxId is not None
-    assert tx.hiveBlockNum is not None

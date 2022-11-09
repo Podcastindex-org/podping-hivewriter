@@ -30,7 +30,7 @@ typer = {extras = ["all"], version = "^0.3.2"}
 capnpy = "^0.9.0"
 lighthive = "^0.4.0"
 plexo = {version = "1.0.0dev4", allow-prereleases = true}
-podping-schemas = {version = "^0.1.0a10", allow-prereleases = true}
+podping-schemas = {version = "^0.1.0a12", allow-prereleases = true}
 
 
 [tool.poetry.group.dev.dependencies]

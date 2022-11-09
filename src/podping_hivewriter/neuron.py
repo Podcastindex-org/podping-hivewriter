@@ -9,10 +9,10 @@ from podping_hivewriter.namespace import podping_hivewriter_namespace
 from podping_schemas.org.podcastindex.podping.hivewriter.podping_hive_transaction import (
     PodpingHiveTransaction,
 )
-from podping_schemas.org.podcastindex.podping.hivewriter.podping_write import (
+from podping_schemas.org.podcastindex.podping.podping_write import (
     PodpingWrite,
 )
-from podping_schemas.org.podcastindex.podping.hivewriter.podping_write_error import (
+from podping_schemas.org.podcastindex.podping.podping_write_error import (
     PodpingWriteError,
 )
 

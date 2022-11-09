@@ -13,8 +13,10 @@ from lighthive.exceptions import RPCNodeException
 from podping_schemas.org.podcastindex.podping.hivewriter.podping_hive_transaction import (
     PodpingHiveTransaction,
 )
+from podping_schemas.org.podcastindex.podping.podping import Podping
 
 from podping_hivewriter.async_wrapper import sync_to_async
+from podping_hivewriter.models.internal_podping import CURRENT_PODPING_VERSION
 from podping_hivewriter.models.medium import str_medium_map
 from podping_hivewriter.models.reason import str_reason_map
 
@@ -117,30 +119,44 @@ async def get_relevant_transactions_from_blockchain(
                     while True:
                         try:
                             block = await async_get_block({"block_num": current_block})
-                            for op in (
-                                (trx_num, op)
-                                for trx_num, transaction in enumerate(
-                                    block["block"]["transactions"]
-                                )
-                                for op in transaction["operations"]
+                            for tx_num, transaction in enumerate(
+                                block["block"]["transactions"]
                             ):
-                                if op[1]["type"] == "custom_json_operation" and (
-                                    not operation_id
-                                    or op[1]["value"]["id"] == operation_id
-                                ):
-                                    data = json.loads(op[1]["value"]["json"])
-                                    if "iris" in data:
-                                        yield PodpingHiveTransaction(
-                                            medium=str_medium_map[data["medium"]],
-                                            reason=str_reason_map[data["reason"]],
-                                            iris=data["iris"],
-                                            hiveTxId=block["block"]["transaction_ids"][
-                                                op[0]
-                                            ],
-                                            hiveBlockNum=current_block,
-                                        )
+                                tx_id = block["block"]["transaction_ids"][tx_num]
+                                podpings = []
+                                for op in transaction["operations"]:
+                                    if op["type"] == "custom_json_operation" and (
+                                        not operation_id
+                                        or op["value"]["id"] == operation_id
+                                    ):
+                                        data = json.loads(op["value"]["json"])
+                                        if (
+                                            "iris" in data
+                                            and "version" in data
+                                            and data["version"]
+                                            == CURRENT_PODPING_VERSION
+                                        ):
+                                            podpings.append(
+                                                Podping(
+                                                    medium=str_medium_map[
+                                                        data["medium"]
+                                                    ],
+                                                    reason=str_reason_map[
+                                                        data["reason"]
+                                                    ],
+                                                    iris=data["iris"],
+                                                    timestampNs=data["timestampNs"],
+                                                    sessionId=data["timestampNs"],
+                                                )
+                                            )
+                                if len(podpings):
+                                    yield PodpingHiveTransaction(
+                                        podpings=podpings,
+                                        hiveTxId=tx_id,
+                                        hiveBlockNum=current_block,
+                                    )
                             break
-                        except KeyError:
+                        except KeyError as e:
                             pass
                     current_block += 1
                     head_block = (await async_get_dynamic_global_properties())[

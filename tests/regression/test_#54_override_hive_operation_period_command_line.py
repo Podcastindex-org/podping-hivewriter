@@ -2,10 +2,10 @@ import uuid
 from platform import python_version as pv
 
 import pytest
-from podping_schemas.org.podcastindex.podping.hivewriter.podping_medium import (
+from podping_schemas.org.podcastindex.podping.podping_medium import (
     PodpingMedium,
 )
-from podping_schemas.org.podcastindex.podping.hivewriter.podping_reason import (
+from podping_schemas.org.podcastindex.podping.podping_reason import (
     PodpingReason,
 )
 from typer.testing import CliRunner

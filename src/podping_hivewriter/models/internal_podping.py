@@ -6,10 +6,13 @@ from podping_hivewriter.models.medium import medium_strings
 from podping_hivewriter.models.reason import reason_strings
 
 
+CURRENT_PODPING_VERSION = "1.1"
+
+
 class InternalPodping(BaseModel):
     """Dataclass for on-chain podping schema"""
 
-    version: Literal["1.1"] = "1.1"
+    version: Literal[CURRENT_PODPING_VERSION] = CURRENT_PODPING_VERSION
     medium: str
     reason: str
     iris: List[str]
