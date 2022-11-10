@@ -293,6 +293,9 @@ class PodpingHivewriter(AsyncContext):
         iri_batch_queue: "asyncio.Queue[IRIBatch]",
     ):
         """Opens and watches a queue and sends notifications to Hive one by one"""
+
+        session_id = self.session_id
+
         while True:
             try:
                 settings = self.settings_manager.get_settings()
@@ -305,7 +308,9 @@ class PodpingHivewriter(AsyncContext):
                     iri_batch = await iri_batch_queue.get()
                     batches.append(iri_batch)
                     iri_batch_queue.task_done()
-                    logging.debug(f"Handling IRI batch {iri_batch.batch_id}")
+                    logging.debug(
+                        f"Handling Podping ({iri_batch.timestampNs}, {session_id})"
+                    )
                     num_in_batch += 1
 
                 if len(batches) > 0:
@@ -315,7 +320,6 @@ class PodpingHivewriter(AsyncContext):
                     )
                     broadcast_duration = timer() - broadcast_start_time
 
-                    iri_lists = [list(iri_batch.iri_set) for iri_batch in batches]
                     podpings = [
                         Podping(
                             medium=iri_batch.medium,
@@ -341,6 +345,11 @@ class PodpingHivewriter(AsyncContext):
 
                     last_node = self.lighthive_client.current_node
                     if response:
+                        for podping in podpings:
+                            logging.info(
+                                f"Podping ({podping.timestampNs}, {session_id}) | "
+                                f"Hive txid: {response.hive_tx_id}"
+                            )
                         logging.info(
                             f"TX send time: {broadcast_duration:0.2f} | "
                             f"Failures: {failure_count} | "
@@ -383,6 +392,8 @@ class PodpingHivewriter(AsyncContext):
         elif reason == PodpingReason.liveEnd:
             priority = 0
 
+        session_id = self.session_id
+
         while True:
             settings = self.settings_manager.get_settings()
 
@@ -391,7 +402,7 @@ class PodpingHivewriter(AsyncContext):
             duration = 0
             iris_size_without_commas = 0
             iris_size_total = 0
-            batch_id = uuid.uuid4()
+            podping_timestamp = int(current_timestamp_nanoseconds())
 
             # Wait until we have enough IRIs to fit in the payload
             # or get into the current Hive block
@@ -408,11 +419,11 @@ class PodpingHivewriter(AsyncContext):
                     iri_queue.task_done()
 
                     logging.debug(
-                        f"_iri_batch_loop - Medium: {medium} - Reason: {reason} - "
-                        f"Duration: {duration:.3f} - "
-                        f"IRI in queue: {iri} - "
-                        f"IRI batch_id {batch_id} - "
-                        f"Num IRIs: {len(iri_set)}"
+                        f"_iri_batch_loop | "
+                        f"Podping ({podping_timestamp}, {session_id}) | "
+                        f"Medium: {medium} - Reason: {reason} | "
+                        f"Duration: {duration:.3f} | "
+                        f"IRI in queue: {iri}"
                     )
 
                     # byte size of IRI in JSON is IRI + 2 quotes
@@ -428,7 +439,8 @@ class PodpingHivewriter(AsyncContext):
                     raise
                 except Exception:
                     logging.exception(
-                        f"Unknown error in _iri_batch_loop - "
+                        f"Unknown error in _iri_batch_loop | "
+                        f"Podping ({podping_timestamp}, {session_id}) | "
                         f"Medium: {medium} - Reason: {reason}",
                         stack_info=True,
                     )
@@ -440,25 +452,25 @@ class PodpingHivewriter(AsyncContext):
             try:
                 if len(iri_set):
                     iri_batch = IRIBatch(
-                        batch_id=batch_id,
                         medium=medium,
                         reason=reason,
                         iri_set=iri_set,
                         priority=priority,
-                        timestampNs=int(current_timestamp_nanoseconds()),
+                        timestampNs=podping_timestamp,
                     )
                     await iri_batch_queue.put(iri_batch)
                     self.total_iris_recv_deduped += len(iri_set)
                     logging.info(
-                        f"IRI batch_id {batch_id} - "
-                        f"Medium: {medium} - Reason: {reason} - "
+                        f"Podping ({podping_timestamp}, {session_id}) | "
+                        f"Medium: {medium} - Reason: {reason} | "
                         f"Size of IRIs: {iris_size_total}"
                     )
             except asyncio.CancelledError:
                 raise
             except Exception:
                 logging.exception(
-                    f"Unknown error in _iri_batch_loop - "
+                    f"Unknown error in _iri_batch_loop | "
+                    f"Podping ({podping_timestamp}, {session_id}) | "
                     f"Medium: {medium} - Reason: {reason}",
                     stack_info=True,
                 )
@@ -757,7 +769,6 @@ class PodpingHivewriter(AsyncContext):
                     iri_set=iri_set,
                     medium=medium or self.medium,
                     reason=reason or self.reason,
-                    batch_id=uuid.uuid4(),
                     priority=0,
                     timestampNs=int(current_timestamp_nanoseconds()),
                 ),
