@@ -121,3 +121,5 @@ async def test_write_zmq_simulcast(lighthive_client):
             break
 
     assert test_iris == answer_iris
+
+    plexus.close()

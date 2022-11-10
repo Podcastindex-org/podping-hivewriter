@@ -51,15 +51,18 @@ async def test_write_cli_single(lighthive_client):
     result = runner.invoke(app, args)
 
     assert result.exit_code == 0
+
     iri_found = False
 
     async for tx in get_relevant_transactions_from_blockchain(
         lighthive_client, current_block, default_hive_operation_id_str
     ):
-        if iri in tx.iris:
+        assert len(tx.podpings) == 1
+
+        if iri in tx.podpings[0].iris:
             iri_found = True
-            assert tx.medium == medium
-            assert tx.reason == reason
+            assert tx.podpings[0].medium == medium
+            assert tx.podpings[0].reason == reason
             break
 
     assert iri_found

@@ -62,14 +62,15 @@ async def test_write_cli_multiple(lighthive_client):
     async for tx in get_relevant_transactions_from_blockchain(
         lighthive_client, current_block, default_hive_operation_id_str
     ):
-        assert tx.medium == medium
-        assert tx.reason == reason
+        for podping in tx.podpings:
+            assert podping.medium == medium
+            assert podping.reason == reason
 
-        for iri in tx.iris:
-            if iri.endswith(session_uuid_str):
-                answer_iris.add(iri)
+            for iri in podping.iris:
+                if iri.endswith(session_uuid_str):
+                    answer_iris.add(iri)
 
         if len(test_iris) == len(answer_iris):
             break
 
-    assert answer_iris == test_iris
+    assert test_iris == answer_iris
