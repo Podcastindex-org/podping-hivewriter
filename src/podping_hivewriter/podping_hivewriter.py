@@ -408,8 +408,8 @@ class PodpingHivewriter(AsyncContext):
             # or get into the current Hive block
             while (
                 duration < settings.hive_operation_period
-                and iris_size_total < settings.max_url_list_bytes
-            ):
+                or iri_batch_queue.qsize() >= 5
+            ) and iris_size_total < settings.max_url_list_bytes:
                 try:
                     iri = await asyncio.wait_for(
                         get_from_queue(),
