@@ -596,6 +596,14 @@ class PodpingHivewriter(AsyncContext):
                 raise ex
         except PodpingCustomJsonPayloadExceeded:
             raise
+        except KeyError:
+            if self.dry_run:
+                return LighthiveBroadcastResponse(
+                    {"id": "0", "block_num": 0, "trx_num": 0, "expired": False}
+                )
+            else:
+                logging.exception("Unknown error in send_notification", stack_info=True)
+                raise
         except Exception:
             logging.exception("Unknown error in send_notification", stack_info=True)
             raise
