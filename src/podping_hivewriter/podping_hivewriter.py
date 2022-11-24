@@ -130,9 +130,6 @@ class PodpingHivewriter(AsyncContext):
         self.total_iris_sent = 0
         self.total_iris_recv_deduped = 0
 
-        self._iris_in_flight = 0
-        self._iris_in_flight_lock = asyncio.Lock()
-
         self.iri_batch_queue: "asyncio.PriorityQueue[IRIBatch]" = (
             asyncio.PriorityQueue()
         )
@@ -340,8 +337,6 @@ class PodpingHivewriter(AsyncContext):
                     )
 
                     num_iris = sum(len(iri_batch.iri_set) for iri_batch in batches)
-                    async with self._iris_in_flight_lock:
-                        self._iris_in_flight -= num_iris
 
                     last_node = self.lighthive_client.current_node
                     if response:
@@ -481,8 +476,6 @@ class PodpingHivewriter(AsyncContext):
         if rfc3987.match(iri, "IRI"):
             queue = self.iri_queues[(podping_write.medium, podping_write.reason)]
             await queue.put(iri)
-            async with self._iris_in_flight_lock:
-                self._iris_in_flight += 1
             self.total_iris_recv += 1
         else:
             podping_write_error = PodpingWriteError(
@@ -506,8 +499,10 @@ class PodpingHivewriter(AsyncContext):
         await self.plexus.transmit(podping_write)
 
     async def num_operations_in_queue(self) -> int:
-        async with self._iris_in_flight_lock:
-            return self._iris_in_flight
+        return (
+            sum(queue.qsize() for queue in self.iri_queues.values())
+            + self.iri_batch_queue.qsize()
+        )
 
     async def output_hive_status(self) -> None:
         """Output the name of the current hive node
@@ -740,7 +735,7 @@ class PodpingHivewriter(AsyncContext):
                 logging.warning(ex)
                 # 10s + exponential back off: need time for RC delegation
                 # script to kick in
-                sleep_for = 10 * 2**failure_count
+                sleep_for = 10 * 2 ** failure_count
                 logging.warning(f"Sleeping for {sleep_for}s")
                 await asyncio.sleep(sleep_for)
             except TooManyCustomJsonsPerBlock as ex:
