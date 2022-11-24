@@ -735,7 +735,7 @@ class PodpingHivewriter(AsyncContext):
                 logging.warning(ex)
                 # 10s + exponential back off: need time for RC delegation
                 # script to kick in
-                sleep_for = 10 * 2 ** failure_count
+                sleep_for = 10 * 2**failure_count
                 logging.warning(f"Sleeping for {sleep_for}s")
                 await asyncio.sleep(sleep_for)
             except TooManyCustomJsonsPerBlock as ex:
