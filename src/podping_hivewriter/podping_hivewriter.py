@@ -6,6 +6,7 @@ import re
 import sys
 import uuid
 from datetime import datetime, timedelta, timezone
+from functools import partial
 from timeit import default_timer as timer
 from typing import List, Optional, Set, Tuple, Union, Dict, Iterable
 
@@ -133,6 +134,7 @@ class PodpingHivewriter(AsyncContext):
         self.iri_batch_queue: "asyncio.PriorityQueue[IRIBatch]" = (
             asyncio.PriorityQueue()
         )
+        self.unprocessed_iri_queue: asyncio.Queue[PodpingWrite] = asyncio.Queue(1000)
         self.iri_queues: Dict[
             Tuple[PodpingMedium, PodpingReason], asyncio.Queue[str]
         ] = {pair: asyncio.Queue() for pair in itertools.product(mediums, reasons)}
@@ -155,7 +157,14 @@ class PodpingHivewriter(AsyncContext):
 
         await self.plexus.adapt(podping_hive_transaction_neuron)
         await self.plexus.adapt(
-            podping_write_neuron, reactants=(self._podping_write_reactant,)
+            podping_write_neuron,
+            reactants=(
+                partial(
+                    self._podping_write_reactant,
+                    self.plexus,
+                    self.unprocessed_iri_queue,
+                ),
+            ),
         )
         await self.plexus.adapt(podping_write_error_neuron)
 
@@ -169,6 +178,7 @@ class PodpingHivewriter(AsyncContext):
                     podping_write_error_neuron,
                 ),
             )
+            # tcp_pair_ganglion.socket.setsockopt(zmq.RCVHWM, 500)
             await self.plexus.infuse_ganglion(tcp_pair_ganglion)
 
         for (medium, reason), iri_queue in self.iri_queues.items():
@@ -181,6 +191,16 @@ class PodpingHivewriter(AsyncContext):
             )
         self._add_task(
             asyncio.create_task(self._iri_batch_handler_loop(self.iri_batch_queue))
+        )
+        self._add_task(
+            asyncio.create_task(
+                self._unprocessed_iri_queue_handler(
+                    self.settings_manager,
+                    self.iri_batch_queue,
+                    self.unprocessed_iri_queue,
+                    self.iri_queues,
+                )
+            )
         )
         if self.status:
             self._add_task(asyncio.create_task(self._hive_status_loop()))
@@ -328,14 +348,6 @@ class PodpingHivewriter(AsyncContext):
                         for iri_batch in batches
                     ]
 
-                    await self.plexus.transmit(
-                        PodpingHiveTransaction(
-                            podpings=podpings,
-                            hiveTxId=response.hive_tx_id,
-                            hiveBlockNum=response.hive_block_num,
-                        )
-                    )
-
                     num_iris = sum(len(iri_batch.iri_set) for iri_batch in batches)
 
                     last_node = self.lighthive_client.current_node
@@ -353,6 +365,16 @@ class PodpingHivewriter(AsyncContext):
                             f"Hive block num: {response.hive_block_num} | "
                             f"last_node: {last_node}"
                         )
+
+                        await self.plexus.transmit(
+                            PodpingHiveTransaction(
+                                podpings=podpings,
+                                hiveTxId=response.hive_tx_id,
+                                hiveBlockNum=response.hive_block_num,
+                            )
+                        )
+
+                        logging.debug(f"Transmitted TX: {response.hive_tx_id}")
 
                 end_time = timer()
                 sleep_time = settings.hive_operation_period - (end_time - start_time)
@@ -471,18 +493,64 @@ class PodpingHivewriter(AsyncContext):
                 )
                 raise
 
-    async def _podping_write_reactant(self, podping_write: PodpingWrite, _, _2):
-        iri: str = podping_write.iri
-        if rfc3987.match(iri, "IRI"):
-            queue = self.iri_queues[(podping_write.medium, podping_write.reason)]
-            await queue.put(iri)
-            self.total_iris_recv += 1
+    async def _unprocessed_iri_queue_handler(
+        self,
+        settings_manager: PodpingSettingsManager,
+        iri_batch_queue: "asyncio.PriorityQueue[IRIBatch]",
+        unprocessed_iri_queue: "asyncio.Queue[PodpingWrite]",
+        iri_queues: Dict[Tuple[PodpingMedium, PodpingReason], asyncio.Queue[str]],
+    ):
+        while True:
+            try:
+                podping_write: PodpingWrite = await unprocessed_iri_queue.get()
+                queue = iri_queues[(podping_write.medium, podping_write.reason)]
+                await queue.put(podping_write.iri)
+                self.total_iris_recv += 1
+
+                qsize = iri_batch_queue.qsize()
+
+                if qsize >= 10:
+                    logging.debug(
+                        f"_unprocessed_iri_queue_handler | "
+                        f"unprocessed_iri_queue size: {unprocessed_iri_queue.qsize()}"
+                    )
+                    logging.debug(
+                        f"_unprocessed_iri_queue_handler | "
+                        f"iri_batch_queue size: {qsize}"
+                    )
+                    op_period = settings_manager.get_settings().hive_operation_period
+                    logging.debug(
+                        f"_unprocessed_iri_queue_handler | "
+                        f"Sleeping for {op_period}s"
+                    )
+                    await asyncio.sleep(op_period)
+            except asyncio.TimeoutError:
+                pass
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logging.exception(
+                    f"Unknown error in _unprocessed_iri_queue_handler",
+                    stack_info=True,
+                )
+                raise
+
+    @staticmethod
+    async def _podping_write_reactant(
+        plexus: Plexus,
+        unprocessed_iri_queue: "asyncio.Queue[PodpingWrite]",
+        podping_write: PodpingWrite,
+        _,
+        _2,
+    ):
+        if rfc3987.match(podping_write.iri, "IRI"):
+            await unprocessed_iri_queue.put(podping_write)
         else:
             podping_write_error = PodpingWriteError(
                 podpingWrite=podping_write,
                 errorType=PodpingWriteErrorType.invalidIri,
             )
-            await self.plexus.transmit(podping_write_error)
+            await plexus.transmit(podping_write_error)
 
     async def send_podping(
         self,
