@@ -2,24 +2,37 @@ import asyncio
 import linecache
 import logging
 import os
+import random
+import uuid
+from ipaddress import IPv4Address
+
+from plexo.ganglion.tcp_pair import GanglionZmqTcpPair
+from plexo.plexus import Plexus
+from podping_schemas.org.podcastindex.podping.hivewriter.podping_hive_transaction import (
+    PodpingHiveTransaction,
+)
+from podping_schemas.org.podcastindex.podping.podping_medium import PodpingMedium
+from podping_schemas.org.podcastindex.podping.podping_reason import PodpingReason
+from podping_schemas.org.podcastindex.podping.podping_write import PodpingWrite
+
+from podping_hivewriter.models.medium import mediums
+from podping_hivewriter.models.reason import reasons
+from podping_hivewriter.neuron import (
+    podping_hive_transaction_neuron,
+    podping_write_neuron,
+)
 
 try:
     import tracemalloc
 except ModuleNotFoundError:
     tracemalloc = False
-import uuid
-from random import randint
 from platform import python_version as pv, python_implementation as pi
 from timeit import default_timer as timer
 
-import zmq
-import zmq.asyncio
-
-from podping_hivewriter.constants import LIVETEST_OPERATION_ID
-from podping_hivewriter.models.medium import Medium
-from podping_hivewriter.models.reason import Reason
-from podping_hivewriter.podping_hivewriter import PodpingHivewriter
-from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
+host = "127.0.0.1"
+port = 9979
+metrics = {"iris_sent": 0, "ops_received": 0, "iris_received": 0, "txs_received": 0}
+txs_received_lock = asyncio.Lock()
 
 
 def display_top(snapshot, key_type="lineno", limit=3):
@@ -51,34 +64,66 @@ def display_top(snapshot, key_type="lineno", limit=3):
     logging.info("Total allocated size: %.1f KiB" % (total / 1024))
 
 
-async def endless_send_loop(event_loop):
-    context = zmq.asyncio.Context()
-    socket = context.socket(zmq.REQ, io_loop=event_loop)
-    socket.connect(f"tcp://{host}:{port}")
+async def podping_hive_transaction_reaction(transaction: PodpingHiveTransaction, _, _2):
+    num_iris = sum(len(podping.iris) for podping in transaction.podpings)
 
-    test_name = "long_running_zmq"
-    python_version = pv()
-    python_implementation = pi()
+    async with txs_received_lock:
+        metrics["ops_received"] = metrics["ops_received"] + len(transaction.podpings)
+        metrics["iris_received"] = metrics["iris_received"] + num_iris
+        metrics["txs_received"] = metrics["txs_received"] + 1
+
+
+async def endless_send_loop(event_loop):
+    tcp_pair_ganglion = GanglionZmqTcpPair(
+        peer=(IPv4Address(host), port),
+        relevant_neurons=(
+            podping_hive_transaction_neuron,
+            podping_write_neuron,
+        ),
+    )
+    plexus = Plexus(ganglia=(tcp_pair_ganglion,))
+    await plexus.adapt(
+        podping_hive_transaction_neuron,
+        reactants=(podping_hive_transaction_reaction,),
+    )
+    await plexus.adapt(podping_write_neuron)
+
     start_time = timer()
+    diag_time = timer()
 
     while True:
+        loop_start = timer()
+        # for _ in range(10):
         session_uuid = uuid.uuid4()
         session_uuid_str = str(session_uuid)
 
-        num_iris = randint(1, 10)
+        for i in range(1000):
+            iri = f"https://example.com?t=agates_test&i={i}s={session_uuid_str}"
+            medium: PodpingMedium = random.sample(sorted(mediums), 1)[0]
+            reason: PodpingReason = random.sample(sorted(reasons), 1)[0]
+            podping_write = PodpingWrite(medium=medium, reason=reason, iri=iri)
 
-        for i in range(num_iris):
-            await socket.send_string(
-                f"https://example.com?t={test_name}&i={i}&v={python_version}&pi={python_implementation}&s={session_uuid_str}"
-            )
-            response = await socket.recv_string()
-            assert response == "OK"
+            await plexus.transmit(podping_write)
 
-        if tracemalloc and (timer() - start_time) >= 60:
+        metrics["iris_sent"] = metrics["iris_sent"] + 1000
+
+        await asyncio.sleep(3 - (timer() - loop_start))
+        if tracemalloc and (timer() - diag_time) >= 60:
             snapshot = tracemalloc.take_snapshot()
             display_top(snapshot)
-            start_time = timer()
-        await asyncio.sleep(3)
+            diag_time = timer()
+            logging.info(
+                f"IRIs sent: {metrics['iris_sent']} - {metrics['iris_sent'] / (diag_time - start_time)}s"
+            )
+            logging.info(
+                f"TXs received: {metrics['txs_received']} - {metrics['txs_received'] / (diag_time - start_time)}s"
+            )
+            logging.info(
+                f"OPs received: {metrics['ops_received']} - {metrics['ops_received'] / (diag_time - start_time)}s"
+            )
+            logging.info(
+                f"IRIs received: {metrics['iris_received']} - {metrics['iris_received'] / (diag_time - start_time)}s"
+            )
 
 
 if __name__ == "__main__":
@@ -86,22 +131,5 @@ if __name__ == "__main__":
         tracemalloc.start()
     loop = asyncio.get_event_loop()
     logging.getLogger().setLevel(level=logging.INFO)
-    settings_manager = PodpingSettingsManager()
 
-    host = "127.0.0.1"
-    port = 9979
-    podping_hivewriter = PodpingHivewriter(
-        os.environ["PODPING_HIVE_ACCOUNT"],
-        [os.environ["PODPING_HIVE_POSTING_KEY"]],
-        settings_manager,
-        medium=Medium.podcast,
-        reason=Reason.update,
-        listen_ip=host,
-        listen_port=port,
-        resource_test=True,
-        operation_id=LIVETEST_OPERATION_ID,
-    )
-    loop.run_until_complete(podping_hivewriter.wait_startup())
     loop.run_until_complete(endless_send_loop(loop))
-
-    podping_hivewriter.close()

@@ -14,8 +14,6 @@ from podping_schemas.org.podcastindex.podping.podping_reason import (
 )
 
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
-from podping_hivewriter.hive import get_relevant_transactions_from_blockchain
-from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.medium import mediums
 from podping_hivewriter.models.reason import reasons
 from podping_hivewriter.neuron import (
