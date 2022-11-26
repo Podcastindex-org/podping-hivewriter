@@ -73,7 +73,7 @@ async def podping_hive_transaction_reaction(transaction: PodpingHiveTransaction,
         metrics["txs_received"] = metrics["txs_received"] + 1
 
 
-async def endless_send_loop(event_loop):
+async def endless_send_loop():
     tcp_pair_ganglion = GanglionZmqTcpPair(
         peer=(IPv4Address(host), port),
         relevant_neurons=(
@@ -93,7 +93,6 @@ async def endless_send_loop(event_loop):
 
     while True:
         loop_start = timer()
-        # for _ in range(10):
         session_uuid = uuid.uuid4()
         session_uuid_str = str(session_uuid)
 
@@ -132,4 +131,4 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     logging.getLogger().setLevel(level=logging.INFO)
 
-    loop.run_until_complete(endless_send_loop(loop))
+    loop.run_until_complete(endless_send_loop())
