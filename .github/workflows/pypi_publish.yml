@@ -9,26 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Build and publish to pypi (3.10)
-        uses: JRubics/poetry-publish@v1.13
+      - name: Build and publish to pypi
+        uses: JRubics/poetry-publish@v1.15
         with:
-          python_version: "3.10.4"
+          python_version: "3.11.0"
           ignore_dev_requirements: "yes"
           pypi_token: ${{ secrets.PYPI_TOKEN }}
-          extra_build_dependency_packages: "capnproto libzmq3-dev"
-      - name: Build and publish to pypi (3.9)
-        uses: JRubics/poetry-publish@v1.13
-        with:
-          python_version: "3.9.13"
-          build_format: wheel
-          ignore_dev_requirements: "yes"
-          pypi_token: ${{ secrets.PYPI_TOKEN }}
-          extra_build_dependency_packages: "capnproto libzmq3-dev"
-      - name: Build and publish to pypi (3.8)
-        uses: JRubics/poetry-publish@v1.13
-        with:
-          python_version: "3.8.13"
-          build_format: wheel
-          ignore_dev_requirements: "yes"
-          pypi_token: ${{ secrets.PYPI_TOKEN }}
-          extra_build_dependency_packages: "capnproto libzmq3-dev"
