@@ -4,6 +4,7 @@ import random
 import uuid
 from ipaddress import IPv4Address
 from platform import python_version as pv
+from typing import List
 
 import pytest
 from plexo.ganglion.tcp_pair import GanglionZmqTcpPair
@@ -96,30 +97,33 @@ async def test_write_zmq_simulcast(lighthive_client):
             await asyncio.sleep(op_period)
             num_iris_processing = await podping_hivewriter.num_operations_in_queue()
 
-    txs = []
-    while not tx_queue.empty():
-        txs.append(await tx_queue.get())
+        txs: List[PodpingHiveTransaction] = []
+        while sum(len(podping.iris) for tx in txs for podping in tx.podpings) < len(
+            test_iris
+        ):
+            txs.append(await tx_queue.get())
+            await asyncio.sleep(op_period / 2)
 
-    assert test_iris == set(
-        (iri, podping.medium, podping.reason)
-        for tx in txs
-        for podping in tx.podpings
-        for iri in podping.iris
-    )
-    start_block = min(tx.hiveBlockNum for tx in txs)
+        assert test_iris == set(
+            (iri, podping.medium, podping.reason)
+            for tx in txs
+            for podping in tx.podpings
+            for iri in podping.iris
+        )
+        start_block = min(tx.hiveBlockNum for tx in txs)
 
-    answer_iris = set()
-    async for tx in get_relevant_transactions_from_blockchain(
-        lighthive_client, start_block
-    ):
-        for podping in tx.podpings:
-            for iri in podping.iris:
-                if iri.endswith(session_uuid_str):
-                    answer_iris.add((iri, podping.medium, podping.reason))
+        answer_iris = set()
+        async for tx in get_relevant_transactions_from_blockchain(
+            lighthive_client, start_block
+        ):
+            for podping in tx.podpings:
+                for iri in podping.iris:
+                    if iri.endswith(session_uuid_str):
+                        answer_iris.add((iri, podping.medium, podping.reason))
 
-        if len(test_iris) == len(answer_iris):
-            break
+            if len(test_iris) == len(answer_iris):
+                break
 
-    assert test_iris == answer_iris
+        assert test_iris == answer_iris
 
     plexus.close()

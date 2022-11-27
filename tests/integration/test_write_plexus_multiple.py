@@ -4,6 +4,7 @@ import random
 import uuid
 from platform import python_version as pv
 from random import randint
+from typing import List
 
 import pytest
 from plexo.plexus import Plexus
@@ -101,9 +102,12 @@ async def test_write_plexus_multiple_external(lighthive_client):
             await asyncio.sleep(op_period)
             num_iris_processing = await podping_hivewriter.num_operations_in_queue()
 
-        txs = []
-        while not tx_queue.empty():
+        txs: List[PodpingHiveTransaction] = []
+        while sum(len(podping.iris) for tx in txs for podping in tx.podpings) < len(
+            test_iris
+        ):
             txs.append(await tx_queue.get())
+            await asyncio.sleep(op_period / 2)
 
         assert test_iris == set(
             iri for tx in txs for podping in tx.podpings for iri in podping.iris
@@ -194,9 +198,12 @@ async def test_write_plexus_internal(lighthive_client):
             await asyncio.sleep(op_period)
             num_iris_processing = await podping_hivewriter.num_operations_in_queue()
 
-        txs = []
-        while not tx_queue.empty():
+        txs: List[PodpingHiveTransaction] = []
+        while sum(len(podping.iris) for tx in txs for podping in tx.podpings) < len(
+            test_iris
+        ):
             txs.append(await tx_queue.get())
+            await asyncio.sleep(op_period / 2)
 
         assert test_iris == set(
             iri for tx in txs for podping in tx.podpings for iri in podping.iris
