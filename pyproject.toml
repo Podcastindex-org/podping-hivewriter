@@ -19,18 +19,17 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.8,<3.11"
-pyzmq = { version = "^24.0.1", extras = ["server"] }
+python = "^3.8,<=3.11"
 cffi = "^1.14.5"
 pydantic = "^1.9.0"
 single-source = "^0.3.0"
 rfc3987 = "^1.3.8"
 asgiref = "^3.5"
 typer = {extras = ["all"], version = "^0.3.2"}
-capnpy = "^0.9.0"
+capnpy-agates = { version = "^0.9.0", allow-prereleases = true }
 lighthive = "^0.4.0"
-plexo = {version = "1.0.0dev4", allow-prereleases = true}
-podping-schemas = {version = "^0.1.0a12", allow-prereleases = true}
+plexo = {version = "1.0.0a7", allow-prereleases = true}
+podping-schemas = {version = "^0.1.0a15", allow-prereleases = true}
 
 
 [tool.poetry.group.dev.dependencies]
