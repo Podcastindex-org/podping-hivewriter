@@ -500,7 +500,7 @@ class PodpingHivewriter(AsyncContext):
         settings_manager: PodpingSettingsManager,
         iri_batch_queue: "asyncio.PriorityQueue[IRIBatch]",
         unprocessed_iri_queue: "asyncio.Queue[PodpingWrite]",
-        iri_queues: Dict[Tuple[PodpingMedium, PodpingReason], asyncio.Queue[str]],
+        iri_queues: "Dict[Tuple[PodpingMedium, PodpingReason], asyncio.Queue[str]]",
     ):
         while True:
             try:
