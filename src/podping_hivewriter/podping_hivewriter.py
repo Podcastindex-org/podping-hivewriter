@@ -505,6 +505,7 @@ class PodpingHivewriter(AsyncContext):
                 podping_write: PodpingWrite = await unprocessed_iri_queue.get()
                 queue = iri_queues[(podping_write.medium, podping_write.reason)]
                 await queue.put(podping_write.iri)
+                unprocessed_iri_queue.task_done()
                 self.total_iris_recv += 1
 
                 qsize = iri_batch_queue.qsize()
