@@ -1,4 +1,4 @@
-FROM docker.io/python:3.10-slim-bullseye
+FROM docker.io/python:3.11-slim-bullseye
 
 ENV PYTHONFAULTHANDLER=1 \
     PYTHONHASHSEED=random \
