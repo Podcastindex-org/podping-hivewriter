@@ -144,7 +144,7 @@ async def get_relevant_transactions_from_blockchain(
                                                     ],
                                                     iris=data["iris"],
                                                     timestampNs=data["timestampNs"],
-                                                    sessionId=data["timestampNs"],
+                                                    sessionId=data["sessionId"],
                                                 )
                                             )
                                 if len(podpings):
