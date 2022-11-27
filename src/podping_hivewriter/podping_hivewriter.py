@@ -97,7 +97,7 @@ class PodpingHivewriter(AsyncContext):
         zmq_service=True,
         status=True,
         client: Client = None,
-        plexus: Plexus = Plexus(),
+        plexus: Plexus = None,
     ):
         super().__init__()
 
@@ -114,7 +114,8 @@ class PodpingHivewriter(AsyncContext):
         self.dry_run: bool = dry_run
         self.zmq_service: bool = zmq_service
         self.status: bool = status
-        self.plexus = plexus
+        self.external_plexus = True if plexus else False
+        self.plexus = plexus if plexus else Plexus()
 
         self.session_id = uuid.uuid4().int & (1 << 64) - 1
 
@@ -147,7 +148,8 @@ class PodpingHivewriter(AsyncContext):
 
     def close(self):
         super().close()
-        self.plexus.close()
+        if not self.external_plexus:
+            self.plexus.close()
 
     async def _startup(self):
         if self.resource_test and not self.dry_run:
