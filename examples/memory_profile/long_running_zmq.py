@@ -26,7 +26,6 @@ try:
     import tracemalloc
 except ModuleNotFoundError:
     tracemalloc = False
-from platform import python_version as pv, python_implementation as pi
 from timeit import default_timer as timer
 
 host = "127.0.0.1"
@@ -97,7 +96,7 @@ async def endless_send_loop():
         session_uuid_str = str(session_uuid)
 
         for i in range(1000):
-            iri = f"https://example.com?t=agates_test&i={i}s={session_uuid_str}"
+            iri = f"https://example.com?t=agates_test&i={i}&s={session_uuid_str}"
             medium: PodpingMedium = random.sample(sorted(mediums), 1)[0]
             reason: PodpingReason = random.sample(sorted(reasons), 1)[0]
             podping_write = PodpingWrite(medium=medium, reason=reason, iri=iri)
