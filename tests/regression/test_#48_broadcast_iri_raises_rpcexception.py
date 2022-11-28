@@ -7,14 +7,20 @@ import lighthive
 import pytest
 from lighthive.client import Client
 from lighthive.exceptions import RPCNodeException
+from podping_schemas.org.podcastindex.podping.podping_medium import (
+    PodpingMedium,
+)
+from podping_schemas.org.podcastindex.podping.podping_reason import (
+    PodpingReason,
+)
 
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
 from podping_hivewriter.exceptions import (
     NotEnoughResourceCredits,
     TooManyCustomJsonsPerBlock,
 )
-from podping_hivewriter.models.medium import mediums, str_medium_map
-from podping_hivewriter.models.reason import reasons, str_reason_map
+from podping_hivewriter.models.medium import mediums
+from podping_hivewriter.models.reason import reasons
 from podping_hivewriter.podping_hivewriter import PodpingHivewriter
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
@@ -36,8 +42,8 @@ async def test_broadcast_iri_raises_rpcexception_invalid_body(monkeypatch):
     test_name = "test_send_notification_raises_rpcexception_invalid_body"
     iri = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
 
-    medium = str_medium_map[random.sample(sorted(mediums), 1)[0]]
-    reason = str_reason_map[random.sample(sorted(reasons), 1)[0]]
+    medium: PodpingMedium = random.sample(sorted(mediums), 1)[0]
+    reason: PodpingReason = random.sample(sorted(reasons), 1)[0]
 
     podping_hivewriter = PodpingHivewriter(
         os.environ["PODPING_HIVE_ACCOUNT"],
@@ -47,6 +53,7 @@ async def test_broadcast_iri_raises_rpcexception_invalid_body(monkeypatch):
         reason=reason,
         zmq_service=False,
         resource_test=False,
+        status=False,
         operation_id=LIVETEST_OPERATION_ID,
     )
 
@@ -80,8 +87,8 @@ async def test_broadcast_iri_raises_rpcexception_valid_body(monkeypatch):
     test_name = "test_send_notification_raises_rpcexception_valid_body"
     iri = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
 
-    medium = str_medium_map[random.sample(sorted(mediums), 1)[0]]
-    reason = str_reason_map[random.sample(sorted(reasons), 1)[0]]
+    medium: PodpingMedium = random.sample(sorted(mediums), 1)[0]
+    reason: PodpingReason = random.sample(sorted(reasons), 1)[0]
 
     podping_hivewriter = PodpingHivewriter(
         os.environ["PODPING_HIVE_ACCOUNT"],
@@ -91,6 +98,7 @@ async def test_broadcast_iri_raises_rpcexception_valid_body(monkeypatch):
         reason=reason,
         zmq_service=False,
         resource_test=False,
+        status=False,
         operation_id=LIVETEST_OPERATION_ID,
     )
 
@@ -124,8 +132,8 @@ async def test_broadcast_iri_raises_too_many_custom_jsons_per_block(monkeypatch)
     test_name = "test_send_notification_raises_too_many_custom_jsons_per_block"
     iri = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
 
-    medium = str_medium_map[random.sample(sorted(mediums), 1)[0]]
-    reason = str_reason_map[random.sample(sorted(reasons), 1)[0]]
+    medium: PodpingMedium = random.sample(sorted(mediums), 1)[0]
+    reason: PodpingReason = random.sample(sorted(reasons), 1)[0]
 
     podping_hivewriter = PodpingHivewriter(
         os.environ["PODPING_HIVE_ACCOUNT"],
@@ -135,6 +143,7 @@ async def test_broadcast_iri_raises_too_many_custom_jsons_per_block(monkeypatch)
         reason=reason,
         zmq_service=False,
         resource_test=False,
+        status=False,
         operation_id=LIVETEST_OPERATION_ID,
     )
 
@@ -168,8 +177,8 @@ async def test_broadcast_iri_raises_not_enough_resource_credits(monkeypatch):
     test_name = "test_send_notification_raises_not_enough_resource_credits"
     iri = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
 
-    medium = str_medium_map[random.sample(sorted(mediums), 1)[0]]
-    reason = str_reason_map[random.sample(sorted(reasons), 1)[0]]
+    medium: PodpingMedium = random.sample(sorted(mediums), 1)[0]
+    reason: PodpingReason = random.sample(sorted(reasons), 1)[0]
 
     podping_hivewriter = PodpingHivewriter(
         os.environ["PODPING_HIVE_ACCOUNT"],
@@ -179,6 +188,7 @@ async def test_broadcast_iri_raises_not_enough_resource_credits(monkeypatch):
         reason=reason,
         zmq_service=False,
         resource_test=False,
+        status=False,
         operation_id=LIVETEST_OPERATION_ID,
     )
 

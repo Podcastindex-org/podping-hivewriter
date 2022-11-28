@@ -1,9 +1,14 @@
-import json
 import os
 import uuid
 from platform import python_version as pv
 
 import pytest
+from podping_schemas.org.podcastindex.podping.podping_medium import (
+    PodpingMedium,
+)
+from podping_schemas.org.podcastindex.podping.podping_reason import (
+    PodpingReason,
+)
 from typer.testing import CliRunner
 
 from podping_hivewriter.cli.podping import app
@@ -13,8 +18,6 @@ from podping_hivewriter.hive import (
     get_relevant_transactions_from_blockchain,
 )
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
-from podping_hivewriter.models.medium import Medium
-from podping_hivewriter.models.reason import Reason
 
 
 @pytest.mark.asyncio
@@ -46,9 +49,9 @@ async def test_use_testnet_startup_checks_and_write_cli_single():
     test_name = "use_testnet_startup_checks_and_write_cli_single"
     iri = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
 
-    default_hive_operation_id = HiveOperationId(
-        LIVETEST_OPERATION_ID, Medium.podcast, Reason.update
-    )
+    medium = PodpingMedium.podcast
+    reason = PodpingReason.update
+    default_hive_operation_id = HiveOperationId(LIVETEST_OPERATION_ID, medium, reason)
     default_hive_operation_id_str = str(default_hive_operation_id)
 
     args = ["--livetest", "--hive-operation-period", "30", "write", iri]
@@ -67,10 +70,12 @@ async def test_use_testnet_startup_checks_and_write_cli_single():
     async for tx in get_relevant_transactions_from_blockchain(
         lighthive_client, current_block, default_hive_operation_id_str
     ):
-        if iri in tx.iris:
+        assert len(tx.podpings) == 1
+
+        if iri in tx.podpings[0].iris:
             iri_found = True
-            assert tx.medium == default_hive_operation_id.medium
-            assert tx.reason == default_hive_operation_id.reason
+            assert tx.podpings[0].medium == medium
+            assert tx.podpings[0].reason == reason
             break
 
     assert iri_found

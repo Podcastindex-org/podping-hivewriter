@@ -10,8 +10,8 @@ from podping_hivewriter.cli.podping import app
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
 from podping_hivewriter.hive import get_relevant_transactions_from_blockchain
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
-from podping_hivewriter.models.medium import mediums, str_medium_map
-from podping_hivewriter.models.reason import reasons, str_reason_map
+from podping_hivewriter.models.medium import medium_strings, str_medium_map
+from podping_hivewriter.models.reason import reason_strings, str_reason_map
 
 
 @pytest.mark.asyncio
@@ -31,8 +31,8 @@ async def test_write_cli_multiple(lighthive_client):
         for i in range(num_iris)
     }
 
-    medium = str_medium_map[random.sample(sorted(mediums), 1)[0]]
-    reason = str_reason_map[random.sample(sorted(reasons), 1)[0]]
+    medium = str_medium_map[random.sample(sorted(medium_strings), 1)[0]]
+    reason = str_reason_map[random.sample(sorted(reason_strings), 1)[0]]
 
     default_hive_operation_id = HiveOperationId(LIVETEST_OPERATION_ID, medium, reason)
     default_hive_operation_id_str = str(default_hive_operation_id)
@@ -62,14 +62,15 @@ async def test_write_cli_multiple(lighthive_client):
     async for tx in get_relevant_transactions_from_blockchain(
         lighthive_client, current_block, default_hive_operation_id_str
     ):
-        assert tx.medium == medium
-        assert tx.reason == reason
+        for podping in tx.podpings:
+            assert podping.medium == medium
+            assert podping.reason == reason
 
-        for iri in tx.iris:
-            if iri.endswith(session_uuid_str):
-                answer_iris.add(iri)
+            for iri in podping.iris:
+                if iri.endswith(session_uuid_str):
+                    answer_iris.add(iri)
 
-        if len(answer_iris) == len(test_iris):
+        if len(test_iris) == len(answer_iris):
             break
 
-    assert answer_iris == test_iris
+    assert test_iris == answer_iris

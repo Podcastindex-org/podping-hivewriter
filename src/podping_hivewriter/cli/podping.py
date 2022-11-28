@@ -7,6 +7,12 @@ import rfc3987
 import typer
 from lighthive.broadcast.base58 import Base58
 from lighthive.client import Client
+from podping_schemas.org.podcastindex.podping.podping_medium import (
+    PodpingMedium,
+)
+from podping_schemas.org.podcastindex.podping.podping_reason import (
+    PodpingReason,
+)
 
 from podping_hivewriter import __version__
 from podping_hivewriter.constants import (
@@ -16,8 +22,8 @@ from podping_hivewriter.constants import (
     EXIT_CODE_INVALID_POSTING_KEY,
 )
 from podping_hivewriter.hive import get_client
-from podping_hivewriter.models.medium import Medium, mediums, str_medium_map
-from podping_hivewriter.models.reason import Reason, reasons, str_reason_map
+from podping_hivewriter.models.medium import medium_strings, str_medium_map
+from podping_hivewriter.models.reason import reason_strings, str_reason_map
 from podping_hivewriter.podping_hivewriter import PodpingHivewriter
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
@@ -32,17 +38,17 @@ def is_base58(sb: str) -> bool:
 
 
 def medium_callback(medium: str) -> str:
-    if medium not in mediums:
+    if medium not in medium_strings:
         raise typer.BadParameter(
-            f"Medium be one of the following: {str(', '.join(sorted(mediums)))}"
+            f"Medium be one of the following: {str(', '.join(sorted(medium_strings)))}"
         )
     return medium
 
 
 def reason_callback(reason: str) -> str:
-    if reason not in reasons:
+    if reason not in reason_strings:
         raise typer.BadParameter(
-            f"Reason must be one of the following: {str(', '.join(sorted(reasons)))}"
+            f"Reason must be one of the following: {str(', '.join(sorted(reason_strings)))}"
         )
     return reason
 
@@ -71,8 +77,8 @@ app = typer.Typer()
 class Config:
     hive_account: str
     hive_posting_key: str
-    medium: Medium
-    reason: Reason
+    medium: PodpingMedium
+    reason: PodpingReason
     sanity_check: bool
     livetest: bool
     dry_run: bool
@@ -259,7 +265,7 @@ def server(
     try:
         # Try to get an existing loop in case of running from other program
         # Mostly used for pytest
-        loop = asyncio.get_running_loop()
+        asyncio.get_running_loop()
     except RuntimeError as _:
         # If the loop isn't running, RuntimeError is raised.  Run normally
         loop = asyncio.get_event_loop()
@@ -271,20 +277,20 @@ def server(
 @app.callback()
 def callback(
     medium: str = typer.Option(
-        str(Medium.podcast),
+        str(PodpingMedium.podcast),
         envvar=["PODPING_MEDIUM"],
         callback=medium_callback,
-        autocompletion=lambda: sorted(mediums),
+        autocompletion=lambda: sorted(medium_strings),
         help=f"The medium of the feed being updated. If used in combination with the 'server', this sets the default "
-        f"medium only. Must be one of the following: {str(' '.join(mediums))}",
+        f"medium only. Must be one of the following: {str(' '.join(medium_strings))}",
     ),
     reason: str = typer.Option(
-        str(Reason.update),
+        str(PodpingReason.update),
         envvar=["PODPING_REASON"],
         callback=reason_callback,
-        autocompletion=lambda: sorted(reasons),
+        autocompletion=lambda: sorted(reason_strings),
         help=f"The reason the feed is being updated. If used in combination with the 'server', this sets the default "
-        f"reason only. Must be one of the following: {str(' '.join(reasons))}",
+        f"reason only. Must be one of the following: {str(' '.join(reason_strings))}",
     ),
     hive_account: str = typer.Option(
         ...,
