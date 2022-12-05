@@ -16,11 +16,22 @@ class AsyncContext:
         self.close()
 
     def close(self):
+        for task in self._tasks:
+            task.cancel()
+        wait_coro = asyncio.wait(
+            self._tasks, timeout=3, return_when=asyncio.ALL_COMPLETED
+        )
         try:
-            for task in self._tasks:
-                task.cancel()
+            loop = asyncio.get_running_loop()
+
+            asyncio.ensure_future(
+                wait_coro,
+                loop=loop,
+            )
         except RuntimeError:
-            pass
+            asyncio.run(wait_coro)
+        finally:
+            self._tasks = []
 
     def _add_task(self, task):
         self._tasks.append(task)
