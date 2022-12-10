@@ -6,20 +6,24 @@ from platform import python_version as pv
 import lighthive
 import pytest
 from lighthive.exceptions import RPCNodeException
+from podping_schemas.org.podcastindex.podping.podping_medium import (
+    PodpingMedium,
+)
+from podping_schemas.org.podcastindex.podping.podping_reason import (
+    PodpingReason,
+)
 
 from podping_hivewriter import podping_hivewriter
 from podping_hivewriter.constants import LIVETEST_OPERATION_ID
 from podping_hivewriter.exceptions import NotEnoughResourceCredits
-from podping_hivewriter.models.medium import mediums, str_medium_map
-from podping_hivewriter.models.reason import reasons, str_reason_map
+from podping_hivewriter.models.medium import mediums
+from podping_hivewriter.models.reason import reasons
 from podping_hivewriter.podping_hivewriter import PodpingHivewriter
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
 
 @pytest.mark.asyncio
-async def test_failure_retry_handles_invalid_error_response(
-    event_loop, mocker, monkeypatch
-):
+async def test_broadcast_iris_retry_handles_invalid_error_response(mocker, monkeypatch):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
     logging_warning_stub = mocker.stub(name="logging_warning_stub")
@@ -32,7 +36,7 @@ async def test_failure_retry_handles_invalid_error_response(
 
     monkeypatch.setattr(podping_hivewriter.logging, "warning", logging_warning_stub)
     monkeypatch.setattr(podping_hivewriter.logging, "error", logging_error_stub)
-    monkeypatch.setattr(lighthive.client.Client, "broadcast", mock_broadcast)
+    monkeypatch.setattr(lighthive.client.Client, "broadcast_sync", mock_broadcast)
 
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)
@@ -40,8 +44,8 @@ async def test_failure_retry_handles_invalid_error_response(
     test_name = "failure_retry_handles_invalid_error_response"
     iri = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
 
-    medium = str_medium_map[random.sample(sorted(mediums), 1)[0]]
-    reason = str_reason_map[random.sample(sorted(reasons), 1)[0]]
+    medium: PodpingMedium = random.sample(sorted(mediums), 1)[0]
+    reason: PodpingReason = random.sample(sorted(reasons), 1)[0]
 
     writer = PodpingHivewriter(
         os.environ["PODPING_HIVE_ACCOUNT"],
@@ -49,8 +53,9 @@ async def test_failure_retry_handles_invalid_error_response(
         settings_manager,
         medium=medium,
         reason=reason,
-        daemon=False,
+        zmq_service=False,
         resource_test=False,
+        status=False,
         operation_id=LIVETEST_OPERATION_ID,
     )
 
@@ -59,18 +64,19 @@ async def test_failure_retry_handles_invalid_error_response(
     mocker.patch.object(podping_hivewriter.itertools, "repeat", return_value=range(1))
     logging_warning_stub.reset_mock()
 
-    failure_count = await writer.failure_retry({iri}, medium, reason)
+    failure_count, response = await writer.broadcast_iris_retry({iri}, medium, reason)
 
     writer.close()
 
     assert logging_warning_stub.call_count == 2
     assert logging_error_stub.call_count == 4
     assert failure_count == 1
+    assert response is None
 
 
 @pytest.mark.asyncio
-async def test_failure_retry_handles_not_enough_resource_credits(
-    event_loop, mocker, monkeypatch
+async def test_broadcast_iris_retry_handles_not_enough_resource_credits(
+    mocker, monkeypatch
 ):
     settings_manager = PodpingSettingsManager(ignore_updates=True)
 
@@ -82,7 +88,7 @@ async def test_failure_retry_handles_not_enough_resource_credits(
 
     monkeypatch.setattr(podping_hivewriter.logging, "warning", logging_warning_stub)
     monkeypatch.setattr(podping_hivewriter.logging, "error", logging_error_stub)
-    monkeypatch.setattr(lighthive.client.Client, "broadcast", mock_broadcast)
+    monkeypatch.setattr(lighthive.client.Client, "broadcast_sync", mock_broadcast)
 
     session_uuid = uuid.uuid4()
     session_uuid_str = str(session_uuid)
@@ -90,8 +96,8 @@ async def test_failure_retry_handles_not_enough_resource_credits(
     test_name = "failure_retry_handles_not_enough_resource_credits"
     iri = f"https://example.com?t={test_name}&v={pv()}&s={session_uuid_str}"
 
-    medium = str_medium_map[random.sample(sorted(mediums), 1)[0]]
-    reason = str_reason_map[random.sample(sorted(reasons), 1)[0]]
+    medium: PodpingMedium = random.sample(sorted(mediums), 1)[0]
+    reason: PodpingReason = random.sample(sorted(reasons), 1)[0]
 
     writer = PodpingHivewriter(
         os.environ["PODPING_HIVE_ACCOUNT"],
@@ -99,8 +105,9 @@ async def test_failure_retry_handles_not_enough_resource_credits(
         settings_manager,
         medium=medium,
         reason=reason,
-        daemon=False,
+        zmq_service=False,
         resource_test=False,
+        status=False,
         operation_id=LIVETEST_OPERATION_ID,
     )
 
@@ -109,7 +116,7 @@ async def test_failure_retry_handles_not_enough_resource_credits(
     mocker.patch.object(podping_hivewriter.itertools, "repeat", return_value=range(1))
     logging_warning_stub.reset_mock()
 
-    failure_count = await writer.failure_retry({iri}, medium, reason)
+    failure_count, response = await writer.broadcast_iris_retry({iri}, medium, reason)
 
     writer.close()
 
@@ -117,3 +124,4 @@ async def test_failure_retry_handles_not_enough_resource_credits(
     assert logging_warning_stub.call_count == 2
     assert logging_error_stub.call_count == 1
     assert failure_count == 1
+    assert response is None

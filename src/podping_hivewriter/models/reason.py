@@ -1,22 +1,26 @@
-import capnpy
-from capnpy.annotate import Options
+from typing import FrozenSet
 
-reason_module = capnpy.load_schema(
-    "podping_hivewriter.schema.reason",
-    # Make sure properties are imported as specified (camelCase)
-    options=Options(convert_case=False, include_reflection_data=True),
+import capnpy
+from podping_schemas.org.podcastindex.podping import podping_reason
+from podping_schemas.org.podcastindex.podping.podping_reason import (
+    PodpingReason,
 )
 
-Reason = reason_module.Reason
-
-reasons = frozenset(Reason.__members__)
-
 # capnpy has a different "constructor" for pyx vs pure python
-get_reason_by_num = Reason._new_hack if hasattr(Reason, "_new_hack") else Reason._new
+get_reason_by_num = (
+    PodpingReason._new_hack
+    if hasattr(PodpingReason, "_new_hack")
+    else PodpingReason._new
+)
 
 str_reason_map = {
     enumerant.name.decode("UTF-8"): get_reason_by_num(enumerant.codeOrder)
-    for enumerant in capnpy.get_reflection_data(reason_module)
-    .get_node(Reason)
+    for enumerant in capnpy.get_reflection_data(podping_reason)
+    .get_node(PodpingReason)
     .get_enum_enumerants()
 }
+
+reason_strings: FrozenSet[str] = frozenset(PodpingReason.__members__)
+reasons: FrozenSet[PodpingReason] = frozenset(
+    {str_reason_map[reason] for reason in reason_strings}
+)

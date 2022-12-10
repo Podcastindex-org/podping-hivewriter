@@ -1,4 +1,8 @@
+import logging
+
 import pytest
+
+from podping_hivewriter.hive import get_client
 
 
 def pytest_addoption(parser):
@@ -19,3 +23,8 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if "slow" in item.keywords:
             item.add_marker(skip_slow)
+
+
+@pytest.fixture(scope="session")
+def lighthive_client():
+    return get_client(loglevel=logging.WARN)

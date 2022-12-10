@@ -1,22 +1,26 @@
-import capnpy
-from capnpy.annotate import Options
+from typing import FrozenSet
 
-medium_module = capnpy.load_schema(
-    "podping_hivewriter.schema.medium",
-    # Make sure properties are imported as specified (camelCase)
-    options=Options(convert_case=False, include_reflection_data=True),
+import capnpy
+from podping_schemas.org.podcastindex.podping import podping_medium
+from podping_schemas.org.podcastindex.podping.podping_medium import (
+    PodpingMedium,
 )
 
-Medium = medium_module.Medium
-
-mediums = frozenset(Medium.__members__)
-
 # capnpy has a different "constructor" for pyx vs pure python
-get_medium_by_num = Medium._new_hack if hasattr(Medium, "_new_hack") else Medium._new
+get_medium_by_num = (
+    PodpingMedium._new_hack
+    if hasattr(PodpingMedium, "_new_hack")
+    else PodpingMedium._new
+)
 
 str_medium_map = {
     enumerant.name.decode("UTF-8"): get_medium_by_num(enumerant.codeOrder)
-    for enumerant in capnpy.get_reflection_data(medium_module)
-    .get_node(Medium)
+    for enumerant in capnpy.get_reflection_data(podping_medium)
+    .get_node(PodpingMedium)
     .get_enum_enumerants()
 }
+
+medium_strings: FrozenSet[str] = frozenset(PodpingMedium.__members__)
+mediums: FrozenSet[PodpingMedium] = frozenset(
+    {str_medium_map[medium] for medium in medium_strings}
+)
