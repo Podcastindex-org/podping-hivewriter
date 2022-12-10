@@ -117,7 +117,7 @@ six = "*"
 
 [[package]]
 name = "certifi"
-version = "2022.9.24"
+version = "2022.12.7"
 description = "Python package for providing Mozilla's CA Bundle."
 category = "main"
 optional = false
@@ -336,7 +336,7 @@ testing = ["flake8 (<5)", "flufl.flake8", "importlib-resources (>=1.3)", "packag
 
 [[package]]
 name = "importlib-resources"
-version = "5.10.0"
+version = "5.10.1"
 description = "Read resources from Python packages"
 category = "main"
 optional = false
@@ -381,7 +381,7 @@ requirements-deprecated-finder = ["pip-api", "pipreqs"]
 
 [[package]]
 name = "jsonschema"
-version = "4.17.1"
+version = "4.17.3"
 description = "An implementation of JSON Schema validation for Python"
 category = "main"
 optional = false
@@ -466,14 +466,11 @@ python-versions = "*"
 
 [[package]]
 name = "packaging"
-version = "21.3"
+version = "22.0"
 description = "Core utilities for Python packages"
 category = "dev"
 optional = false
-python-versions = ">=3.6"
-
-[package.dependencies]
-pyparsing = ">=2.0.2,<3.0.5 || >3.0.5"
+python-versions = ">=3.7"
 
 [[package]]
 name = "patch-env"
@@ -512,7 +509,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "platformdirs"
-version = "2.5.4"
+version = "2.6.0"
 description = "A small Python package for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
 category = "dev"
 optional = false
@@ -524,11 +521,11 @@ test = ["appdirs (==1.4.4)", "pytest (>=7.2)", "pytest-cov (>=4)", "pytest-mock 
 
 [[package]]
 name = "plexo"
-version = "1.0.0a7"
+version = "1.0.0a8"
 description = "Opinionated, reactive, schema-driven, distributed message passing"
 category = "main"
 optional = false
-python-versions = ">=3.8,<=3.11"
+python-versions = ">=3.8,<3.12"
 
 [package.dependencies]
 capnpy-agates = ">=0.9.0,<0.10.0"
@@ -552,11 +549,11 @@ testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
 name = "podping-schemas"
-version = "0.1.0a15"
+version = "0.1.0a17"
 description = ""
 category = "main"
 optional = false
-python-versions = ">=3.8,<=3.11"
+python-versions = ">=3.8,<3.12"
 
 [package.dependencies]
 capnpy-agates = ">=0.9.0,<0.10.0"
@@ -609,17 +606,6 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
-name = "pyparsing"
-version = "3.0.9"
-description = "pyparsing module - Classes and methods to define and execute parsing grammars"
-category = "dev"
-optional = false
-python-versions = ">=3.6.8"
-
-[package.extras]
-diagrams = ["jinja2", "railroad-diagrams"]
-
-[[package]]
 name = "pypytools"
 version = "0.6.2"
 description = "A collection of useful tools to use PyPy-specific features, with CPython fallbacks"
@@ -660,7 +646,7 @@ testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.
 
 [[package]]
 name = "pytest-asyncio"
-version = "0.20.2"
+version = "0.20.3"
 description = "Pytest support for asyncio"
 category = "dev"
 optional = false
@@ -670,6 +656,7 @@ python-versions = ">=3.7"
 pytest = ">=6.1.0"
 
 [package.extras]
+docs = ["sphinx (>=5.3)", "sphinx-rtd-theme (>=1.0)"]
 testing = ["coverage (>=6.2)", "flaky (>=3.5.0)", "hypothesis (>=5.7.1)", "mypy (>=0.931)", "pytest-trio (>=0.7.0)"]
 
 [[package]]
@@ -942,8 +929,8 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 
 [metadata]
 lock-version = "1.1"
-python-versions = "^3.8,<=3.11"
-content-hash = "2d8cf7c9cae03fc99fc58eed5379c817b6cf4cb5ff20eaab37e4c5398831105f"
+python-versions = "^3.8,<3.12"
+content-hash = "597c949c033eca416d694e033721534836120623738c9b3fb81d504b629e84a3"
 
 [metadata.files]
 anyio = [
@@ -982,8 +969,8 @@ capnpy-agates = [
     {file = "capnpy_agates-0.9.2rc1-py3-none-any.whl", hash = "sha256:c67bcbc615a6dd9fef546083414aa76ed1515657ac0a593a898daaea116dc2a2"},
 ]
 certifi = [
-    {file = "certifi-2022.9.24-py3-none-any.whl", hash = "sha256:90c1a32f1d68f940488354e36370f6cca89f0f106db09518524c88d6ed83f382"},
-    {file = "certifi-2022.9.24.tar.gz", hash = "sha256:0d9c601124e5a6ba9712dbc60d9c53c21e34f5f641fe83002317394311bdce14"},
+    {file = "certifi-2022.12.7-py3-none-any.whl", hash = "sha256:4ad3232f5e926d6718ec31cfc1fcadfde020920e278684144551c91769c7bc18"},
+    {file = "certifi-2022.12.7.tar.gz", hash = "sha256:35824b4c3a97115964b408844d64aa14db1cc518f6562e8d7261699d1350a9e3"},
 ]
 cffi = [
     {file = "cffi-1.15.1-cp27-cp27m-macosx_10_9_x86_64.whl", hash = "sha256:a66d3508133af6e8548451b25058d5812812ec3798c886bf38ed24a98216fab2"},
@@ -1205,8 +1192,8 @@ importlib-metadata = [
     {file = "importlib_metadata-5.1.0.tar.gz", hash = "sha256:d5059f9f1e8e41f80e9c56c2ee58811450c31984dfa625329ffd7c0dad88a73b"},
 ]
 importlib-resources = [
-    {file = "importlib_resources-5.10.0-py3-none-any.whl", hash = "sha256:ee17ec648f85480d523596ce49eae8ead87d5631ae1551f913c0100b5edd3437"},
-    {file = "importlib_resources-5.10.0.tar.gz", hash = "sha256:c01b1b94210d9849f286b86bb51bcea7cd56dde0600d8db721d7b81330711668"},
+    {file = "importlib_resources-5.10.1-py3-none-any.whl", hash = "sha256:c09b067d82e72c66f4f8eb12332f5efbebc9b007c0b6c40818108c9870adc363"},
+    {file = "importlib_resources-5.10.1.tar.gz", hash = "sha256:32bb095bda29741f6ef0e5278c42df98d135391bee5f932841efc0041f748dc3"},
 ]
 inflection = [
     {file = "inflection-0.5.1-py2.py3-none-any.whl", hash = "sha256:f38b2b640938a4f35ade69ac3d053042959b62a0f1076a5bbaa1b9526605a8a2"},
@@ -1221,8 +1208,8 @@ isort = [
     {file = "isort-5.10.1.tar.gz", hash = "sha256:e8443a5e7a020e9d7f97f1d7d9cd17c88bcb3bc7e218bf9cf5095fe550be2951"},
 ]
 jsonschema = [
-    {file = "jsonschema-4.17.1-py3-none-any.whl", hash = "sha256:410ef23dcdbca4eaedc08b850079179883c2ed09378bd1f760d4af4aacfa28d7"},
-    {file = "jsonschema-4.17.1.tar.gz", hash = "sha256:05b2d22c83640cde0b7e0aa329ca7754fbd98ea66ad8ae24aa61328dfe057fa3"},
+    {file = "jsonschema-4.17.3-py3-none-any.whl", hash = "sha256:a870ad254da1a8ca84b6a2905cac29d265f805acc57af304784962a2aa6508f6"},
+    {file = "jsonschema-4.17.3.tar.gz", hash = "sha256:0f864437ab8b6076ba6707453ef8f98a6a0d512a80e93f8abdb676f737ecb60d"},
 ]
 lighthive = [
     {file = "lighthive-0.4.0.tar.gz", hash = "sha256:2043a0728605459292fe13c526c32eaa85860e56338277193cb6979dc5cc7d93"},
@@ -1266,8 +1253,8 @@ mypy-extensions = [
     {file = "mypy_extensions-0.4.3.tar.gz", hash = "sha256:2d82818f5bb3e369420cb3c4060a7970edba416647068eb4c5343488a6c604a8"},
 ]
 packaging = [
-    {file = "packaging-21.3-py3-none-any.whl", hash = "sha256:ef103e05f519cdc783ae24ea4e2e0f508a9c99b2d4969652eed6a2e1ea5bd522"},
-    {file = "packaging-21.3.tar.gz", hash = "sha256:dd47c42927d89ab911e606518907cc2d3a1f38bbd026385970643f9c5b8ecfeb"},
+    {file = "packaging-22.0-py3-none-any.whl", hash = "sha256:957e2148ba0e1a3b282772e791ef1d8083648bc131c8ab0c1feba110ce1146c3"},
+    {file = "packaging-22.0.tar.gz", hash = "sha256:2198ec20bd4c017b8f9717e00f0c8714076fc2fd93816750ab48e2c41de2cfd3"},
 ]
 patch-env = [
     {file = "patch_env-1.0.0-py2.py3-none-any.whl", hash = "sha256:f12d54f8451f1347d6040b3167d29e1c60cdbc56dcf5282c28cc7e24f76393b7"},
@@ -1286,28 +1273,28 @@ pkgutil-resolve-name = [
     {file = "pkgutil_resolve_name-1.3.10.tar.gz", hash = "sha256:357d6c9e6a755653cfd78893817c0853af365dd51ec97f3d358a819373bbd174"},
 ]
 platformdirs = [
-    {file = "platformdirs-2.5.4-py3-none-any.whl", hash = "sha256:af0276409f9a02373d540bf8480021a048711d572745aef4b7842dad245eba10"},
-    {file = "platformdirs-2.5.4.tar.gz", hash = "sha256:1006647646d80f16130f052404c6b901e80ee4ed6bef6792e1f238a8969106f7"},
+    {file = "platformdirs-2.6.0-py3-none-any.whl", hash = "sha256:1a89a12377800c81983db6be069ec068eee989748799b946cce2a6e80dcc54ca"},
+    {file = "platformdirs-2.6.0.tar.gz", hash = "sha256:b46ffafa316e6b83b47489d240ce17173f123a9b9c83282141c3daf26ad9ac2e"},
 ]
 plexo = [
-    {file = "plexo-1.0.0a7-cp310-cp310-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:cc6db93c830efe71cf68cfe4a6da733a3ea74145ee4192e09c7b28843b70812e"},
-    {file = "plexo-1.0.0a7-cp311-cp311-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f0eb89afdb7e6cba527b8dddce0fb92f004fe67918929697f6f909e40a64b560"},
-    {file = "plexo-1.0.0a7-cp38-cp38-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:65bd0b03bd031a13bfa25e710ce1495b0471278703fcb9794fa7996c40ed282a"},
-    {file = "plexo-1.0.0a7-cp39-cp39-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b6df19b65321f3124680dc1aa2f8956468f977338eec513c4b6e5b9a289bce58"},
-    {file = "plexo-1.0.0a7-py3-none-any.whl", hash = "sha256:8d30c592b32902895716bd3571a34939c48f23ab4fd745fd7435cb4b0ba7b75a"},
-    {file = "plexo-1.0.0a7.tar.gz", hash = "sha256:269e201b04a747f0165e8e1ea6be593caa2eb6c2f310992f4aafdafe7084d5f0"},
+    {file = "plexo-1.0.0a8-cp310-cp310-manylinux_2_17_x86_64.whl", hash = "sha256:b36ff05bd7f9a93017e52d70a8481aecc80ddb90a6c7bc8a47767e3d9ffd403d"},
+    {file = "plexo-1.0.0a8-cp311-cp311-manylinux_2_17_x86_64.whl", hash = "sha256:f8abbac74d91ca3e53f8ddecb1abd6ade6464ec1d7abfefa3234da83f0bd32f3"},
+    {file = "plexo-1.0.0a8-cp38-cp38-manylinux_2_17_x86_64.whl", hash = "sha256:0dbfee97fc71571e89da2928cee9780e29bdfe8bba1068e76a7274fc78aaa010"},
+    {file = "plexo-1.0.0a8-cp39-cp39-manylinux_2_17_x86_64.whl", hash = "sha256:c32f4d4d65d2d609c2b752caab9e920526c5d226d9aeb14cb2e17ac08f62adf2"},
+    {file = "plexo-1.0.0a8-pp39-pypy39_pp73-manylinux_2_17_x86_64.whl", hash = "sha256:45cdbc3725eb83f58b1901c363157345fa844d0cad94bcb07e8ff41b97c08f6c"},
+    {file = "plexo-1.0.0a8.tar.gz", hash = "sha256:31206e80fac2cf29ecf9ab47aa46da2a33603bdb879463f5f6f2745375600fe7"},
 ]
 pluggy = [
     {file = "pluggy-1.0.0-py2.py3-none-any.whl", hash = "sha256:74134bbf457f031a36d68416e1509f34bd5ccc019f0bcc952c7b909d06b37bd3"},
     {file = "pluggy-1.0.0.tar.gz", hash = "sha256:4224373bacce55f955a878bf9cfa763c1e360858e330072059e10bad68531159"},
 ]
 podping-schemas = [
-    {file = "podping_schemas-0.1.0a15-cp310-cp310-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:450eae1710152a21378382ea2460f830150f9eb4b7d218bc3b8484bc580a8deb"},
-    {file = "podping_schemas-0.1.0a15-cp311-cp311-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b3772cd92ee4ce49b8f03879ed2f751d51c2b24a709fd9b520c43aff2233b8a2"},
-    {file = "podping_schemas-0.1.0a15-cp38-cp38-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2cc5c3c5a6e228e08c3fafee87cff6483db1e10be2c9383c3a90c1355b309f99"},
-    {file = "podping_schemas-0.1.0a15-cp39-cp39-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:699b82900f3789b94d18d2fa7439e0b404416a22d4b1d8341e36237028267f93"},
-    {file = "podping_schemas-0.1.0a15-py3-none-any.whl", hash = "sha256:c2c8f9abfc4af15b9c787891b5251406df9a91a441608d8b779e11ca238fac71"},
-    {file = "podping_schemas-0.1.0a15.tar.gz", hash = "sha256:c34c89e1b94b8374b7f53ee6c3d4294418eae408773ae5eea109d3d595c8d3ed"},
+    {file = "podping_schemas-0.1.0a17-cp310-cp310-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d781c461702aa9c94eb87395f6fa08996294a2e7030fe5f35e598260a87801c4"},
+    {file = "podping_schemas-0.1.0a17-cp311-cp311-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9b606f249a03804debe82a1070006065ac9715e4a37b49a9074719afc15b5062"},
+    {file = "podping_schemas-0.1.0a17-cp38-cp38-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:82fa9f6fc7c163beb8db4802d4272e2ccc14eb33ac825e7c42ee4700c22e78fe"},
+    {file = "podping_schemas-0.1.0a17-cp39-cp39-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:73bd9f49a42f425370ada0a80e3115b778ee8d8b93a5c453a9860480df10fd89"},
+    {file = "podping_schemas-0.1.0a17-py3-none-any.whl", hash = "sha256:869152422c31f8e97f1dd295dd577f27d185e4e17a0b33371530665ae0c9eb61"},
+    {file = "podping_schemas-0.1.0a17.tar.gz", hash = "sha256:875ce2926b26514224a9fbf0255f4bc699cf1a307cb9ae20fb9e575d79940eeb"},
 ]
 py = [
     {file = "py-1.11.0-py2.py3-none-any.whl", hash = "sha256:607c53218732647dff4acdfcd50cb62615cedf612e72d1724fb1a0cc6405b378"},
@@ -1363,10 +1350,6 @@ pyflakes = [
     {file = "pyflakes-2.5.0-py2.py3-none-any.whl", hash = "sha256:4579f67d887f804e67edb544428f264b7b24f435b263c4614f384135cea553d2"},
     {file = "pyflakes-2.5.0.tar.gz", hash = "sha256:491feb020dca48ccc562a8c0cbe8df07ee13078df59813b83959cbdada312ea3"},
 ]
-pyparsing = [
-    {file = "pyparsing-3.0.9-py3-none-any.whl", hash = "sha256:5026bae9a10eeaefb61dab2f09052b9f4307d44aee4eda64b309723d8d206bbc"},
-    {file = "pyparsing-3.0.9.tar.gz", hash = "sha256:2b020ecf7d21b687f219b71ecad3631f644a47f01403fa1d1036b0c6416d70fb"},
-]
 pypytools = [
     {file = "pypytools-0.6.2.tar.gz", hash = "sha256:a140c053e4d1c0bae835f40662eb0040a75190771acf2b2a8832dfa7beefe529"},
 ]
@@ -1399,8 +1382,8 @@ pytest = [
     {file = "pytest-7.2.0.tar.gz", hash = "sha256:c4014eb40e10f11f355ad4e3c2fb2c6c6d1919c73f3b5a433de4708202cade59"},
 ]
 pytest-asyncio = [
-    {file = "pytest-asyncio-0.20.2.tar.gz", hash = "sha256:32a87a9836298a881c0ec637ebcc952cfe23a56436bdc0d09d1511941dd8a812"},
-    {file = "pytest_asyncio-0.20.2-py3-none-any.whl", hash = "sha256:07e0abf9e6e6b95894a39f688a4a875d63c2128f76c02d03d16ccbc35bcc0f8a"},
+    {file = "pytest-asyncio-0.20.3.tar.gz", hash = "sha256:83cbf01169ce3e8eb71c6c278ccb0574d1a7a3bb8eaaf5e50e0ad342afb33b36"},
+    {file = "pytest_asyncio-0.20.3-py3-none-any.whl", hash = "sha256:f129998b209d04fcc65c96fc85c11e5316738358909a8399e93be553d7656442"},
 ]
 pytest-cov = [
     {file = "pytest-cov-4.0.0.tar.gz", hash = "sha256:996b79efde6433cdbd0088872dbc5fb3ed7fe1578b68cdbba634f14bb8dd0470"},
