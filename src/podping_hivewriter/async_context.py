@@ -31,7 +31,7 @@ class AsyncContext:
 
                 future = asyncio.run_coroutine_threadsafe(wait_coro, loop)
                 # This is broken, pending https://bugs.python.org/issue42130
-                future.result(3)
+                # future.result(3)
             except RuntimeError:
                 asyncio.run(wait_coro)
             except TimeoutError:
