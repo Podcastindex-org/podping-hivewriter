@@ -962,6 +962,7 @@ cachetools = [
     {file = "cachetools-5.2.0.tar.gz", hash = "sha256:6a94c6402995a99c3970cc7e4884bb60b4a8639938157eeed436098bf9831757"},
 ]
 capnpy-agates = [
+    {file = "capnpy-agates-0.9.2rc1.tar.gz", hash = "sha256:7d4469ae950640f88ea3e332184de37da68163d86ee5b76557843d8a3df6ea60"},
     {file = "capnpy_agates-0.9.2rc1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:92e6033dacc53a545ad584d49bff3da9b47ef0c819d11caa976f97120ae13016"},
     {file = "capnpy_agates-0.9.2rc1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9a8cb7c6990276fbf0d08e890a411bb578660ad8825b4aae6529d92e303f608d"},
     {file = "capnpy_agates-0.9.2rc1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:cf316155c58959f52475e9b2ff26cd38fb026c88117f9beb37f310f696bfedba"},

@@ -24,7 +24,6 @@ from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 TESTNET_NUM_IRIS = 1_000
 
 
-# @pytest.mark.skip
 @pytest.mark.asyncio
 @pytest.mark.timeout(60000)
 @pytest.mark.slow
@@ -102,9 +101,6 @@ async def test_write_send_podping_multiple_mirrornet(lighthive_client):
         while not tx_queue.empty():
             txs.append(await tx_queue.get())
 
-        # test_iris = set(
-        #     iri for tx in txs for podping in tx.podpings for iri in podping.iris
-        # )
         start_block = min(tx.hiveBlockNum for tx in txs)
         logging.info(f"Startblock : {start_block}")
         answer_iris = set()
