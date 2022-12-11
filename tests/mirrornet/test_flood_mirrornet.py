@@ -21,11 +21,11 @@ from podping_hivewriter.neuron import podping_hive_transaction_neuron
 from podping_hivewriter.podping_hivewriter import PodpingHivewriter
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 
-TESTNET_NUM_IRIS = 1_000
+TESTNET_NUM_IRIS = 100
 
 
 @pytest.mark.asyncio
-@pytest.mark.timeout(60000)
+@pytest.mark.timeout(600)
 @pytest.mark.slow
 async def test_write_send_podping_multiple_mirrornet(lighthive_client):
     os.environ["PODPING_TESTNET"] = "true"
