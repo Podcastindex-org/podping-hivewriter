@@ -19,7 +19,6 @@ from podping_hivewriter.hive import (
 )
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 
-
 @pytest.mark.asyncio
 @pytest.mark.timeout(600)
 @pytest.mark.slow

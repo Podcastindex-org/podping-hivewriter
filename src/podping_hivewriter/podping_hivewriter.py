@@ -2,6 +2,7 @@ import asyncio
 import itertools
 import json
 import logging
+import os
 import re
 import sys
 import uuid
@@ -793,9 +794,16 @@ class PodpingHivewriter(AsyncContext):
                         sys.exit(EXIT_CODE_INVALID_POSTING_KEY)
                 except (KeyError, AttributeError):
                     logging.warning("Malformed error response")
-                    self.lighthive_client.circuit_breaker_cache[
-                        self.lighthive_client.current_node
-                    ] = True
+                    # Need to prevent the Lighthive circuitbreaker call if running
+                    # on testnet
+                    if not os.getenv("PODPING_TESTNET", "False").lower() in (
+                        "true",
+                        "1",
+                        "t",
+                    ):
+                        self.lighthive_client.circuit_breaker_cache[
+                            self.lighthive_client.current_node
+                        ] = True
                     logging.warning(
                         "Ignoring node %s for %d seconds",
                         self.lighthive_client.current_node,
