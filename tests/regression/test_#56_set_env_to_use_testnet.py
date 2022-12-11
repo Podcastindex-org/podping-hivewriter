@@ -3,12 +3,8 @@ import uuid
 from platform import python_version as pv
 
 import pytest
-from podping_schemas.org.podcastindex.podping.podping_medium import (
-    PodpingMedium,
-)
-from podping_schemas.org.podcastindex.podping.podping_reason import (
-    PodpingReason,
-)
+from podping_schemas.org.podcastindex.podping.podping_medium import PodpingMedium
+from podping_schemas.org.podcastindex.podping.podping_reason import PodpingReason
 from typer.testing import CliRunner
 
 from podping_hivewriter.cli.podping import app
@@ -18,6 +14,7 @@ from podping_hivewriter.hive import (
     get_relevant_transactions_from_blockchain,
 )
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
+
 
 @pytest.mark.asyncio
 @pytest.mark.timeout(600)
