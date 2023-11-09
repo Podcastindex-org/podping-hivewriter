@@ -936,19 +936,19 @@ test = ["appdirs (==1.4.4)", "covdefaults (>=2.3)", "pytest (>=7.4)", "pytest-co
 
 [[package]]
 name = "plexo"
-version = "1.0.0b1"
+version = "1.0.0"
 description = "Opinionated, reactive, schema-driven, distributed, and strongly-typed message passing"
 optional = false
 python-versions = ">=3.9.0,<3.12"
 files = [
-    {file = "plexo-1.0.0b1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:f6744f29abd8a6d45f3bcaf91774cdfe7c9e1cd6c9e546bf71f2fe58f61977d9"},
-    {file = "plexo-1.0.0b1-cp310-cp310-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1483d2d7108144833bfc3f4298f8f9a9d48400cf0b8333cc08223cb9bb9b3853"},
-    {file = "plexo-1.0.0b1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9a6543c57ab9c04f82265224c29427e0317632bad89d04edd421fc117fd849a4"},
-    {file = "plexo-1.0.0b1-cp311-cp311-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ee7c82b680077561c34db45737eb4defb0f1c94c8056f5cd8091e26a1c0f6e17"},
-    {file = "plexo-1.0.0b1-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0aa67559cd847348b76e9744822dc8c5cf897be7c1bb17b5f77da3ef2958cbb5"},
-    {file = "plexo-1.0.0b1-cp39-cp39-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:29b3698710c5c6c0eab00fe57a1593c2fcb646602755224744a55d52c1c9d5b0"},
-    {file = "plexo-1.0.0b1-py3-none-any.whl", hash = "sha256:902ccc68309fd1383c3353f86f57836ee0f13304f58df200a11410a3b44f21cc"},
-    {file = "plexo-1.0.0b1.tar.gz", hash = "sha256:eb484ef5888abe14cabd9e9dc5401d43f9d2494734a6430e3bdb0841752e183a"},
+    {file = "plexo-1.0.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:88ab3823e471356ad4dcee955a70fe14147d5c0efa03521f78d2868429bb6455"},
+    {file = "plexo-1.0.0-cp310-cp310-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0defff9c6a6fe0771ad73b99541927b420a5e84da1e4c073fc899ac5c4e91e79"},
+    {file = "plexo-1.0.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a73ed4c99cc8d29f30599cd4ab44a12c9ad3edeac84ddc6d36c1c8ec5163eb42"},
+    {file = "plexo-1.0.0-cp311-cp311-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:38b66e4141e9640c6d9d775c90673dc9866748704fc698be1264650b8efe7bd7"},
+    {file = "plexo-1.0.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ca1b2324a8e8de2279ba3c52b615a93fd940605e33a5b126c497d55ec73ec11b"},
+    {file = "plexo-1.0.0-cp39-cp39-manylinux_2_17_x86_64.manylinux_2_5_x86_64.manylinux1_x86_64.manylinux2014_x86_64.whl", hash = "sha256:71a06af92a7fa148967f71fcc3306c1d7f230808d1ab299ee9660104dc391fec"},
+    {file = "plexo-1.0.0-py3-none-any.whl", hash = "sha256:b3b53cc23acba3fa400e9b510c11545c76e16032fc9aa0852dd7ca50ab9c9d27"},
+    {file = "plexo-1.0.0.tar.gz", hash = "sha256:d44d7079cf1fd67fe3f94c53afa8eb7c48b6edc518f5754687d3a7e5c55cc2fa"},
 ]
 
 [package.dependencies]
@@ -1806,4 +1806,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9,<3.12"
-content-hash = "1186e5048e52dc14650d774e2e0851b1dcdb3def62f9d7746c03ec41e831bf44"
+content-hash = "a07560d0a1116f661fd2befee1e2deb80e40e3359b86a894293c1ab89e94dbd4"

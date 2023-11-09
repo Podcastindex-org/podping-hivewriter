@@ -28,7 +28,7 @@ asgiref = "^3.5"
 typer = {extras = ["all"], version = "^0.7.0"}
 capnpy = "^0.10.0"
 lighthive = "^0.4.0"
-plexo = {version = "1.0.0b1", allow-prereleases = true}
+plexo =  "1.0.0"
 podping-schemas = "^0.1.0"
 returns = "^0.22.0"
 
