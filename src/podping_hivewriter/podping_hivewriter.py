@@ -158,7 +158,9 @@ class PodpingHivewriter(AsyncContext):
 
         logging.info(f"Hive account: @{self.server_account}")
 
-        self.podping_hive_transaction_axon = Axon(podping_hive_transaction_neuron, self.plexus)
+        self.podping_hive_transaction_axon = Axon(
+            podping_hive_transaction_neuron, self.plexus
+        )
         self.podping_write_axon = Axon(podping_write_neuron, self.plexus)
         self.podping_write_error_axon = Axon(podping_write_error_neuron, self.plexus)
         await self.podping_hive_transaction_axon.adapt()
@@ -195,7 +197,11 @@ class PodpingHivewriter(AsyncContext):
                 )
             )
         self._add_task(
-            asyncio.create_task(self._iri_batch_handler_loop(self.podping_hive_transaction_axon, self.iri_batch_queue))
+            asyncio.create_task(
+                self._iri_batch_handler_loop(
+                    self.podping_hive_transaction_axon, self.iri_batch_queue
+                )
+            )
         )
         self._add_task(
             asyncio.create_task(
