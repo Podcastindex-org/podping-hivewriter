@@ -17,7 +17,27 @@ apt-get update
 apt-get -y upgrade
 
 # Install application dependencies
-apt-get -y install --no-install-recommends capnproto libffi8 zlib1g gcc
+apt-get -y install --no-install-recommends \
+    capnproto \
+    libffi8 \
+    zlib1g \
+    build-essential \
+    gdb \
+    lcov \
+    libbz2-dev \
+    libffi-dev \
+    libgdbm-dev \
+    liblzma-dev \
+    libncurses5-dev \
+    libreadline6-dev \
+    libsqlite3-dev \
+    libssl-dev \
+    lzma \
+    lzma-dev \
+    tk-dev \
+    uuid-dev \
+    xvfb \
+    zlib1g-dev
 
 # Delete cached files we don't need anymore (note that if you're
 # using official Docker images for Debian or Ubuntu, this happens
