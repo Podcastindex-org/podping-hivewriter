@@ -17,7 +17,7 @@ apt-get update
 apt-get -y upgrade
 
 # Install application dependencies
-apt-get -y install --no-install-recommends capnproto libffi7 zlib1g gcc
+apt-get -y install --no-install-recommends capnproto libffi8 zlib1g gcc
 
 # Delete cached files we don't need anymore (note that if you're
 # using official Docker images for Debian or Ubuntu, this happens
