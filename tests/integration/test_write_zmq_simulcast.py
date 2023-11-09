@@ -7,6 +7,7 @@ from platform import python_version as pv
 from typing import List
 
 import pytest
+from plexo.axon import Axon
 from plexo.ganglion.tcp_pair import GanglionZmqTcpPair
 from plexo.plexus import Plexus
 from podping_schemas.org.podcastindex.podping.hivewriter.podping_hive_transaction import (
@@ -79,17 +80,18 @@ async def test_write_zmq_simulcast(lighthive_client):
             ),
         )
         plexus = Plexus(ganglia=(tcp_pair_ganglion,))
-        await plexus.adapt(
-            podping_hive_transaction_neuron,
+        podping_hive_transaction_axon = Axon(podping_hive_transaction_neuron, plexus)
+        podping_write_axon = Axon(podping_write_neuron, plexus)
+        await podping_hive_transaction_axon.react(
             reactants=(_podping_hive_transaction_reaction,),
         )
-        await plexus.adapt(podping_write_neuron)
+        await podping_write_axon.adapt()
 
         op_period = settings_manager._settings.hive_operation_period
 
         for iri, medium, reason in test_iris:
             podping_write = PodpingWrite(medium=medium, reason=reason, iri=iri)
-            await plexus.transmit(podping_write)
+            await podping_write_axon.transmit(podping_write)
 
         # Sleep until all items in the queue are done processing
         num_iris_processing = await podping_hivewriter.num_operations_in_queue()

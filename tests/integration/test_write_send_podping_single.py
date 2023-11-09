@@ -17,7 +17,6 @@ from podping_hivewriter.hive import get_relevant_transactions_from_blockchain
 from podping_hivewriter.models.hive_operation_id import HiveOperationId
 from podping_hivewriter.models.medium import mediums
 from podping_hivewriter.models.reason import reasons
-from podping_hivewriter.neuron import podping_hive_transaction_neuron
 from podping_hivewriter.podping_hivewriter import PodpingHivewriter
 from podping_hivewriter.podping_settings_manager import PodpingSettingsManager
 from podping_schemas.org.podcastindex.podping.hivewriter.podping_hive_transaction import (
@@ -67,8 +66,7 @@ async def test_write_send_podping_single(lighthive_client):
     ) as podping_hivewriter:
         await podping_hivewriter.wait_startup()
 
-        await podping_hivewriter.plexus.adapt(
-            podping_hive_transaction_neuron,
+        await podping_hivewriter.podping_hive_transaction_axon.react(
             reactants=(_podping_hive_transaction_reaction,),
         )
 

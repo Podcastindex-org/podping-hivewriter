@@ -7,6 +7,7 @@ from random import randint
 from typing import List
 
 import pytest
+from plexo.axon import Axon
 from plexo.plexus import Plexus
 from podping_schemas.org.podcastindex.podping.podping_medium import (
     PodpingMedium,
@@ -65,12 +66,12 @@ async def test_write_plexus_multiple_external(lighthive_client):
         await tx_queue.put(transaction)
 
     plexus = Plexus()
-
-    await plexus.adapt(
-        podping_hive_transaction_neuron,
+    podping_hive_transaction_axon = Axon(podping_hive_transaction_neuron, plexus)
+    podping_write_axon = Axon(podping_write_neuron, plexus)
+    await podping_hive_transaction_axon.react(
         reactants=(_podping_hive_transaction_reaction,),
     )
-    await plexus.adapt(podping_write_neuron)
+    await podping_write_axon.adapt()
 
     host = "127.0.0.1"
     port = 9979
@@ -94,7 +95,7 @@ async def test_write_plexus_multiple_external(lighthive_client):
 
         for iri in test_iris:
             podping_write = PodpingWrite(medium=medium, reason=reason, iri=iri)
-            await plexus.transmit(podping_write)
+            await podping_write_axon.transmit(podping_write)
 
         # Sleep until all items in the queue are done processing
         num_iris_processing = await podping_hivewriter.num_operations_in_queue()
@@ -181,8 +182,7 @@ async def test_write_plexus_internal(lighthive_client):
     ) as podping_hivewriter:
         await podping_hivewriter.wait_startup()
 
-        await podping_hivewriter.plexus.adapt(
-            podping_hive_transaction_neuron,
+        await podping_hivewriter.podping_hive_transaction_axon.react(
             reactants=(_podping_hive_transaction_reaction,),
         )
 
@@ -190,7 +190,7 @@ async def test_write_plexus_internal(lighthive_client):
 
         for iri in test_iris:
             podping_write = PodpingWrite(medium=medium, reason=reason, iri=iri)
-            await podping_hivewriter.plexus.transmit(podping_write)
+            await podping_hivewriter.podping_write_axon.transmit(podping_write)
 
         # Sleep until all items in the queue are done processing
         num_iris_processing = await podping_hivewriter.num_operations_in_queue()

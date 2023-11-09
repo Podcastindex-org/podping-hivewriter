@@ -76,8 +76,7 @@ async def test_write_send_podping_multiple(lighthive_client):
     ) as podping_hivewriter:
         await podping_hivewriter.wait_startup()
 
-        await podping_hivewriter.plexus.adapt(
-            podping_hive_transaction_neuron,
+        await podping_hivewriter.podping_hive_transaction_axon.react(
             reactants=(_podping_hive_transaction_reaction,),
         )
 

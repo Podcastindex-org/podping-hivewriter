@@ -6,6 +6,7 @@ from ipaddress import IPv4Address
 from platform import python_version as pv
 
 import pytest
+from plexo.axon import Axon
 from plexo.ganglion.tcp_pair import GanglionZmqTcpPair
 from plexo.plexus import Plexus
 
@@ -77,15 +78,16 @@ async def test_write_zmq_single(lighthive_client):
             ),
         )
         plexus = Plexus(ganglia=(tcp_pair_ganglion,))
-        await plexus.adapt(
-            podping_hive_transaction_neuron,
+        podping_write_axon = Axon(podping_write_neuron, plexus)
+        podping_hive_transaction_axon = Axon(podping_hive_transaction_neuron, plexus)
+        await podping_hive_transaction_axon.react(
             reactants=(_podping_hive_transaction_reaction,),
         )
-        await plexus.adapt(podping_write_neuron)
+        await podping_write_axon.adapt()
 
         podping_write = PodpingWrite(medium=medium, reason=reason, iri=iri)
 
-        await plexus.transmit(podping_write)
+        await podping_write_axon.transmit(podping_write)
 
         iri_found = False
 

@@ -6,6 +6,7 @@ import random
 import uuid
 from ipaddress import IPv4Address
 
+from plexo.axon import Axon
 from plexo.ganglion.tcp_pair import GanglionZmqTcpPair
 from plexo.plexus import Plexus
 from podping_schemas.org.podcastindex.podping.hivewriter.podping_hive_transaction import (
@@ -81,11 +82,12 @@ async def endless_send_loop():
         ),
     )
     plexus = Plexus(ganglia=(tcp_pair_ganglion,))
-    await plexus.adapt(
-        podping_hive_transaction_neuron,
+    podping_hive_transaction_axon = Axon(podping_hive_transaction_neuron, plexus)
+    podping_write_axon = Axon(podping_write_neuron, plexus)
+    await podping_hive_transaction_axon.react(
         reactants=(podping_hive_transaction_reaction,),
     )
-    await plexus.adapt(podping_write_neuron)
+    await podping_write_axon.adapt()
 
     start_time = timer()
     diag_time = timer()
@@ -101,7 +103,7 @@ async def endless_send_loop():
             reason: PodpingReason = random.sample(sorted(reasons), 1)[0]
             podping_write = PodpingWrite(medium=medium, reason=reason, iri=iri)
 
-            await plexus.transmit(podping_write)
+            await podping_write_axon.transmit(podping_write)
 
         metrics["iris_sent"] = metrics["iris_sent"] + 1000
 

@@ -6,7 +6,6 @@ import re
 import sys
 import uuid
 from datetime import datetime, timedelta, timezone
-from functools import partial
 from timeit import default_timer as timer
 from typing import List, Optional, Set, Tuple, Union, Dict, Iterable
 
@@ -14,6 +13,7 @@ import rfc3987
 from lighthive.client import Client
 from lighthive.datastructures import Operation
 from lighthive.exceptions import RPCNodeException
+from plexo.axon import Axon
 from plexo.ganglion.tcp_pair import GanglionZmqTcpPair
 from plexo.plexus import Plexus
 from podping_schemas.org.podcastindex.podping.podping import Podping
@@ -23,6 +23,7 @@ from podping_schemas.org.podcastindex.podping.podping_medium import (
 from podping_schemas.org.podcastindex.podping.podping_reason import (
     PodpingReason,
 )
+from returns.curry import partial
 
 from podping_hivewriter import __version__ as podping_hivewriter_version
 from podping_hivewriter.async_context import AsyncContext
@@ -157,18 +158,20 @@ class PodpingHivewriter(AsyncContext):
 
         logging.info(f"Hive account: @{self.server_account}")
 
-        await self.plexus.adapt(podping_hive_transaction_neuron)
-        await self.plexus.adapt(
-            podping_write_neuron,
+        self.podping_hive_transaction_axon = Axon(podping_hive_transaction_neuron, self.plexus)
+        self.podping_write_axon = Axon(podping_write_neuron, self.plexus)
+        self.podping_write_error_axon = Axon(podping_write_error_neuron, self.plexus)
+        await self.podping_hive_transaction_axon.adapt()
+        await self.podping_write_axon.react(
             reactants=(
                 partial(
                     self._podping_write_reactant,
-                    self.plexus,
+                    self.podping_write_error_axon,
                     self.unprocessed_iri_queue,
                 ),
             ),
         )
-        await self.plexus.adapt(podping_write_error_neuron)
+        await self.podping_write_error_axon.adapt()
 
         if self.zmq_service:
             tcp_pair_ganglion = GanglionZmqTcpPair(
@@ -192,7 +195,7 @@ class PodpingHivewriter(AsyncContext):
                 )
             )
         self._add_task(
-            asyncio.create_task(self._iri_batch_handler_loop(self.iri_batch_queue))
+            asyncio.create_task(self._iri_batch_handler_loop(self.podping_hive_transaction_axon, self.iri_batch_queue))
         )
         self._add_task(
             asyncio.create_task(
@@ -309,6 +312,7 @@ class PodpingHivewriter(AsyncContext):
 
     async def _iri_batch_handler_loop(
         self,
+        podping_hive_transaction_axon: Axon[PodpingHiveTransaction],
         iri_batch_queue: "asyncio.Queue[IRIBatch]",
     ):
         """Opens and watches a queue and sends notifications to Hive one by one"""
@@ -368,7 +372,7 @@ class PodpingHivewriter(AsyncContext):
                             f"last_node: {last_node}"
                         )
 
-                        await self.plexus.transmit(
+                        await podping_hive_transaction_axon.transmit(
                             PodpingHiveTransaction(
                                 podpings=podpings,
                                 hiveTxId=response.hive_tx_id,
@@ -540,7 +544,7 @@ class PodpingHivewriter(AsyncContext):
 
     @staticmethod
     async def _podping_write_reactant(
-        plexus: Plexus,
+        podping_write_error_axon: Axon[PodpingWriteError],
         unprocessed_iri_queue: "asyncio.Queue[PodpingWrite]",
         podping_write: PodpingWrite,
         _,
@@ -553,7 +557,7 @@ class PodpingHivewriter(AsyncContext):
                 podpingWrite=podping_write,
                 errorType=PodpingWriteErrorType.invalidIri,
             )
-            await plexus.transmit(podping_write_error)
+            await podping_write_error_axon.transmit(podping_write_error)
 
     async def send_podping(
         self,
@@ -567,7 +571,7 @@ class PodpingHivewriter(AsyncContext):
             iri=iri,
         )
 
-        await self.plexus.transmit(podping_write)
+        await self.podping_write_axon.transmit(podping_write)
 
     async def num_operations_in_queue(self) -> int:
         return (
