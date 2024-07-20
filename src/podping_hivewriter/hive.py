@@ -42,11 +42,15 @@ def get_client(
             nodes = [
                 "https://api.hive.blog",
                 "https://api.deathwing.me",
+                "https://api.openhive.network",
                 "https://anyx.io",
-                "https://rpc.ecency.com",
-                "https://hived.emre.sh",
-                "https://rpc.ausbit.dev",
                 "https://rpc.podping.org",
+                "https://hive-api.arcange.eu",
+                "https://rpc.mahdiyari.info",
+                # Below nodes not functioning as of 2024-07-19
+                # "https://rpc.ecency.com",
+                # "https://hived.emre.sh",
+                # "https://rpc.ausbit.dev",
             ]
             shuffle(nodes)
         client = Client(
