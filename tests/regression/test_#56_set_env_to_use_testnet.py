@@ -29,9 +29,9 @@ async def test_use_testnet_startup_checks_and_write_cli_single():
 
     os.environ["PODPING_TESTNET"] = "true"
     os.environ["PODPING_TESTNET_NODE"] = "https://api.fake.openhive.network"
-    os.environ[
-        "PODPING_TESTNET_CHAINID"
-    ] = "4200000000000000000000000000000000000000000000000000000000000000"
+    os.environ["PODPING_TESTNET_CHAINID"] = (
+        "4200000000000000000000000000000000000000000000000000000000000000"
+    )
 
     lighthive_client = get_client()
     try:
