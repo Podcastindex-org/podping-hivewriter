@@ -8,18 +8,18 @@ $ podping [OPTIONS] COMMAND [ARGS]...
 
 **Options**:
 
-* `--medium TEXT`: The medium of the feed being updated. If used in combination with the 'server', this sets the default medium only. Must be one of the following: mixed podcast podcastL music musicL video videoL film filmL audiobook audiobookL newsletter newsletterL blog blogL  [env var: PODPING_MEDIUM; default: podcast]
+* `--medium TEXT`: The medium of the feed being updated. If used in combination with the 'server', this sets the default medium only. Must be one of the following: newsletterL publisher course audiobook blog filmL film newsletter podcastL courseL videoL musicL audiobookL publisherL blogL music podcast mixed video  [env var: PODPING_MEDIUM; default: podcast]
 * `--reason TEXT`: The reason the feed is being updated. If used in combination with the 'server', this sets the default reason only. Must be one of the following: update live liveEnd  [env var: PODPING_REASON; default: update]
 * `--hive-account TEXT`: Hive account used to post  [env var: PODPING_HIVE_ACCOUNT, HIVE_ACCOUNT, HIVE_SERVER_ACCOUNT; required]
 * `--hive-posting-key TEXT`: Hive account used to post  [env var: PODPING_HIVE_POSTING_KEY, HIVE_POSTING_KEY; required]
-* `--sanity-check / --no-sanity-check`: By default, podping will test for available resources and the ability to post to the Hive chain on the given hive account at startup by posting startup information. Disabling this will result in a faster startup, time, but may result in unexpected errors.  [env var: PODPING_SANITY_CHECK; default: True]
-* `--livetest / --no-livetest`: Use live Hive chain but write with id=podping-livetest. Enable this if you want to validate posting to Hive without notifying podping watchers. Used internally for end-to-end tests.  [env var: PODPING_LIVETEST; default: False]
-* `--dry-run / --no-dry-run`: Run through all posting logic without posting to the chain.  [env var: PODPING_DRY_RUN; default: False]
-* `--status / --no-status`: Periodically prints a status message. Runs every diagnostic_report_period defined in podping_settings  [env var: PODPING_STATUS; default: True]
+* `--sanity-check / --no-sanity-check`: By default, podping will test for available resources and the ability to post to the Hive chain on the given hive account at startup by posting startup information. Disabling this will result in a faster startup, time, but may result in unexpected errors.  [env var: PODPING_SANITY_CHECK; default: sanity-check]
+* `--livetest / --no-livetest`: Use live Hive chain but write with id=podping-livetest. Enable this if you want to validate posting to Hive without notifying podping watchers. Used internally for end-to-end tests.  [env var: PODPING_LIVETEST; default: no-livetest]
+* `--dry-run / --no-dry-run`: Run through all posting logic without posting to the chain.  [env var: PODPING_DRY_RUN; default: no-dry-run]
+* `--status / --no-status`: Periodically prints a status message. Runs every diagnostic_report_period defined in podping_settings  [env var: PODPING_STATUS; default: status]
 * `--hive-operation-period INTEGER`: By default the Hivewriter will wait a few seconds gathering IRIs before sending the next batch. This balances resource usage against speed. If this is set here, the setting will override any settings sent by a config update.  [env var: PODPING_HIVE_OPERATION_PERIOD; default: 3]
-* `--ignore-config-updates / --no-ignore-config-updates`: By default, podping will periodically pull new settings from the configured Hive control account, allowing real time updates to adapt to changes in the Hive network. This lets you ignore these updates if needed.  [env var: PODPING_IGNORE_CONFIG_UPDATES; default: False]
-* `--i-know-what-im-doing`: Set this if you really want to listen on all interfaces.  [env var: PODPING_I_KNOW_WHAT_IM_DOING; default: False]
-* `--debug / --no-debug`: Print debug log messages  [env var: PODPING_DEBUG; default: False]
+* `--ignore-config-updates / --no-ignore-config-updates`: By default, podping will periodically pull new settings from the configured Hive control account, allowing real time updates to adapt to changes in the Hive network. This lets you ignore these updates if needed.  [env var: PODPING_IGNORE_CONFIG_UPDATES; default: no-ignore-config-updates]
+* `--i-know-what-im-doing`: Set this if you really want to listen on all interfaces.  [env var: PODPING_I_KNOW_WHAT_IM_DOING]
+* `--debug / --no-debug`: Print debug log messages  [env var: PODPING_DEBUG; default: no-debug]
 * `--version`
 * `--install-completion`: Install completion for the current shell.
 * `--show-completion`: Show completion for the current shell, to copy it or customize the installation.
@@ -28,7 +28,7 @@ $ podping [OPTIONS] COMMAND [ARGS]...
 **Commands**:
 
 * `server`: Run a Podping server.
-* `write`: Write one or more IRIs to the Hive blockchain...
+* `write`: Write one or more IRIs to the Hive...
 
 ## `podping server`
 
