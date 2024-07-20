@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "podping-hivewriter"
-version = "2.0.0"
+version = "2.1.0"
 license = "MIT"
 authors = ["Alecks Gates <agates@mail.agates.io>", "Brian of London <brian@podping.org>"]
 maintainers = ["Alecks Gates <agates@mail.agates.io>", "Brian of London <brian@podping.org>"]
