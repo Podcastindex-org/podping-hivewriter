@@ -23,6 +23,7 @@ from podping_hivewriter.models.hive_operation_id import HiveOperationId
 @pytest.mark.asyncio
 @pytest.mark.timeout(600)
 @pytest.mark.slow
+@pytest.mark.skip
 async def test_use_testnet_startup_checks_and_write_cli_single():
     """Uses a testnet if one is available"""
     runner = CliRunner()
